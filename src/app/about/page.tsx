@@ -5,16 +5,17 @@ import React from 'react';
 import { Home, Github, Linkedin, Mail, Brain } from 'lucide-react';
 import styles from '../../styles/about.module.css';
 
+//I don't think we should have this page it doesn't benefit the product at all.  
 const teamMembers = [
     {
         id: 1,
         name: 'Richard Zhou',
-        role: 'Whatever you are ',
-        description: 'Full-stack developer with expertise in AI integration and document processing systems. Leads the technical development of DocuMind AI.',
+        role: 'Founder and CEO',
+        description: 'Director overseeing full-stack development with a focus on AI integration and document processing systems. Leads the strategic and technical development of PDR AI.',
         image: '/api/placeholder/400/400',
-        email: 'sarah.chen@documind.ai',
-        github: 'sarahchen',
-        linkedin: 'sarahchen'
+        email: 'richardzhou1688@gmail.com',
+        github: 'https://github.com/DuckyCodes',
+        linkedin: 'https://www.linkedin.com/in/richard-zhou-22ab60249/'
     },
     {
         id: 2,
