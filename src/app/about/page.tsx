@@ -5,6 +5,7 @@ import React from 'react';
 import { Home, Github, Linkedin, Mail, Brain } from 'lucide-react';
 import styles from '../../styles/about.module.css';
 
+//I don't think we should have this page it doesn't benefit the product at all.  
 const teamMembers = [
     {
         id: 1,
