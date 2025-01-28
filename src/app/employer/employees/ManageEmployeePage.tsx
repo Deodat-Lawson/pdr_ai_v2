@@ -85,13 +85,17 @@ const ManageEmployeesPage: React.FC = () => {
 
     const loadEmployees = async () => {
         try {
-            const res = await fetch("/api/getAllEmployees", {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ userId }),
+            const res = await fetch(`/api/getAllEmployees?userId=${userId}`, {
+                method: "GET",
             });
 
-            const data: Employee[] = await res.json();
+            if (!res.ok) {
+                console.error("Error loading employees:", res.statusText);
+                return;
+            }
+            const rawData:unknown = await res.json();
+
+            const data: Employee[] = rawData as Employee[];
 
             // Separate approved from pending
             const approved = data.filter((emp) => emp.status === "verified");
