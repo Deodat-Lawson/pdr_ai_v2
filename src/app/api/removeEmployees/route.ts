@@ -4,25 +4,25 @@ import { users } from "../../../server/db/schema";
 import { eq } from "drizzle-orm";
 import * as console from "console";
 
-type PostBody = {
+type DeleteBody = {
     employeeId: string;
-}
+};
 
-export async function POST(request: Request) {
+export async function DELETE(request: Request) {
     try {
-        const { employeeId } = (await request.json()) as PostBody;
+        // Parse the JSON body from the DELETE request
+        const { employeeId } = (await request.json()) as DeleteBody;
 
-        console.log(employeeId);
+        console.log("Employee ID to delete:", employeeId);
+
         await db.delete(users).where(eq(users.id, Number(employeeId)));
 
-        // Return as JSON
-        return NextResponse.json( { status: 200 });
+        return NextResponse.json({ status: 200 });
     } catch (error: unknown) {
-        console.error("Error fetching documents:", error);
+        console.error("Error deleting employee:", error);
         return NextResponse.json(
-            { error: "Unable to fetch documents" },
+            { error: "Unable to delete employee" },
             { status: 500 }
         );
     }
 }
-

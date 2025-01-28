@@ -151,7 +151,7 @@ const SettingsPage = () => {
         setIsSaving(true);
         try {
             const response = await fetch("/api/updateCompany", {
-                method: "POST",
+                method: "PUT",
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({
                     userId,

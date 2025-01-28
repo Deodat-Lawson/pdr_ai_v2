@@ -47,6 +47,8 @@ export async function POST(request: Request) {
             role: "employer",
         });
 
+        return NextResponse.json({ success: true });
+
     }
     catch (error: unknown) {
         console.error(error);
