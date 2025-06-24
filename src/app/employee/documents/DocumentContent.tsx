@@ -5,6 +5,7 @@ import React from "react";
 import {Brain, Clock} from "lucide-react";
 import styles from "~/styles/Employee/DocumentViewer.module.css";
 import { ViewMode } from "./types";
+import { SYSTEM_PROMPTS } from "./page";
 
 import QAHistory, { QAHistoryEntry } from "~/app/employer/documents/ChatHistory";
 
@@ -29,6 +30,9 @@ interface DocumentContentProps {
     pdfPageNumber: number;
     setPdfPageNumber: React.Dispatch<React.SetStateAction<number>>;
     qaHistory: QAHistoryEntry[]; // <-- Provide the Q&A history
+    aiStyle: string;
+    setAiStyle: React.Dispatch<React.SetStateAction<keyof typeof SYSTEM_PROMPTS>>;
+    styleOptions: Record<string, string>;
 }
 
 export const DocumentContent: React.FC<DocumentContentProps> = ({
@@ -44,6 +48,9 @@ export const DocumentContent: React.FC<DocumentContentProps> = ({
                                                                     pdfPageNumber,
                                                                     setPdfPageNumber,
                                                                     qaHistory,
+                                                                    aiStyle,
+                                                                    setAiStyle,
+                                                                    styleOptions,
                                                                 }) => {
     // Helper to display PDF at a certain page
     const pdfSrcWithPage = (baseUrl: string, pageNumber: number) => {
@@ -74,17 +81,31 @@ export const DocumentContent: React.FC<DocumentContentProps> = ({
                         <h2 className={styles.summaryTitle}>AI Q&A</h2>
                     </div>
 
-                    <form onSubmit={handleAiSearch} className="flex flex-col space-y-2">
+                    <form onSubmit={handleAiSearch} className="flex flex-col space-y-3">
+                        <div className="flex flex-col space-y-2">
+                            <label className="text-sm font-medium text-gray-700">Response Style:</label>
+                            <select
+                                value={aiStyle}
+                                onChange={(e) => setAiStyle(e.target.value as keyof typeof SYSTEM_PROMPTS)}
+                                className="border border-gray-300 rounded p-2 w-full focus:ring-2 focus:ring-purple-500 focus:border-purple-500"
+                            >
+                                {Object.entries(styleOptions).map(([key, label]) => (
+                                    <option key={key} value={key}>
+                                        {label}
+                                    </option>
+                                ))}
+                            </select>
+                        </div>
                         <input
                             type="text"
                             placeholder="Ask a question about your documents..."
                             value={aiQuestion}
                             onChange={(e) => setAiQuestion(e.target.value)}
-                            className="border border-gray-300 rounded p-2 w-full"
+                            className="border border-gray-300 rounded p-2 w-full focus:ring-2 focus:ring-purple-500 focus:border-purple-500"
                         />
                         <button
                             type="submit"
-                            className="bg-purple-600 text-white px-4 py-2 rounded hover:bg-purple-700 focus:outline-none"
+                            className="bg-purple-600 text-white px-4 py-2 rounded hover:bg-purple-700 focus:outline-none focus:ring-2 focus:ring-purple-500 transition-colors"
                         >
                             {aiLoading ? "Asking AI..." : "Ask AI"}
                         </button>
