@@ -16,6 +16,13 @@ import { DocumentContent } from "./DocumentContent";
 import {QAHistoryEntry} from "~/app/employer/documents/ChatHistory";
 import {ViewMode} from "~/app/employee/documents/types";
 
+export const SYSTEM_PROMPTS = {
+    concise: "Concise & Direct",
+    detailed: "Detailed & Comprehensive", 
+    academic: "Academic & Analytical",
+    'bullet-points': "Organized Bullet Points"
+} as const;
+
 interface DocumentType {
     id: number;
     title: string;
@@ -76,6 +83,7 @@ const DocumentViewer: React.FC = () => {
     const [aiError, setAiError] = useState("");
     const [aiLoading, setAiLoading] = useState(false);
     const [referencePages, setReferencePages] = useState<number[]>([]);
+    const [aiStyle, setAiStyle] = useState<keyof typeof SYSTEM_PROMPTS>("concise");
 
     // PDF page states
     const [pdfPageNumber, setPdfPageNumber] = useState<number>(1);
@@ -240,6 +248,7 @@ const DocumentViewer: React.FC = () => {
                     body: JSON.stringify({
                         documentId: selectedDoc?.id,
                         question: aiQuestion,
+                        style: aiStyle,
                     }),
                 },
                 5
@@ -346,6 +355,9 @@ const DocumentViewer: React.FC = () => {
                     pdfPageNumber={pdfPageNumber}
                     setPdfPageNumber={setPdfPageNumber}
                     qaHistory={qaHistory}
+                    aiStyle={aiStyle}
+                    setAiStyle={setAiStyle} 
+                    styleOptions={SYSTEM_PROMPTS}
                 />
             </main>
         </div>

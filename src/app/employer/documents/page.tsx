@@ -18,6 +18,13 @@ import {ViewMode} from "~/app/employer/documents/types";
 // Import the same QAHistoryEntry interface (or define it here if you like)
 import { QAHistoryEntry } from "./ChatHistory";
 
+ export const SYSTEM_PROMPTS = {
+    concise: "Concise & Direct",
+    detailed: "Detailed & Comprehensive", 
+    academic: "Academic & Analytical",
+    'bullet-points': "Organized Bullet Points"
+} as const;
+
 /** Some example or type definitions */
 interface DocumentType {
     id: number;
@@ -81,6 +88,7 @@ const DocumentViewer: React.FC = () => {
     const [aiError, setAiError] = useState("");
     const [aiLoading, setAiLoading] = useState(false);
     const [referencePages, setReferencePages] = useState<number[]>([]);
+    const [aiStyle, setAiStyle] = useState<keyof typeof SYSTEM_PROMPTS>("concise");
 
     // PDF page state
     const [pdfPageNumber, setPdfPageNumber] = useState<number>(1);
@@ -245,6 +253,7 @@ const DocumentViewer: React.FC = () => {
                     body: JSON.stringify({
                         documentId: selectedDoc?.id,
                         question: aiQuestion,
+                        style: aiStyle,
                     }),
                 },
                 5 // up to 5 retries if it times out
@@ -348,6 +357,9 @@ const DocumentViewer: React.FC = () => {
                     pdfPageNumber={pdfPageNumber}
                     setPdfPageNumber={setPdfPageNumber}
                     qaHistory={qaHistory} // Pass the Q&A history here!
+                    aiStyle={aiStyle}
+                    setAiStyle={setAiStyle}
+                    styleOptions={SYSTEM_PROMPTS}
                 />
             </main>
         </div>
