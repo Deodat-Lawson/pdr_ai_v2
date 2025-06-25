@@ -12,19 +12,9 @@ import { Document } from "@langchain/core/documents";
 import { z } from "zod";
 import { TavilySearchAPIRetriever } from "@langchain/community/retrievers/tavily_search_api";
 
-
-
-// Define the tools for the agent to use
-const agentTools = [new TavilySearchResults({ maxResults: 3 })];
-
-
-
-
+const agentTools = [new TavilySearchResults({ maxResults: 5 })];
 const agentModel = new ChatOpenAI({ temperature: 0 });
 
-console.log("Opened agent");
-
-// Initialize memory to persist state between graph runs
 const agentCheckpointer = new MemorySaver();
 const agent = createReactAgent({
   llm: agentModel,
@@ -32,314 +22,212 @@ const agent = createReactAgent({
   checkpointSaver: agentCheckpointer,
 });
 
+// Define schemas for structured outputs
+const RepairGuideSchema = z.object({
+  title: z.string().describe("Title of the repair guide"),
+  url: z.string().describe("URL of the repair guide"),
+  summary: z.string().describe("Brief summary of what the guide covers"),
+  difficulty: z.enum(["Beginner", "Intermediate", "Advanced", "Unknown"]).describe("Difficulty level of the repair"),
+  estimatedTime: z.string().optional().describe("Estimated time to complete the repair")
+});
 
-const fetchMenu = tool(
-    async ({ restaurant, location }: { restaurant: string; location: string }) => {
-      const retriever = new TavilySearchAPIRetriever({ k: 3 });
-      // Exclude Yelp, TripAdvisor, Facebook
-      const query = `menu page for ${restaurant} at ${location}`;
+const RepairGuidesArraySchema = z.array(RepairGuideSchema).describe("Array of repair guides found for the device");
 
-  
-      const docsWithMetadata = await retriever.getRelevantDocuments(query);
-      if (!docsWithMetadata?.length) {
-        throw new Error(`No valid menu page URL found for ${restaurant} in ${location}.`);
-      }
+const StructuredRepairGuidesOutputSchema = z.object({
+  repairGuides: RepairGuidesArraySchema.describe("The list of relevant repair guides")
+});
 
+const searchRepairGuides = tool(
+  async ({ deviceName, issueType }: { deviceName: string; issueType?: string }) => {
+    const retriever = new TavilySearchAPIRetriever({ k: 10 });
+    
+    // Construct search query with repair-specific terms
+    let query = `${deviceName} repair guide tutorial how to fix`;
+    if (issueType) {
+      query += ` ${issueType}`;
+    }
+    
+    // Add terms to find quality repair resources
+    query += ` site:ifixit.com OR site:youtube.com OR site:instructables.com OR repair manual`;
 
-  
-      // Filter out any unwanted domains
-    //   const filtered = docsWithMetadata.filter(doc => {
-    //     const url = doc.metadata.source as string;
-    //     return !/(yelp\.com|tripadvisor\.com|facebook\.com)/.test(url);
-    //   });
-  
+    console.log("Searching for:", query);
 
+    const docsWithMetadata = await retriever.getRelevantDocuments(query);
+    if (!docsWithMetadata?.length) {
+      throw new Error(`No repair guides found for ${deviceName}${issueType ? ` with issue: ${issueType}` : ''}.`);
+    }
 
+    // Filter and rank the results
+    const repairSites = await filterRepairSites.invoke({ 
+      links: docsWithMetadata.map(doc => ({
+        url: doc.metadata.source as string,
+        title: doc.metadata.title as string || "Unknown Title",
+        snippet: doc.pageContent
+      }))
+    });
 
-      // Pick the first "clean" result, or fall back to the very first if none remain
+    return repairSites;
+  },
+  {
+    name: "search_repair_guides",
+    description: "Searches for repair guides and documentation for a specific device",
+    schema: z.object({
+      deviceName: z.string().describe("The name/model of the device to repair"),
+      issueType: z.string().optional().describe("Specific issue or repair type (optional)"),
+    }),
+  }
+);
 
-      // console.log("Docs with metadata:", docsWithMetadata);
+const filterRepairSites = tool(
+  async ({ links }: { links: Array<{ url: string; title: string; snippet: string }> }) => {
+    const llm = new ChatOpenAI({ temperature: 0 });
+    const structuredLlm = llm.withStructuredOutput(StructuredRepairGuidesOutputSchema);
+    
+    const prompt = `
+    You are a repair guide curator. I will give you a list of URLs, titles, and snippets related to device repair.
+    Your job is to:
+    1. Filter out low-quality sources (spam, unrelated content, broken links)
+    2. Prioritize high-quality repair resources like iFixit, manufacturer manuals, detailed YouTube tutorials, etc.
+    3. Extract relevant information for each guide including title, URL, summary, difficulty level, and estimated time
+    4. Return a structured list of the best repair guides
 
-      const officialWebsite = await findOfficialWebsite.invoke({ links: docsWithMetadata.map(doc => doc.metadata.source as string) });
-      console.log("Official website:", officialWebsite);
-      const menuUrl = officialWebsite;
-  
-      console.log("Using menu URL:", menuUrl);
+    Prioritize sources in this order:
+    1. Official manufacturer repair guides
+    2. iFixit guides
+    3. Detailed YouTube repair tutorials
+    4. Instructables or similar DIY sites
+    5. Reputable tech repair websites
+    6. Community forums with detailed solutions
 
-      // Export/Download the menuUrl to a pdf/image, and process it in Langchain. 
-  
-      const loader = new CheerioWebBaseLoader(menuUrl);
+    For each guide, provide:
+    - title: Clear, descriptive title
+    - url: The direct URL
+    - summary: 2-3 sentence summary of what the guide covers
+    - difficulty: Beginner/Intermediate/Advanced/Unknown based on the content
+    - estimatedTime: If mentioned in the content (optional)
+
+    Here are the links to evaluate:
+    ${links.map((link, i) => `
+    ${i + 1}. URL: ${link.url}
+       Title: ${link.title}
+       Snippet: ${link.snippet}
+    `).join('\n')}
+
+    Return the top 5-8 most relevant and high-quality repair guides.
+    `;
+    
+    const output = await structuredLlm.invoke([{ role: 'user', content: prompt }]);
+    return output.repairGuides;
+  },
+  {
+    name: "filter_repair_sites",
+    description: "Filters and ranks repair guide URLs based on quality and relevance",
+    schema: z.object({
+      links: z.array(z.object({
+        url: z.string(),
+        title: z.string(),
+        snippet: z.string()
+      })).describe("Array of link objects with URL, title, and snippet"),
+    }),
+  }
+);
+
+const getDetailedGuideInfo = tool(
+  async ({ url }: { url: string }) => {
+    try {
+      const loader = new CheerioWebBaseLoader(url);
       const loadedDocs = await loader.load();
-  
-      // Condense HTML and remove extra whitespace
-      const condensedMenu = loadedDocs
+      
+      const content = loadedDocs
         .map(d => d.pageContent.replace(/\s{2,}/g, ' ').trim())
         .join('\n');
-  
-      return condensedMenu;
-    },
-    {
-      name: "fetch_menu",
-      description: "Fetches the restaurant's official menu page HTML and returns raw text",
-      schema: z.object({
-        restaurant: z.string().describe("The restaurant name"),
-        location:   z.string().describe("The restaurant location"),
-      }),
-    }
-  );
 
-
-
-const findOfficialWebsite = tool(
-    async ({ links }: { links: string[] }) => {
+      // Extract key information from the guide content
       const llm = new ChatOpenAI({ temperature: 0 });
       const prompt = `
-      I will give you a list of URLs related to a restaurant. Your job is to:
-      1. Filter out any URLs not on the restaurant’s own domain (ignore Yelp, TripAdvisor, Facebook, etc.).
-      2. From the remaining URLs, select the one whose path clearly indicates it’s the menu or ordering page (e.g. contains “/menu”, “/order”, “/menu.html”, etc.).
-      3. If no specific menu/order URL is found, return the restaurant’s homepage URL.
-      Return exactly one URL—nothing else.
+      Analyze this repair guide content and extract key information:
       
-      Example 1:
-      Links:
-      https://www.yelp.com/biz/chipotle-mexican-grill-baltimore-2  
-      https://www.tripadvisor.com/Restaurant_Review-g34515-d148318-Reviews-Chipotle-Baltimore_Maryland.html  
-      https://www.facebook.com/ChipotleTaco/  
-      https://www.chipotle.com/menu  
+      ${content.substring(0, 3000)} // Limit content length
       
-      Return the official menu/order URL:  
-      https://www.chipotle.com/menu
+      Provide a detailed summary including:
+      1. What specific repair/issue this guide addresses
+      2. Required tools and parts
+      3. Key steps overview
+      4. Any warnings or important notes
+      5. Difficulty assessment
       
-      Example 2:
-      Links:
-      https://www.yelp.com/search?find_desc=Good+Fortune&find_loc=Baltimore%2C+MD  
-      https://www.laoszechuanbaltimore.com/order 
+      Keep the response concise but informative (3-4 sentences max).
+      `;
       
-      Return the official URL (no menu/order path available):  
-      https://www.laoszechuanbaltimore.com/order
-      
-      Example 3:
-      Links:
-      https://goodfood.com/  
-      https://goodfood.com/order-online  
-      https://goodfood.com/reservations  
-      
-      Return the official menu/order URL:  
-      https://goodfood.com/order-online
-      
-      Example 4:
-      Links:
-      https://spicytacos.com/Menu  
-      https://spicytacos.com/contact  
-      
-      Return the official menu/order URL:  
-      https://spicytacos.com/Menu
-      
-      Example 5:
-      Links:
-      https://noodlehouse.example.org  
-      https://yelp.com/biz/noodle-house-city  
-      https://noodlehouse.example.org/menu.aspx?lang=en  
-      
-      Return the official menu/order URL:  
-      https://noodlehouse.example.org/menu.aspx?lang=en
-      
-      Here are the links:
-      ${links}
-      `.trim();
-      
-      const output = await llm.invoke([{ role: 'user', content: prompt }]);
-      return output.content;
-    },
-    {
-      name: "find_official_website",
-      description: "Finds the official website of the restaurant",
-      schema: z.object({
-        links: z.array(z.string()).describe("A list of links of websites that are related to the restaurant."),
-      }),
+      const summary = await llm.invoke([{ role: 'user', content: prompt }]);
+      return summary.content;
+    } catch (error) {
+      console.error("Error fetching detailed guide info:", error);
+      return "Unable to fetch detailed information from this guide.";
     }
-)
-  
+  },
+  {
+    name: "get_detailed_guide_info",
+    description: "Fetches detailed information from a specific repair guide URL",
+    schema: z.object({
+      url: z.string().describe("The URL of the repair guide to analyze"),
+    }),
+  }
+);
 
-// Define Zod schema for the output of parseMenu
-// Renamed from MenuItemsSchema to MenuItemsArraySchema
-const MenuItemsArraySchema = z.array(z.string()).describe("A list of menu item names extracted from the menu text.");
-// New object schema for structured output
-const StructuredMenuItemsOutputSchema = z.object({
-  menuItems: MenuItemsArraySchema.describe("The extracted list of menu items.")
-});
-
-const parseMenu = tool(
-    async ({ menu }: { menu: string }) => {
-      const llm = new ChatOpenAI({ temperature: 0 });
-      // Use the new object schema for structured output
-      const structuredLlm = llm.withStructuredOutput(StructuredMenuItemsOutputSchema);
-      //use few shot examples
-      const prompt = 
-        `You are a JSON‐extraction assistant. You'll be shown a restaurant menu and must return a JSON array of all menu item names.
-
-        Example 1:
-        Menu text:
-        ---
-        Appetizers
-        • Spring Rolls – Crispy vegetable rolls served with sweet chili
-        • Edamame – Steamed soybeans with sea salt
-        Entrées
-        • Pad Thai – Rice noodles with peanuts, egg, and tofu
-        ---
-
-        Assistant's reasoning:
-        1. Identify "Spring Rolls" (ignore "– Crispy vegetable…").  
-        2. Identify "Edamame" (ignore description).  
-        3. Identify "Pad Thai".  
-        Final output:
-        ["Spring Rolls","Edamame","Pad Thai"]
-
-        Example 2:
-        Menu text:
-        ---
-        Starters:
-        1. Garlic Bread: Toasted baguette slices with garlic butter
-        2. Bruschetta: Tomato, basil, garlic on grilled bread
-        Main Courses:
-        - Margherita Pizza (tomato, fresh mozzarella, basil)
-        ---
-
-        Assistant's reasoning:
-        1. "Garlic Bread" from "1. Garlic Bread: …".  
-        2. "Bruschetta" from "2. Bruschetta: …".  
-        3. "Margherita Pizza".  
-        Final output:
-        ["Garlic Bread","Bruschetta","Margherita Pizza"]
-
-        Now it's your turn. Follow these steps:
-
-        **1.** Read the menu text below.  
-        **2.** Independently generate THREE separate chains of thought ("Chain 1","Chain 2","Chain 3"), each listing step‐by‐step how you extract items.  
-        **3.** After each chain, give a "Result" array.  
-        **4.** Finally, compare the three Result arrays and output the most consistent JSON array (i.e. the list of items that appears in at least two of your three chains).
-
-        Output _only_ that final JSON array of strings—nothing else.
-
-        Menu text:
-        ${menu}
-
-        Do not answer anything else not in the urls provided.
-        ;`
-      // Extract the array from the object returned by structuredLlm
-      const output = await structuredLlm.invoke([{ role: 'user', content: prompt }]);
-      return output.menuItems;
-    },
-    {
-      name: "parse_menu",
-      description: "Parses menu text and returns a list of item names",
-      schema: z.object({
-        menu: z.string().describe("The raw menu text content"),
-      }),
-    }
-  );
-  
-
-
-// Define Zod schema for the output of parseIngredients
-// Renamed from IngredientsSchema to IngredientsArraySchema
-const IngredientsArraySchema = z.array(z.string()).describe("A list of ingredients for a specific menu item.");
-// New object schema for structured output
-const StructuredIngredientsOutputSchema = z.object({
-  ingredients: IngredientsArraySchema.describe("The extracted list of ingredients.")
-});
-
-  const parseIngredients = tool(
-    async ({ menu, item }: { menu: string; item: string }) => {
-      const llm = new ChatOpenAI({ temperature: 0 });
-      // Use the new object schema for structured output
-      const structuredLlm = llm.withStructuredOutput(StructuredIngredientsOutputSchema);
-      const prompt = `From the following menu text:
-
-        ${menu}
-
-        Extract a JSON array of ingredient strings for the menu item "${item}". Use your best judgment to infer possible ingredients and return them as a list. If you cannot reasonably infer any ingredients, return an empty array.
-
-        Example:
-        Menu Text:
-        ---
-        Cheeseburger - Beef patty, cheddar cheese, lettuce, tomato, onion, special sauce, on a sesame seed bun.
-        Fries - Crispy potato fries.
-        Soda - A refreshing carbonated beverage.
-        ---
-        Menu Item: "Cheeseburger"
-        Output: ["Beef patty", "cheddar cheese", "lettuce", "tomato", "onion", "special sauce", "sesame seed bun"]
-
-        Menu Item: "Fries"
-        Output: ["potato"]
-
-        Menu Item: "Soda"
-        Output: ["carbonated water", "sweetener", "flavoring"]
-
-        Menu Item: "Milkshake"
-        Output: ["milk", "sugar"]
-        ---
-
-        Now, for the provided menu and item:
-        Menu text:
-        ${menu}
-
-        Menu Item: "${item}"
-
-        Return _only_ the JSON array of ingredient strings.
-        ;`
-      // Extract the array from the object returned by structuredLlm
-      const output = await structuredLlm.invoke([{ role: 'user', content: prompt }]);
-      return output.ingredients;
-    },
-    {
-      name: "parse_ingredients",
-      description: "Extracts ingredients for a given menu item and returns them as a list of strings.",
-      schema: z.object({
-        menu: z.string().describe("The raw menu text"),
-        item: z.string().describe("The menu item name"),
-      }),
-    }
-  );  
-
-const restaurant = "Chipotle";
-const location = "3201 St Paul St, Baltimore, MD 21218";
-
-const restaurant2 = "Tamber's Restaurant";
-const location2 = "3327 St Paul St, Baltimore, MD 21218";
-
-const restaurant3 = "Lao Sze Chuan";
-const location3 = "3224 St Paul St, Baltimore, MD 21218";
-
-
-// Wrap execution in an async function to avoid top-level await
-async function runAgent() {
+// Example usage function
+async function findRepairGuides(deviceName: string, issueType?: string) {
   try {
-    // Now it's time to use!
-
-    const rawMenu = await fetchMenu.invoke({ restaurant: restaurant, location: location });
-    // console.log("Raw menu:", rawMenu);
+    console.log(`\n🔧 Searching for repair guides for: ${deviceName}${issueType ? ` (${issueType})` : ''}`);
     
-    // parseMenu now directly returns string[]
-    const menuItems: string[] = await parseMenu.invoke({ menu: rawMenu });
+    // Search for repair guides
+    const repairGuides = await searchRepairGuides.invoke({ 
+      deviceName: deviceName, 
+      issueType: issueType 
+    });
 
-    console.log("Menu items:", menuItems);
+    console.log(`\n📋 Found ${repairGuides.length} repair guides:\n`);
 
-    if (menuItems.length > 0) {
-      // parseIngredients now directly returns string[]
-      const ingredients: string[] = await parseIngredients.invoke({ menu: rawMenu, item: menuItems[0] });
-
-      menuItems.map(async (item) => {
-        // console.log("Ingredients for ", item, ":", await parseIngredients.invoke({ menu: rawMenu, item: item }));
-      });
-    } else {
-      // console.log("No menu items found to parse ingredients for.");
+    // Display results
+    for (let i = 0; i < repairGuides.length; i++) {
+      const guide = repairGuides[i];
+      console.log(`${i + 1}. ${guide.title}`);
+      console.log(`   🔗 URL: ${guide.url}`);
+      console.log(`   📝 Summary: ${guide.summary}`);
+      console.log(`   📊 Difficulty: ${guide.difficulty}`);
+      if (guide.estimatedTime) {
+        console.log(`   ⏱️ Estimated Time: ${guide.estimatedTime}`);
+      }
+      console.log('');
     }
+
+    // Optionally get detailed info for the first guide
+    if (repairGuides.length > 0) {
+      console.log("🔍 Getting detailed information for the top guide...\n");
+      const detailedInfo = await getDetailedGuideInfo.invoke({ url: repairGuides[0].url });
+      console.log("📖 Detailed Guide Information:");
+      console.log(detailedInfo);
+    }
+
+    return repairGuides;
 
   } catch (error) {
-    console.error("Error running agent:", error);
+    console.error("Error finding repair guides:", error);
+    return [];
   }
 }
 
+// Example usage
+async function runRepairAgent() {
+  // Example 1: iPhone screen repair
+  await findRepairGuides("iPhone 14", "screen replacement");
+  
+  // Example 2: General laptop repair
+  await findRepairGuides("MacBook Pro 2020", "keyboard repair");
+  
+  // Example 3: Gaming console repair
+  await findRepairGuides("PlayStation 5", "overheating");
+}
+
 // Execute the function
-runAgent();
+runRepairAgent();
