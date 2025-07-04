@@ -1,7 +1,7 @@
 "use client";
 
 import React from "react";
-import { Brain, Clock } from "lucide-react";
+import { Brain, Clock, FileSearch, AlertTriangle, CheckCircle, AlertCircle } from "lucide-react";
 import styles from "~/styles/Employer/DocumentViewer.module.css";
 import { ViewMode } from "./types";
 import { SYSTEM_PROMPTS } from "./page";
@@ -17,6 +17,63 @@ interface DocumentType {
     url: string;
 }
 
+interface PredictiveAnalysisResponse {
+    success: boolean;
+    documentId: number;
+    analysisType: string;
+    summary: {
+        totalMissingDocuments: number;
+        totalReferences: number;
+        highUrgencyItems: number;
+        criticalIssues: number;
+        completenessScore: number;
+        analysisTimestamp: string;
+    };
+    analysis: {
+        missingDocuments: Array<{
+            documentName: string;
+            documentType: string;
+            reason: string;
+            references: Array<{
+                type: string;
+                reference: string;
+                context: string;
+                page: number;
+                confidence: number;
+                urgency: string;
+            }>;
+            likelyLocation: string;
+            alternatives: string[];
+            businessImpact: string;
+            confidence: number;
+        }>;
+        brokenReferences: Array<{
+            reference: string;
+            expectedDocument: string;
+            context: string;
+            page: number;
+            severity: string;
+        }>;
+        documentGaps: Array<{
+            category: string;
+            description: string;
+            suggestedDocuments: string[];
+            businessJustification: string;
+        }>;
+        completenessScore: number;
+        recommendations: Array<{
+            priority: string;
+            action: string;
+            description: string;
+            expectedDocuments: string[];
+        }>;
+    };
+    metadata: {
+        pagesAnalyzed: number;
+        existingDocumentsChecked: number;
+        existingDocuments: string[];
+    };
+}
 
 interface DocumentContentProps {
     selectedDoc: DocumentType | null;
@@ -34,6 +91,9 @@ interface DocumentContentProps {
     aiStyle: string;
     setAiStyle: React.Dispatch<React.SetStateAction<keyof typeof SYSTEM_PROMPTS>>;
     styleOptions: Record<string, string>;
+    predictiveAnalysis: PredictiveAnalysisResponse | null;
+    predictiveLoading: boolean;
+    predictiveError: string;
 }
 
 export const DocumentContent: React.FC<DocumentContentProps> = ({
@@ -52,6 +112,9 @@ export const DocumentContent: React.FC<DocumentContentProps> = ({
                                                                     aiStyle,
                                                                     setAiStyle,
                                                                     styleOptions,
+                                                                    predictiveAnalysis,
+                                                                    predictiveLoading,
+                                                                    predictiveError,
                                                                 }) => {
     // Helper to display PDF at a certain page
     const pdfSrcWithPage = (baseUrl: string, pageNumber: number) => {
@@ -157,6 +220,151 @@ export const DocumentContent: React.FC<DocumentContentProps> = ({
                         setPdfPageNumber={setPdfPageNumber}
                         documentTitle={selectedDoc.title}
                     />
+                </div>
+            )}
+
+            {/* Predictive Analysis Mode */}
+            {viewMode === "predictive-analysis" && (
+                <div className="mt-6">
+                    <div className={styles.summaryHeader}>
+                        <FileSearch className={styles.summaryIcon} />
+                        <h2 className={styles.summaryTitle}>Predictive Document Analysis</h2>
+                    </div>
+
+                    {predictiveLoading && (
+                        <div className="flex items-center justify-center py-8">
+                            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-purple-600"></div>
+                            <span className="ml-3 text-gray-600">Analyzing document for missing references...</span>
+                        </div>
+                    )}
+
+                    {predictiveError && (
+                        <div className="bg-red-50 border border-red-200 rounded-lg p-4">
+                            <div className="flex items-center">
+                                <AlertTriangle className="w-5 h-5 text-red-600 mr-2" />
+                                <span className="text-red-700">{predictiveError}</span>
+                            </div>
+                        </div>
+                    )}
+
+                    {predictiveAnalysis && (
+                        <div className="space-y-6">
+                            {/* Summary Stats */}
+                            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                                <div className="bg-blue-50 p-4 rounded-lg">
+                                    <div className="text-2xl font-bold text-blue-600">
+                                        {predictiveAnalysis.summary.totalMissingDocuments}
+                                    </div>
+                                    <div className="text-sm text-blue-700">Missing Documents</div>
+                                </div>
+                                <div className="bg-red-50 p-4 rounded-lg">
+                                    <div className="text-2xl font-bold text-red-600">
+                                        {predictiveAnalysis.summary.criticalIssues}
+                                    </div>
+                                    <div className="text-sm text-red-700">Critical Issues</div>
+                                </div>
+                                <div className="bg-yellow-50 p-4 rounded-lg">
+                                    <div className="text-2xl font-bold text-yellow-600">
+                                        {predictiveAnalysis.summary.highUrgencyItems}
+                                    </div>
+                                    <div className="text-sm text-yellow-700">High Urgency</div>
+                                </div>
+                                <div className="bg-green-50 p-4 rounded-lg">
+                                    <div className="text-2xl font-bold text-green-600">
+                                        {Math.round(predictiveAnalysis.summary.completenessScore * 100)}%
+                                    </div>
+                                    <div className="text-sm text-green-700">Completeness</div>
+                                </div>
+                            </div>
+
+                            {/* Missing Documents */}
+                            {predictiveAnalysis.analysis.missingDocuments.length > 0 && (
+                                <div className="bg-white border rounded-lg p-6">
+                                    <h3 className="text-lg font-semibold mb-4 flex items-center">
+                                        <AlertCircle className="w-5 h-5 text-orange-500 mr-2" />
+                                        Missing Documents
+                                    </h3>
+                                    <div className="space-y-4">
+                                        {predictiveAnalysis.analysis.missingDocuments.map((doc, index) => (
+                                            <div key={index} className="border-l-4 border-orange-400 pl-4">
+                                                <div className="font-medium text-gray-900">{doc.documentName}</div>
+                                                <div className="text-sm text-gray-600 mt-1">{doc.reason}</div>
+                                                <div className="text-xs text-gray-500 mt-2">
+                                                    Confidence: {Math.round(doc.confidence * 100)}% | 
+                                                    Type: {doc.documentType}
+                                                </div>
+                                                {doc.references.length > 0 && (
+                                                    <div className="mt-2">
+                                                        <div className="text-xs font-medium text-gray-700">Referenced on pages:</div>
+                                                        <div className="flex flex-wrap gap-1 mt-1">
+                                                            {doc.references.map((ref, refIndex) => (
+                                                                <button
+                                                                    key={refIndex}
+                                                                    onClick={() => setPdfPageNumber(ref.page)}
+                                                                    className={`px-2 py-1 rounded text-xs ${
+                                                                        ref.urgency === 'high' 
+                                                                            ? 'bg-red-100 text-red-700 hover:bg-red-200' 
+                                                                            : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                                                                    }`}
+                                                                >
+                                                                    Page {ref.page}
+                                                                </button>
+                                                            ))}
+                                                        </div>
+                                                    </div>
+                                                )}
+                                            </div>
+                                        ))}
+                                    </div>
+                                </div>
+                            )}
+
+                            {/* Broken References */}
+                            {predictiveAnalysis.analysis.brokenReferences.length > 0 && (
+                                <div className="bg-white border rounded-lg p-6">
+                                    <h3 className="text-lg font-semibold mb-4 flex items-center">
+                                        <AlertTriangle className="w-5 h-5 text-red-500 mr-2" />
+                                        Broken References
+                                    </h3>
+                                    <div className="space-y-3">
+                                        {predictiveAnalysis.analysis.brokenReferences.map((ref, index) => (
+                                            <div key={index} className="border-l-4 border-red-400 pl-4">
+                                                <div className="font-medium text-gray-900">{ref.reference}</div>
+                                                <div className="text-sm text-gray-600">{ref.context}</div>
+                                                <button
+                                                    onClick={() => setPdfPageNumber(ref.page)}
+                                                    className="text-xs bg-red-100 text-red-700 px-2 py-1 rounded mt-1 hover:bg-red-200"
+                                                >
+                                                    Page {ref.page} - {ref.severity.toUpperCase()}
+                                                </button>
+                                            </div>
+                                        ))}
+                                    </div>
+                                </div>
+                            )}
+
+                            {/* Recommendations */}
+                            {predictiveAnalysis.analysis.recommendations.length > 0 && (
+                                <div className="bg-white border rounded-lg p-6">
+                                    <h3 className="text-lg font-semibold mb-4 flex items-center">
+                                        <CheckCircle className="w-5 h-5 text-green-500 mr-2" />
+                                        Recommendations
+                                    </h3>
+                                    <div className="space-y-3">
+                                        {predictiveAnalysis.analysis.recommendations.map((rec, index) => (
+                                            <div key={index} className="border-l-4 border-green-400 pl-4">
+                                                <div className="font-medium text-gray-900">{rec.action}</div>
+                                                <div className="text-sm text-gray-600">{rec.description}</div>
+                                                <div className="text-xs text-gray-500 mt-1">
+                                                    Priority: {rec.priority.toUpperCase()}
+                                                </div>
+                                            </div>
+                                        ))}
+                                    </div>
+                                </div>
+                            )}
+                        </div>
+                    )}
                 </div>
             )}
 

@@ -62,7 +62,64 @@ interface fetchHistoryProp{
     chatHistory: chatHistoryProp[];
 }
 
-
+// Add interface for predictive analysis
+interface PredictiveAnalysisResponse {
+    success: boolean;
+    documentId: number;
+    analysisType: string;
+    summary: {
+        totalMissingDocuments: number;
+        totalReferences: number;
+        highUrgencyItems: number;
+        criticalIssues: number;
+        completenessScore: number;
+        analysisTimestamp: string;
+    };
+    analysis: {
+        missingDocuments: Array<{
+            documentName: string;
+            documentType: string;
+            reason: string;
+            references: Array<{
+                type: string;
+                reference: string;
+                context: string;
+                page: number;
+                confidence: number;
+                urgency: string;
+            }>;
+            likelyLocation: string;
+            alternatives: string[];
+            businessImpact: string;
+            confidence: number;
+        }>;
+        brokenReferences: Array<{
+            reference: string;
+            expectedDocument: string;
+            context: string;
+            page: number;
+            severity: string;
+        }>;
+        documentGaps: Array<{
+            category: string;
+            description: string;
+            suggestedDocuments: string[];
+            businessJustification: string;
+        }>;
+        completenessScore: number;
+        recommendations: Array<{
+            priority: string;
+            action: string;
+            description: string;
+            expectedDocuments: string[];
+        }>;
+    };
+    metadata: {
+        pagesAnalyzed: number;
+        existingDocumentsChecked: number;
+        existingDocuments: string[];
+    };
+}
 
 const DocumentViewer: React.FC = () => {
     const router = useRouter();
@@ -95,6 +152,11 @@ const DocumentViewer: React.FC = () => {
 
     // Q&A History
     const [qaHistory, setQaHistory] = useState<QAHistoryEntry[]>([]);
+
+    // Predictive Analysis state
+    const [predictiveAnalysis, setPredictiveAnalysis] = useState<PredictiveAnalysisResponse | null>(null);
+    const [predictiveLoading, setPredictiveLoading] = useState(false);
+    const [predictiveError, setPredictiveError] = useState("");
 
     /**
      * Utility to push the Q&A into our local history state
@@ -275,7 +337,38 @@ const DocumentViewer: React.FC = () => {
         }
     };
 
+    // Handle Predictive Analysis
+    const fetchPredictiveAnalysis = async (documentId: number) => {
+        if (!documentId) return;
 
+        setPredictiveError("");
+        setPredictiveAnalysis(null);
+        setPredictiveLoading(true);
+
+        try {
+            const response = await fetch("/api/predictive-document-analysis", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({
+                    documentId: documentId,
+                    analysisType: "general",
+                    includeRelatedDocs: true,
+                }),
+            });
+
+            if (!response.ok) {
+                throw new Error("Failed to fetch predictive analysis");
+            }
+
+            const data = (await response.json()) as PredictiveAnalysisResponse;
+            setPredictiveAnalysis(data);
+        } catch (error) {
+            console.error("Error fetching predictive analysis:", error);
+            setPredictiveError("Failed to perform predictive analysis. Please try again.");
+        } finally {
+            setPredictiveLoading(false);
+        }
+    };
 
     // 5. Fetch Q&A History
     useEffect(() => {
@@ -312,8 +405,12 @@ const DocumentViewer: React.FC = () => {
         fetchHistory().catch(console.error);
     }, [userId, selectedDoc]);
 
-
-
+    // 6. Fetch Predictive Analysis when view mode is active
+    useEffect(() => {
+        if (viewMode === "predictive-analysis" && selectedDoc?.id) {
+            fetchPredictiveAnalysis(selectedDoc.id);
+        }
+    }, [viewMode, selectedDoc]);
 
     // 5. Display loading states
     if (roleLoading) {
@@ -360,6 +457,9 @@ const DocumentViewer: React.FC = () => {
                     aiStyle={aiStyle}
                     setAiStyle={setAiStyle}
                     styleOptions={SYSTEM_PROMPTS}
+                    predictiveAnalysis={predictiveAnalysis}
+                    predictiveLoading={predictiveLoading}
+                    predictiveError={predictiveError}
                 />
             </main>
         </div>
