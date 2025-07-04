@@ -12,6 +12,7 @@ import {
 } from "lucide-react";
 import { useRouter } from "next/navigation";
 import styles from "~/styles/Employer/DocumentViewer.module.css";
+import { ViewMode } from "./types";
 
 interface DocumentType {
     id: number;
@@ -26,9 +27,6 @@ interface CategoryGroup {
     isOpen: boolean;
     documents: DocumentType[];
 }
-
-// Define our "view mode" type if you need typed usage
-type ViewMode = "document-only" | "with-summary" | "with-ai-qa" | "with-ai-qa-history";
 
 interface DocumentsSidebarProps {
     categories: CategoryGroup[];
@@ -106,6 +104,16 @@ export const DocumentsSidebar: React.FC<DocumentsSidebarProps> = ({
                     onClick={() => setViewMode("with-ai-qa-history")}
                 >
                     AI Q&A History + Doc
+                </button>
+
+                {/* Predictive Analysis */}
+                <button
+                    className={`${styles.viewModeButton} ${
+                        viewMode === "predictive-analysis" ? styles.activeViewMode : ""
+                    }`}
+                    onClick={() => setViewMode("predictive-analysis")}
+                >
+                    Predictive Analysis
                 </button>
 
             </div>
