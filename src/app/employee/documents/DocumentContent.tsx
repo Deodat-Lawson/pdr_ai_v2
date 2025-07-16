@@ -2,7 +2,7 @@
 "use client";
 
 import React from "react";
-import {Brain, Clock} from "lucide-react";
+import { Brain, Clock } from "lucide-react";
 import styles from "~/styles/Employee/DocumentViewer.module.css";
 import { ViewMode } from "./types";
 import { SYSTEM_PROMPTS } from "./page";
@@ -36,22 +36,22 @@ interface DocumentContentProps {
 }
 
 export const DocumentContent: React.FC<DocumentContentProps> = ({
-                                                                    selectedDoc,
-                                                                    viewMode,
-                                                                    aiQuestion,
-                                                                    setAiQuestion,
-                                                                    aiAnswer,
-                                                                    aiError,
-                                                                    aiLoading,
-                                                                    handleAiSearch,
-                                                                    referencePages,
-                                                                    pdfPageNumber,
-                                                                    setPdfPageNumber,
-                                                                    qaHistory,
-                                                                    aiStyle,
-                                                                    setAiStyle,
-                                                                    styleOptions,
-                                                                }) => {
+    selectedDoc,
+    viewMode,
+    aiQuestion,
+    setAiQuestion,
+    aiAnswer,
+    aiError,
+    aiLoading,
+    handleAiSearch,
+    referencePages,
+    pdfPageNumber,
+    setPdfPageNumber,
+    qaHistory,
+    aiStyle,
+    setAiStyle,
+    styleOptions,
+}) => {
     // Helper to display PDF at a certain page
     const pdfSrcWithPage = (baseUrl: string, pageNumber: number) => {
         return `${baseUrl}#page=${pageNumber}`;

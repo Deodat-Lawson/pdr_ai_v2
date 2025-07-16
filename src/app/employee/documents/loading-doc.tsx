@@ -10,10 +10,10 @@ export default function LoadingDoc() {
         <div className={styles.loadingContainer}>
             <aside className={styles.sidebar}>
                 <div className={styles.sidebarHeader}>
-                        <button className={styles.logoContainer}>
-                            <Brain className={styles.logoIcon} />
-                            <span className={styles.logoText}>PDR AI</span>
-                        </button>
+                    <button className={styles.logoContainer}>
+                        <Brain className={styles.logoIcon} />
+                        <span className={styles.logoText}>PDR AI</span>
+                    </button>
                 </div>
             </aside>
 

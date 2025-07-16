@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { db } from "../../../server/db/index";
 import { users } from "../../../server/db/schema";
-import {eq, and, ne} from "drizzle-orm";
+import {eq, and } from "drizzle-orm";
 import * as console from "console";
 
 type PostBody = {
@@ -35,8 +35,6 @@ export async function POST(request: Request) {
             .where(
                 and(
                     eq(users.companyId, companyId),
-                    // eq(users.role, "employee"),
-                    // ne(users.userId, userId), // Exclude the user's own documents
                 )
             );
 

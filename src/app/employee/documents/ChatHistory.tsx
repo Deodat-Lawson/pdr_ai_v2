@@ -26,11 +26,11 @@ interface QAHistoryProps {
 }
 
 const QAHistory: React.FC<QAHistoryProps> = ({
-                                                 history,
-                                                 documentTitle,
-                                                 onQuestionSelect,
-                                                 setPdfPageNumber,
-                                             }) => {
+    history,
+    documentTitle,
+    onQuestionSelect,
+    setPdfPageNumber,
+}) => {
 
     console.log("history", history);
     const [expandedItems, setExpandedItems] = React.useState<Set<string>>(new Set());
@@ -77,7 +77,7 @@ const QAHistory: React.FC<QAHistoryProps> = ({
                                     {item.question}
                                 </button>
                                 <div className="text-sm text-gray-500 mt-1">
-                                    {dayjs(item.createdAt).format("M/D/YYYY, h:mm:ss A")?? ""} • {item.documentTitle}
+                                    {dayjs(item.createdAt).format("M/D/YYYY, h:mm:ss A") ?? ""} • {item.documentTitle}
                                 </div>
                             </div>
                         </div>

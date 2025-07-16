@@ -44,9 +44,6 @@ export async function POST(request: Request) {
             timeStyle: "short",
         });
 
-        // console.log("Company record:", companyRecord);
-        // console.log("Company name", companyRecord.name);
-
         // 3) Return user info along with the company name
         return NextResponse.json(
             {

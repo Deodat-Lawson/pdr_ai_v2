@@ -12,9 +12,9 @@ export async function fetchWithRetries(
 
             if (!res.ok) {
                 // For a non-200 response, you can parse the error body or just throw.
-                const rawErrorData : unknown = await res.json().catch(() => ({}));
+                const rawErrorData: unknown = await res.json().catch(() => ({}));
 
-                if(typeof rawErrorData !== "object") {
+                if (typeof rawErrorData !== "object") {
                     throw new Error(`Request failed with status ${res.status}`);
                 }
 

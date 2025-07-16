@@ -17,42 +17,21 @@ type PdfChunkRow = Record<string, unknown> & {
     distance: number;
 };
 
-type DocumentReference = {
-    type: 'explicit' | 'implicit' | 'contextual';
-    reference: string;
-    context: string;
-    page: number;
-    confidence: number;
-    urgency: 'high' | 'medium' | 'low';
-};
-
 type MissingDocumentPrediction = {
     documentName: string;
     documentType: string;
     reason: string;
-    references: DocumentReference[];
-    likelyLocation: string;
-    alternatives: string[];
-    businessImpact: string;
     confidence: number;
 };
 
 type PredictiveAnalysisResult = {
     missingDocuments: MissingDocumentPrediction[];
-    brokenReferences: Array<{
-        reference: string;
-        expectedDocument: string;
-        context: string;
-        page: number;
-        severity: 'critical' | 'high' | 'medium' | 'low';
-    }>;
     documentGaps: Array<{
         category: string;
         description: string;
         suggestedDocuments: string[];
         businessJustification: string;
     }>;
-    completenessScore: number;
     recommendations: Array<{
         priority: 'immediate' | 'high' | 'medium' | 'low';
         action: string;
@@ -268,9 +247,7 @@ export async function POST(request: Request) {
             console.error("JSON Parse Error:", parseError);
             analysisResult = {
                 missingDocuments: [],
-                brokenReferences: [],
                 documentGaps: [],
-                completenessScore: 0.5,
                 recommendations: []
             };
         }
@@ -297,7 +274,6 @@ export async function POST(request: Request) {
                 totalReferences: totalReferences,
                 highUrgencyItems: highUrgencyCount,
                 criticalIssues: criticalIssuesCount,
-                completenessScore: analysisResult.completenessScore,
                 analysisTimestamp: new Date().toISOString()
             },
             analysis: analysisResult,

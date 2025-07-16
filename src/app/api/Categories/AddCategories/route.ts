@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { db } from "~/server/db/index";
-import {users, category} from "~/server/db/schema";
+import { users, category } from "~/server/db/schema";
 import { eq } from "drizzle-orm";
 
 type PostBody = {

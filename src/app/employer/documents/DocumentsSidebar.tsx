@@ -1,6 +1,6 @@
 "use client";
 
-import React from "react";
+import React, { useState } from "react";
 import Link from "next/link";
 import {
     FileText,
@@ -9,6 +9,10 @@ import {
     ChevronRight,
     ChevronDown,
     Home,
+    Eye,
+    MessageCircle,
+    History,
+    BarChart3,
 } from "lucide-react";
 import { useRouter } from "next/navigation";
 import styles from "~/styles/Employer/DocumentViewer.module.css";
@@ -38,16 +42,47 @@ interface DocumentsSidebarProps {
     setViewMode: React.Dispatch<React.SetStateAction<ViewMode>>;
 }
 
+interface ViewModeConfig {
+    mode: ViewMode;
+    icon: React.ElementType;
+    tooltip: string;
+}
+
+const viewModeConfigs: ViewModeConfig[] = [
+    {
+        mode: "document-only",
+        icon: Eye,
+        tooltip: "Document Only"
+    },
+    {
+        mode: "with-ai-qa",
+        icon: MessageCircle,
+        tooltip: "AI Q&A"
+    },
+    {
+        mode: "with-ai-qa-history",
+        icon: History,
+        tooltip: "Q&A History"
+    },
+    {
+        mode: "predictive-analysis",
+        icon: BarChart3,
+        tooltip: "Predictive Analysis"
+    }
+];
+
 export const DocumentsSidebar: React.FC<DocumentsSidebarProps> = ({
-                                                                      categories,
-                                                                      searchTerm,
-                                                                      setSearchTerm,
-                                                                      selectedDoc,
-                                                                      setSelectedDoc,
-                                                                      viewMode,
-                                                                      setViewMode,
-                                                                  }) => {
+    categories,
+    searchTerm,
+    setSearchTerm,
+    selectedDoc,
+    setSelectedDoc,
+    viewMode,
+    setViewMode,
+}) => {
     const router = useRouter();
+    const [hoveredTooltip, setHoveredTooltip] = useState<string | null>(null);
+
     return (
         <aside className={styles.sidebar}>
             {/* Header */}
@@ -76,46 +111,34 @@ export const DocumentsSidebar: React.FC<DocumentsSidebarProps> = ({
             </div>
 
             {/* View-Mode Buttons */}
-            <div className={styles.viewModeButtons}>
-                <button
-                    className={`${styles.viewModeButton} ${
-                        viewMode === "document-only" ? styles.activeViewMode : ""
-                    }`}
-                    onClick={() => setViewMode("document-only")}
-                >
-                    Document Only
-                </button>
-
-                {/* If you want a second button for an AI summary, you can add it here */}
-                <button
-                    className={`${styles.viewModeButton} ${
-                        viewMode === "with-ai-qa" ? styles.activeViewMode : ""
-                    }`}
-                    onClick={() => setViewMode("with-ai-qa")}
-                >
-                    AI Q&A + Doc
-                </button>
-
-                {/* AI Summary History*/}
-                <button
-                    className={`${styles.viewModeButton} ${
-                        viewMode === "with-ai-qa-history" ? styles.activeViewMode : ""
-                    }`}
-                    onClick={() => setViewMode("with-ai-qa-history")}
-                >
-                    AI Q&A History + Doc
-                </button>
-
-                {/* Predictive Analysis */}
-                <button
-                    className={`${styles.viewModeButton} ${
-                        viewMode === "predictive-analysis" ? styles.activeViewMode : ""
-                    }`}
-                    onClick={() => setViewMode("predictive-analysis")}
-                >
-                    Predictive Analysis
-                </button>
-
+            <div className={styles.viewModeContainer}>
+                <div className={styles.viewModeHeader}>
+                    <span className={styles.viewModeTitle}>View Options</span>
+                </div>
+                <div className={styles.viewModeButtons}>
+                    {viewModeConfigs.map(({ mode, icon: Icon, tooltip }) => (
+                        <div
+                            key={mode}
+                            className={styles.tooltipContainer}
+                            onMouseEnter={() => setHoveredTooltip(mode)}
+                            onMouseLeave={() => setHoveredTooltip(null)}
+                        >
+                            <button
+                                className={`${styles.viewModeButton} ${viewMode === mode ? styles.activeViewMode : ""
+                                    }`}
+                                onClick={() => setViewMode(mode)}
+                            >
+                                <Icon className={styles.viewModeIcon} />
+                            </button>
+                            {hoveredTooltip === mode && (
+                                <div className={styles.tooltip}>
+                                    <span className={styles.tooltipText}>{tooltip}</span>
+                                    <div className={styles.tooltipArrow}></div>
+                                </div>
+                            )}
+                        </div>
+                    ))}
+                </div>
             </div>
 
             {/* Document List */}
@@ -137,11 +160,10 @@ export const DocumentsSidebar: React.FC<DocumentsSidebarProps> = ({
                                     <button
                                         key={doc.id}
                                         onClick={() => setSelectedDoc(doc)}
-                                        className={`${styles.docItem} ${
-                                            selectedDoc && selectedDoc.id === doc.id
-                                                ? styles.selected
-                                                : ""
-                                        }`}
+                                        className={`${styles.docItem} ${selectedDoc && selectedDoc.id === doc.id
+                                            ? styles.selected
+                                            : ""
+                                            }`}
                                     >
                                         <FileText className={styles.docIcon} />
                                         <span className={styles.docName}>{doc.title}</span>
