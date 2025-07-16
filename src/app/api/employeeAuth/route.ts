@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { db } from "../../../server/db/index";
-import { company, document, users } from "../../../server/db/schema";
+import { users } from "../../../server/db/schema";
 import { eq } from "drizzle-orm";
 import * as console from "console";
 

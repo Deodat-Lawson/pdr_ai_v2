@@ -1,6 +1,6 @@
 "use client"
 
-import React, {useEffect, useState} from 'react';
+import React, { useEffect, useState } from 'react';
 import { Brain, Clock, Building, Mail } from 'lucide-react';
 import { useRouter } from "next/navigation"
 import { useAuth } from "@clerk/nextjs";
@@ -8,15 +8,15 @@ import styles from '~/styles/Employee/PendingApproval.module.css';
 import NavBar from "~/app/employer/employees/NavBar";
 
 interface PendingApprovalProps {
-        name?: string;
-        email?: string;
-        company?: string;
-        submissionDate?: string;
+    name?: string;
+    email?: string;
+    company?: string;
+    submissionDate?: string;
 }
 
 const PendingApproval: React.FC<PendingApprovalProps> = () => {
     const router = useRouter();
-    const {userId} = useAuth();
+    const { userId } = useAuth();
 
     const [currentEmployeeData, setCurrentEmployeeData] = useState<PendingApprovalProps>();
 
@@ -30,7 +30,7 @@ const PendingApproval: React.FC<PendingApprovalProps> = () => {
             });
 
             // Parse the returned data and set it to state
-            const rawData:unknown = await response.json();
+            const rawData: unknown = await response.json();
             console.log("Raw data:", rawData);
             const data = rawData as PendingApprovalProps
             console.log("Employee data:", data);

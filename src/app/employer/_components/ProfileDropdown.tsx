@@ -1,6 +1,6 @@
 "use client";
 import React, { useState, useRef, useEffect } from "react";
-import {  useUser, useClerk } from "@clerk/nextjs";
+import { useUser, useClerk } from "@clerk/nextjs";
 import { useRouter } from "next/navigation";
 import styles from "~/styles/Employer/ProfileDropdown.module.css";
 import {
@@ -46,7 +46,7 @@ const ProfileDropdown: React.FC = () => {
 
     return (
         <div className={styles.dropdownContainer} ref={dropdownRef}>
-           <UserButton />
+            <UserButton />
         </div>
     );
 };

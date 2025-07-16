@@ -2,27 +2,12 @@ import { TavilySearchResults } from "@langchain/community/tools/tavily_search";
 import { ChatOpenAI } from "@langchain/openai";
 import { tool } from "@langchain/core/tools";
 import { MemorySaver } from "@langchain/langgraph";
-import { HumanMessage } from "@langchain/core/messages";
 import { createReactAgent } from "@langchain/langgraph/prebuilt";
-import { RecursiveCharacterTextSplitter } from "langchain/text_splitter";
-import { MemoryVectorStore } from "langchain/vectorstores/memory";
-import { OpenAIEmbeddings } from "@langchain/openai";
-import { CheerioWebBaseLoader } from "@langchain/community/document_loaders/web/cheerio";
-import { Document } from "@langchain/core/documents";
-import { z } from "zod";
 import { TavilySearchAPIRetriever } from "@langchain/community/retrievers/tavily_search_api";
-
-
 
 // Define the tools for the agent to use
 const agentTools = [new TavilySearchResults({ maxResults: 3 })];
-
-
-
-
 const agentModel = new ChatOpenAI({ temperature: 0 });
-
-console.log("Opened agent");
 
 // Initialize memory to persist state between graph runs
 const agentCheckpointer = new MemorySaver();
@@ -46,14 +31,6 @@ const fetchMenu = tool(
       }
 
 
-  
-      // Filter out any unwanted domains
-    //   const filtered = docsWithMetadata.filter(doc => {
-    //     const url = doc.metadata.source as string;
-    //     return !/(yelp\.com|tripadvisor\.com|facebook\.com)/.test(url);
-    //   });
-  
-
 
 
       // Pick the first "clean" result, or fall back to the very first if none remain
@@ -64,19 +41,19 @@ const fetchMenu = tool(
       console.log("Official website:", officialWebsite);
       const menuUrl = officialWebsite;
   
-      console.log("Using menu URL:", menuUrl);
+      // console.log("Using menu URL:", menuUrl);
 
-      // Export/Download the menuUrl to a pdf/image, and process it in Langchain. 
+      // // Export/Download the menuUrl to a pdf/image, and process it in Langchain. 
   
-      const loader = new CheerioWebBaseLoader(menuUrl);
-      const loadedDocs = await loader.load();
+      // const loader = new CheerioWebBaseLoader(menuUrl);
+      // const loadedDocs = await loader.load();
   
-      // Condense HTML and remove extra whitespace
-      const condensedMenu = loadedDocs
-        .map(d => d.pageContent.replace(/\s{2,}/g, ' ').trim())
-        .join('\n');
+      // // Condense HTML and remove extra whitespace
+      // const condensedMenu = loadedDocs
+      //   .map(d => d.pageContent.replace(/\s{2,}/g, ' ').trim())
+      //   .join('\n');
   
-      return condensedMenu;
+      return menuUrl;
     },
     {
       name: "fetch_menu",

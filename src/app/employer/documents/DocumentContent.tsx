@@ -97,25 +97,25 @@ interface DocumentContentProps {
 }
 
 export const DocumentContent: React.FC<DocumentContentProps> = ({
-                                                                    selectedDoc,
-                                                                    viewMode,
-                                                                    aiQuestion,
-                                                                    setAiQuestion,
-                                                                    aiAnswer,
-                                                                    aiError,
-                                                                    aiLoading,
-                                                                    handleAiSearch,
-                                                                    referencePages,
-                                                                    pdfPageNumber,
-                                                                    setPdfPageNumber,
-                                                                    qaHistory,
-                                                                    aiStyle,
-                                                                    setAiStyle,
-                                                                    styleOptions,
-                                                                    predictiveAnalysis,
-                                                                    predictiveLoading,
-                                                                    predictiveError,
-                                                                }) => {
+    selectedDoc,
+    viewMode,
+    aiQuestion,
+    setAiQuestion,
+    aiAnswer,
+    aiError,
+    aiLoading,
+    handleAiSearch,
+    referencePages,
+    pdfPageNumber,
+    setPdfPageNumber,
+    qaHistory,
+    aiStyle,
+    setAiStyle,
+    styleOptions,
+    predictiveAnalysis,
+    predictiveLoading,
+    predictiveError,
+}) => {
     // Helper to display PDF at a certain page
     const pdfSrcWithPage = (baseUrl: string, pageNumber: number) => {
         return `${baseUrl}#page=${pageNumber}`;
@@ -290,7 +290,7 @@ export const DocumentContent: React.FC<DocumentContentProps> = ({
                                                 <div className="font-medium text-gray-900">{doc.documentName}</div>
                                                 <div className="text-sm text-gray-600 mt-1">{doc.reason}</div>
                                                 <div className="text-xs text-gray-500 mt-2">
-                                                    Confidence: {Math.round(doc.confidence * 100)}% | 
+                                                    Confidence: {Math.round(doc.confidence * 100)}% |
                                                     Type: {doc.documentType}
                                                 </div>
                                                 {doc.references.length > 0 && (
@@ -301,11 +301,10 @@ export const DocumentContent: React.FC<DocumentContentProps> = ({
                                                                 <button
                                                                     key={refIndex}
                                                                     onClick={() => setPdfPageNumber(ref.page)}
-                                                                    className={`px-2 py-1 rounded text-xs ${
-                                                                        ref.urgency === 'high' 
-                                                                            ? 'bg-red-100 text-red-700 hover:bg-red-200' 
-                                                                            : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-                                                                    }`}
+                                                                    className={`px-2 py-1 rounded text-xs ${ref.urgency === 'high'
+                                                                        ? 'bg-red-100 text-red-700 hover:bg-red-200'
+                                                                        : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                                                                        }`}
                                                                 >
                                                                     Page {ref.page}
                                                                 </button>

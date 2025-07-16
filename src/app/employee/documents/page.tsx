@@ -13,12 +13,12 @@ import LoadingPage from "~/app/_components/loading";
 import { fetchWithRetries } from "./fetchWithRetries";
 import { DocumentsSidebar } from "./DocumentsSidebar";
 import { DocumentContent } from "./DocumentContent";
-import {QAHistoryEntry} from "~/app/employer/documents/ChatHistory";
-import {ViewMode} from "~/app/employee/documents/types";
+import { QAHistoryEntry } from "~/app/employer/documents/ChatHistory";
+import { ViewMode } from "~/app/employee/documents/types";
 
 export const SYSTEM_PROMPTS = {
     concise: "Concise & Direct",
-    detailed: "Detailed & Comprehensive", 
+    detailed: "Detailed & Comprehensive",
     academic: "Academic & Analytical",
     'bullet-points': "Organized Bullet Points"
 } as const;
@@ -43,7 +43,7 @@ interface LangChainResponse {
     recommendedPages: number[];
 }
 
-interface chatHistoryProp{
+interface chatHistoryProp {
     id: string;
     question: string;
     response: string;
@@ -53,7 +53,7 @@ interface chatHistoryProp{
     pages: number[];
 }
 
-interface fetchHistoryProp{
+interface fetchHistoryProp {
     status: string;
     chatHistory: chatHistoryProp[];
 }
@@ -97,7 +97,7 @@ const DocumentViewer: React.FC = () => {
             const response = await fetch("/api/Questions/add", {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ userId, documentId: Entry.documentId, documentTitle: Entry.documentTitle, question: Entry.question, response: Entry.response, pages: Entry.pages}),
+                body: JSON.stringify({ userId, documentId: Entry.documentId, documentTitle: Entry.documentTitle, question: Entry.question, response: Entry.response, pages: Entry.pages }),
             });
 
             if (!response.ok) {
@@ -356,7 +356,7 @@ const DocumentViewer: React.FC = () => {
                     setPdfPageNumber={setPdfPageNumber}
                     qaHistory={qaHistory}
                     aiStyle={aiStyle}
-                    setAiStyle={setAiStyle} 
+                    setAiStyle={setAiStyle}
                     styleOptions={SYSTEM_PROMPTS}
                 />
             </main>
