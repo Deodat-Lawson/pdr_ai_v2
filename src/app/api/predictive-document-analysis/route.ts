@@ -1,13 +1,15 @@
 import { NextResponse } from "next/server";
 import { db } from "../../../server/db/index";
-import { sql } from "drizzle-orm";
-import { ChatOpenAI } from "@langchain/openai";
-import { HumanMessage, SystemMessage } from "@langchain/core/messages";
+import { eq, sql, and, gt, desc, ne } from "drizzle-orm";
+import { analyzeDocumentChunks } from "./agent";
+import { predictiveDocumentAnalysisResults, document, pdfChunks } from "~/server/db/schema";
 
 type PostBody = {
     documentId: number;
-    analysisType?: keyof typeof ANALYSIS_TYPES;
+    analysisType?: 'contract' | 'financial' | 'technical' | 'compliance' | 'general';
     includeRelatedDocs?: boolean;
+    timeoutMs?: number;
+    forceRefresh?: boolean; // Force recompute and store fresh analysis
 };
 
 type PdfChunkRow = Record<string, unknown> & {
@@ -17,279 +19,202 @@ type PdfChunkRow = Record<string, unknown> & {
     distance: number;
 };
 
-type MissingDocumentPrediction = {
-    documentName: string;
-    documentType: string;
-    reason: string;
-    confidence: number;
+type PdfChunk = {
+    id: number;
+    content: string;
+    page: number;
 };
 
-type PredictiveAnalysisResult = {
-    missingDocuments: MissingDocumentPrediction[];
-    documentGaps: Array<{
-        category: string;
-        description: string;
-        suggestedDocuments: string[];
-        businessJustification: string;
-    }>;
-    recommendations: Array<{
-        priority: 'immediate' | 'high' | 'medium' | 'low';
-        action: string;
-        description: string;
-        expectedDocuments: string[];
-    }>;
+type DocumentDetails = {
+    title: string;
+    category: string;
 };
 
-const ANALYSIS_TYPES = {
-    contract: `You are a contract analysis AI expert. Analyze the document chunks to identify missing contract-related documents, exhibits, addendums, and dependencies.
+const CACHE_TTL_HOURS = 24;
 
-    Look for:
-    - Explicit references (Exhibit A, Schedule B, Addendum C, etc.)
-    - Implicit dependencies (referenced policies, procedures, standards)
-    - Required supporting documents (certificates, licenses, approvals)
-    - Cross-references to other agreements
-    - Compliance documents that should exist
-    - Signature pages or executed versions
-    - Amendment or modification documents
+// Helper: Query for cached analysis
+async function getCachedAnalysis(documentId: number, analysisType: string, includeRelatedDocs: boolean) {
+    const result = await db.select({ resultJson: predictiveDocumentAnalysisResults.resultJson })
+        .from(predictiveDocumentAnalysisResults)
+        .where(
+            and(
+                eq(predictiveDocumentAnalysisResults.documentId, documentId),
+                eq(predictiveDocumentAnalysisResults.analysisType, analysisType),
+                eq(predictiveDocumentAnalysisResults.includeRelatedDocs, includeRelatedDocs),
+                gt(
+                    predictiveDocumentAnalysisResults.createdAt,
+                    sql`NOW() - INTERVAL '${sql.raw(`${CACHE_TTL_HOURS} hours`)}'`
+                )
+            )
+        )
+        .orderBy(desc(predictiveDocumentAnalysisResults.createdAt))
+        .limit(1);
 
-    Pay special attention to legal language that implies other documents should exist.`,
+    return result[0]?.resultJson as any | null;
+}
 
-    financial: `You are a financial document analysis AI. Identify missing financial reports, supporting documentation, and regulatory filings.
+async function storeAnalysisResult(documentId: number, analysisType: string, includeRelatedDocs: boolean, resultJson: any) {
+    const result = await db.insert(predictiveDocumentAnalysisResults).values({
+        documentId,
+        analysisType,
+        includeRelatedDocs,
+        resultJson,
+    });
+    return result;
+}
 
-    Look for:
-    - Referenced financial statements or reports
-    - Supporting schedules and worksheets
-    - Audit reports or certifications
-    - Regulatory filings mentioned
-    - Budget documents or forecasts
-    - Tax returns or assessments
-    - Banking or investment documents
-    - Insurance policies or bonds
-    - Compliance certifications
+async function getDocumentDetails(documentId: number) {
+    const results = await db
+        .select({ title: document.title, category: document.category })
+        .from(document)
+        .where(eq(document.id, documentId))
+        .limit(1);
 
-    Focus on documents required for financial transparency and regulatory compliance.`,
-
-    technical: `You are a technical documentation analyst AI. Identify missing technical documents, specifications, and project deliverables.
-
-    Look for:
-    - Technical specifications or requirements
-    - Design documents or blueprints
-    - Testing reports or certifications
-    - User manuals or documentation
-    - API documentation or schemas
-    - Configuration files or scripts
-    - Deployment guides or procedures
-    - Security assessments or audits
-    - Performance benchmarks or reports
-
-    Focus on documentation gaps that could impact project delivery or system operation.`,
-
-    compliance: `You are a compliance documentation expert AI. Identify missing regulatory, policy, and governance documents.
-
-    Look for:
-    - Regulatory filings or submissions
-    - Policy documents or procedures
-    - Training materials or certifications
-    - Risk assessments or audits
-    - Incident reports or investigations
-    - Approval letters or permits
-    - Monitoring or inspection reports
-    - Corrective action plans
-    - Due diligence documentation
-
-    Emphasize documents critical for regulatory compliance and risk management.`,
-
-    general: `You are a document completeness analyst AI. Identify missing documents across all categories that are referenced or implied in the content.
-
-    Look for:
-    - Any explicit document references
-    - Implied supporting documentation
-    - Standard business documents that should accompany the content
-    - Cross-references to other materials
-    - Documents mentioned in passing
-    - Required certifications or approvals
-    - Related correspondence or communications
-
-    Cast a wide net to identify any potential document gaps.`
-};
+    return results[0] ?? null;
+}
 
 export async function POST(request: Request) {
     try {
-        const { documentId, analysisType = 'general', includeRelatedDocs = false } = (await request.json()) as PostBody;
-        console.log("Document ID:", documentId);
-        console.log("Analysis Type:", analysisType);
-        console.log("Include Related Docs:", includeRelatedDocs);
+        const body = await request.json() as PostBody;
+        const {
+            documentId,
+            analysisType = 'general',
+            includeRelatedDocs = false,
+            timeoutMs = 30000,
+            forceRefresh = false
+        } = body;
 
-        const query = sql`
-          SELECT
-            id,
-            content,
-            page
-          FROM pdr_ai_v2_pdf_chunks
-          WHERE document_id = ${documentId}
-          ORDER BY page, id
-        `;
+        if (typeof documentId !== 'number' || documentId <= 0) {
+            return NextResponse.json({ success: false, message: "Invalid documentId." }, { status: 400 });
+        }
 
-        const result = await db.execute<PdfChunkRow>(query);
-        const rows = result.rows;
+        // Check cache unless forceRefresh
+        if (!forceRefresh) {
+            const cachedResult = await getCachedAnalysis(documentId, analysisType, includeRelatedDocs);
+            if (cachedResult) {
+                console.log(`Returning cached analysis for documentId ${documentId}`);
+                return NextResponse.json({
+                    success: true,
+                    ...cachedResult,
+                    fromCache: true
+                }, { status: 200 });
+            }
+        }
 
-        if (rows.length === 0) {
+        // Fetch document details for search context
+        const docDetails = await getDocumentDetails(documentId);
+        if (!docDetails) {
+            return NextResponse.json({ success: false, message: "Document not found." }, { status: 404 });
+        }
+
+        // Fetch chunks using Drizzle
+        const chunksResults = await db
+            .select({
+                id: pdfChunks.id,
+                content: pdfChunks.content,
+                page: pdfChunks.page
+            })
+            .from(pdfChunks)
+            .where(eq(pdfChunks.documentId, documentId))
+            .orderBy(pdfChunks.id);
+
+        if (chunksResults.length === 0) {
             return NextResponse.json({
                 success: false,
                 message: "No chunks found for the given documentId.",
-            });
+            }, { status: 404 });
         }
 
-        // let existingDocuments: string[] = [];
-        // if (includeRelatedDocs) {
-        //     const existingDocsQuery = sql`
-        //       SELECT DISTINCT title, file_name
-        //       FROM pdr_ai_v2_documents
-        //       WHERE user_id = (SELECT user_id FROM pdr_ai_v2_documents WHERE id = ${documentId})
-        //       AND id != ${documentId}
-        //     `;
-            
-        //     const existingDocsResult = await db.execute(existingDocsQuery);
-        //     existingDocuments = existingDocsResult.rows.map(row => 
-        //         `${row.title || row.file_name}`
-        //     );
-        // }
+        const chunks: PdfChunk[] = chunksResults;
 
-        const combinedContent = rows
-            .map((row) => `=== Page ${row.page} ===\n${row.content}`)
-            .join("\n\n");
+        let existingDocuments: string[] = [];
+        if (includeRelatedDocs) {
+            // get the documentid from the current document
+            const currentDoc = await db.select({ companyId: document.companyId })
+                .from(document)
+                .where(eq(document.id, documentId))
+                .limit(1);
 
-        const chat = new ChatOpenAI({
-            openAIApiKey: process.env.OPENAI_API_KEY,
-            modelName: "gpt-4.1",
-            temperature: 0.2,
-        });
+            const currentCompanyId = currentDoc[0]?.companyId;
 
-        const analysisPrompt = `
-        MISSING DOCUMENT ANALYSIS REQUEST:
-    
-        
-        DOCUMENT CONTENT TO ANALYZE:
-        ${combinedContent}
-        
-        ANALYSIS TASK:
-        Carefully analyze the document content above and identify ANY missing or referenced documents that should exist but may not be uploaded. Look for:
-        
-        1. EXPLICIT REFERENCES: Direct mentions of other documents (Exhibit A, Schedule B, Attachment C, etc.)
-        2. IMPLICIT DEPENDENCIES: Documents that logically should exist based on the content
-        3. BROKEN REFERENCES: References to documents that don't appear to exist
-        4. CONTEXTUAL GAPS: Missing documents that would be expected in this business context
-        
-        Return your analysis in the following JSON structure:
-        
-        {
-          "missingDocuments": [
-            {
-              "documentName": "exact name or description",
-              "documentType": "category of document",
-              "reason": "why this document should exist",
-              "references": [
-                {
-                  "type": "explicit|implicit|contextual",
-                  "reference": "exact text reference",
-                  "context": "surrounding context",
-                  "page": page_number,
-                  "confidence": 0.95,
-                  "urgency": "high|medium|low"
-                }
-              ],
-              "likelyLocation": "where this document might be found",
-              "alternatives": ["alternative document names"],
-              "businessImpact": "impact of missing this document",
-              "confidence": 0.85
+            // getting all documents with the same companyId but not the current document
+            if (currentCompanyId) {
+                const existingDocs = await db
+                    .selectDistinct({ title: document.title, url: document.url }) //getting title and document url
+                    .from(document)
+                    .where(
+                        and(
+                            eq(document.companyId, currentCompanyId),
+                            ne(document.id, documentId)
+                        )
+                    );
+
+                existingDocuments = existingDocs.map(row => `${row.title || row.url}`);
             }
-          ],
-          "brokenReferences": [
-            {
-              "reference": "the broken reference text",
-              "expectedDocument": "what document should exist",
-              "context": "context where reference appears",
-              "page": page_number,
-              "severity": "critical|high|medium|low"
-            }
-          ],
-          "documentGaps": [
-            {
-              "category": "type of gap",
-              "description": "description of what's missing",
-              "suggestedDocuments": ["list of suggested documents"],
-              "businessJustification": "why these documents are typically needed"
-            }
-          ],
-          "completenessScore": 0.75,
-          "recommendations": [
-            {
-              "priority": "immediate|high|medium|low",
-              "action": "recommended action",
-              "description": "detailed description",
-              "expectedDocuments": ["specific documents to find"]
-            }
-          ]
-        }
-        
-        Be thorough and specific. Look for subtle references and implied dependencies.
-        `;
-
-        const response = await chat.call([
-            new SystemMessage(ANALYSIS_TYPES[analysisType]),
-            new HumanMessage(analysisPrompt)
-        ]);
-
-        let analysisResult: PredictiveAnalysisResult;
-        try {
-            analysisResult = JSON.parse(response.text);
-        } catch (parseError) {
-            console.error("JSON Parse Error:", parseError);
-            analysisResult = {
-                missingDocuments: [],
-                documentGaps: [],
-                recommendations: []
-            };
         }
 
-        // Calculate summary statistics
-        const totalReferences = analysisResult.missingDocuments.reduce(
-            (sum, doc) => sum + doc.references.length, 0
+        // Create analysis specification
+        const specification = {
+            type: analysisType,
+            includeRelatedDocs,
+            existingDocuments,
+            title: docDetails.title,
+            category: docDetails.category
+        };
+
+        // Call AI analysis through agent with timeout
+        const analysisResult = await analyzeDocumentChunks(
+            chunks,
+            specification,
+            20, // smaller batch size for faster processing
+            timeoutMs
         );
-        
-        const highUrgencyCount = analysisResult.missingDocuments.filter(
-            doc => doc.references.some(ref => ref.urgency === 'high')
-        ).length;
 
-        const criticalIssuesCount = analysisResult.brokenReferences.filter(
-            ref => ref.severity === 'critical'
-        ).length;
-
-        return NextResponse.json({
-            success: true,
+        // Store analysis result
+        const fullResult = {
             documentId,
             analysisType,
             summary: {
                 totalMissingDocuments: analysisResult.missingDocuments.length,
-                totalReferences: totalReferences,
-                highUrgencyItems: highUrgencyCount,
-                criticalIssues: criticalIssuesCount,
+                highPriorityItems: analysisResult.missingDocuments.filter(doc => doc.priority === 'high').length,
+                totalRecommendations: analysisResult.recommendations.length,
                 analysisTimestamp: new Date().toISOString()
             },
             analysis: analysisResult,
             metadata: {
-                pagesAnalyzed: rows.length,
-                existingDocumentsChecked: 1,
-                existingDocuments: []
+                pagesAnalyzed: chunks.length,
+                existingDocumentsChecked: existingDocuments.length
             }
-        });
+        }
 
+        await storeAnalysisResult(documentId, analysisType, includeRelatedDocs, fullResult);
+
+        return NextResponse.json({
+            success: true,
+            ...fullResult,
+            fromCache: false
+        }, { status: 200 });
     } catch (error: unknown) {
         console.error("Predictive Document Analysis Error:", error);
+        
+        let status = 500;
+        let message = "Failed to perform predictive document analysis";
+        
+        if (error instanceof Error) {
+            if (error.message.includes('timed out')) {
+                status = 408;
+                message = "The AI analysis took too long to complete. Please try again or reduce the document size.";
+            } else if (error.message.includes('database')) {
+                message = "Database error occurred.";
+            } else if (error.message.includes('search')) {
+                message = "Web search failed; analysis completed without online suggestions.";
+            }
+        }
+        
         return NextResponse.json({ 
             success: false, 
             error: String(error),
-            message: "Failed to perform predictive document analysis"
-        }, { status: 500 });
+            message
+        }, { status });
     }
 }
