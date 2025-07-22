@@ -6,6 +6,8 @@ import {
     integer, pgTableCreator, serial,
     timestamp,
     varchar,
+    jsonb,
+    boolean,
 } from "drizzle-orm/pg-core";
 import { pgVector } from "~/server/db/pgVector";
 
@@ -95,7 +97,7 @@ export const pdfChunks = pgTable("pdf_chunks", {
 
 export const ChatHistory = pgTable('chatHistory', {
     id: serial("id").primaryKey(),
-    UserId: varchar("company id", {  length: 256 }).notNull(),
+    UserId: varchar("company id", {  length: 256 }).notNull(), // need to fix this 
     documentId: varchar("document id", {  length: 256 }).notNull(),
     documentTitle: varchar("document title", {  length: 256 }).notNull(),
     question: varchar("question", {length: 256}).notNull(),
@@ -109,7 +111,16 @@ export const ChatHistory = pgTable('chatHistory', {
     ),
 });
 
-
+export const predictiveDocumentAnalysisResults = pgTable('predictive_document_analysis_results', {
+    id: serial("id").primaryKey(),
+    documentId: integer("document_id").notNull().references(() => document.id, { onDelete: "cascade" }),
+    analysisType: varchar("analysis_type", {  length: 256 }).notNull(),
+    includeRelatedDocs: boolean("include_related_docs").default(false),
+    resultJson: jsonb("result_json").notNull(),
+    createdAt: timestamp("created_at", { withTimezone: true })
+        .default(sql`CURRENT_TIMESTAMP`)
+        .notNull(),
+});
 
 export const documentsRelations = relations(document, ({ many }) => ({
     pdfChunks: many(pdfChunks),
