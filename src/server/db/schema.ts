@@ -122,6 +122,19 @@ export const predictiveDocumentAnalysisResults = pgTable('predictive_document_an
         .notNull(),
 });
 
+// this is used to store the reference resolution results for a document. So the tool don't need to repreocess the same document again
+export const documentReferenceResolution = pgTable('document_reference_resolutions', {
+    id: serial("id").primaryKey(),
+    companyId: integer("company_id").notNull().references(() => company.id, { onDelete: "cascade" }),
+    referenceName: varchar("reference_name", {  length: 256 }).notNull(),
+    resolvedInDocumentId: integer("resolved_in_document_id"),
+    resolutionDetails: jsonb("resolution_details"),
+    createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+}, 
+(table) => ({
+    companyRefId: index("document_reference_resolutions_company_ref_idx").on(table.companyId),
+}));
+
 export const documentsRelations = relations(document, ({ many }) => ({
     pdfChunks: many(pdfChunks),
 }));
