@@ -74,12 +74,27 @@ interface PredictiveAnalysisResponse {
         link: string;
         snippet: string;
       }>;
+      resolvedIn?: {
+        documentId: number;
+        page: number;
+        documentTitle?: string;
+      };
     }>;
     recommendations: string[];
     suggestedRelatedDocuments?: Array<{
       title: string;
       link: string;
       snippet: string;
+    }>;
+    resolvedDocuments?: Array<{
+      documentName: string;
+      documentType: string;
+      reason: string;
+      originalPage: number;
+      resolvedDocumentId: number;
+      resolvedPage: number;
+      resolvedDocumentTitle?: string;
+      priority: "high" | "medium" | "low";
     }>;
   };
   metadata: {
@@ -337,12 +352,37 @@ const DocumentViewer: React.FC = () => {
         throw new Error("Analysis failed on server side");
       }
 
+      // Enrich with document titles if not provided (lookup from documents)
+      if (data.analysis.resolvedDocuments) {
+        data.analysis.resolvedDocuments = data.analysis.resolvedDocuments.map(res => ({
+          ...res,
+          resolvedDocumentTitle: res.resolvedDocumentTitle || documents.find(d => d.id === res.resolvedDocumentId)?.title || `Document ${res.resolvedDocumentId}`
+        }));
+      }
+      if (data.analysis.missingDocuments.some(md => md.resolvedIn)) {
+        data.analysis.missingDocuments = data.analysis.missingDocuments.map(md => {
+          if (md.resolvedIn) {
+            md.resolvedIn.documentTitle = md.resolvedIn.documentTitle || documents.find(d => d.id === md.resolvedIn!.documentId)?.title || `Document ${md.resolvedIn.documentId}`;
+          }
+          return md;
+        });
+      }
+
       setPredictiveAnalysis(data);
     } catch (error) {
       console.error("Error fetching predictive analysis:", error);
       setPredictiveError("Failed to perform predictive analysis. Please try again.");
     } finally {
       setIsPredictiveLoading(false);
+    }
+  };
+
+  // Handler: Select document and set page
+  const handleSelectDocument = (docId: number, page: number) => {
+    const doc = documents.find(d => d.id === docId);
+    if (doc) {
+      setSelectedDoc(doc);
+      setPdfPageNumber(page);
     }
   };
 
@@ -411,6 +451,7 @@ const DocumentViewer: React.FC = () => {
           predictiveLoading={isPredictiveLoading}
           predictiveError={predictiveError}
           onRefreshAnalysis={() => selectedDoc && fetchPredictiveAnalysis(selectedDoc.id, true)}
+          onSelectDocument={handleSelectDocument}
         />
       </main>
     </div>

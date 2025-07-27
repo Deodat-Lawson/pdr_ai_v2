@@ -28,6 +28,7 @@ type PdfChunk = {
 type DocumentDetails = {
     title: string;
     category: string;
+    companyId: string;
 };
 
 const CACHE_TTL_HOURS = 24;
@@ -63,9 +64,9 @@ async function storeAnalysisResult(documentId: number, analysisType: string, inc
     return result;
 }
 
-async function getDocumentDetails(documentId: number) {
+async function getDocumentDetails(documentId: number) : Promise<DocumentDetails | null> {
     const results = await db
-        .select({ title: document.title, category: document.category })
+        .select({ title: document.title, category: document.category, companyId: document.companyId })
         .from(document)
         .where(eq(document.id, documentId))
         .limit(1);
@@ -165,7 +166,11 @@ export async function POST(request: Request) {
         // Call AI analysis through agent with timeout
         const analysisResult = await analyzeDocumentChunks(
             chunks,
-            specification,
+            {
+                ...specification,
+                companyId: Number(docDetails.companyId),
+                documentId
+            },
             20, // smaller batch size for faster processing
             timeoutMs
         );

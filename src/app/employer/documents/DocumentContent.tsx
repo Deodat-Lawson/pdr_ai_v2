@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState } from "react";
-import { Brain, Clock, FileSearch, AlertTriangle, CheckCircle, AlertCircle, RefreshCw } from "lucide-react";
+import { Brain, Clock, FileSearch, AlertTriangle, CheckCircle, AlertCircle, RefreshCw, Check } from "lucide-react";
 import styles from "~/styles/Employer/DocumentViewer.module.css";
 import { ViewMode } from "./types";
 import { SYSTEM_PROMPTS } from "./page";
@@ -41,12 +41,27 @@ interface PredictiveAnalysisResponse {
         link: string;
         snippet: string;
       }>;
+      resolvedIn?: {
+        documentId: number;
+        page: number;
+        documentTitle?: string; // Optional, if provided by backend
+      };
     }>;
     recommendations: string[];
     suggestedRelatedDocuments?: Array<{
       title: string;
       link: string;
       snippet: string;
+    }>;
+    resolvedDocuments?: Array<{
+      documentName: string;
+      documentType: string;
+      reason: string;
+      originalPage: number;
+      resolvedDocumentId: number;
+      resolvedPage: number;
+      resolvedDocumentTitle?: string;
+      priority: "high" | "medium" | "low";
     }>;
   };
   metadata: {
@@ -76,6 +91,7 @@ interface DocumentContentProps {
   predictiveLoading: boolean;
   predictiveError: string;
   onRefreshAnalysis: () => void; // New: Callback to refresh analysis
+  onSelectDocument?: (docId: number, page: number) => void; // New: For navigating to other documents
 }
 
 export const DocumentContent: React.FC<DocumentContentProps> = ({
@@ -98,10 +114,12 @@ export const DocumentContent: React.FC<DocumentContentProps> = ({
   predictiveLoading,
   predictiveError,
   onRefreshAnalysis,
+  onSelectDocument,
 }) => {
-  // States for expandable sections
-  const [isMissingExpanded, setIsMissingExpanded] = useState(false);
-  const [isRecommendationsExpanded, setIsRecommendationsExpanded] = useState(false);
+  // States for modals
+  const [showMissingModal, setShowMissingModal] = useState(false);
+  const [showRecommendationsModal, setShowRecommendationsModal] = useState(false);
+  const [showResolvedModal, setShowResolvedModal] = useState(false);
 
   if (!selectedDoc) {
     return (
@@ -113,6 +131,95 @@ export const DocumentContent: React.FC<DocumentContentProps> = ({
 
   // Helper to get PDF URL with page
   const getPdfSrcWithPage = (url: string, page: number) => `${url}#page=${page}`;
+
+  // Helper component for modals
+  const Modal = ({ title, children, onClose }: { title: string; children: React.ReactNode; onClose: () => void }) => (
+    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+      <div className="bg-white p-6 rounded-lg max-w-3xl w-full max-h-[80vh] overflow-y-auto shadow-xl">
+        <div className="flex justify-between items-center mb-4">
+          <h3 className="text-xl font-semibold text-gray-900">{title}</h3>
+          <button onClick={onClose} className="text-gray-500 hover:text-gray-700">
+            ✕
+          </button>
+        </div>
+        {children}
+      </div>
+    </div>
+  );
+
+  // Render missing document item
+  const renderMissingItem = (doc: PredictiveAnalysisResponse['analysis']['missingDocuments'][0], index: number) => (
+    <div key={index} className="border-l-4 border-orange-400 pl-4 py-3 bg-orange-50 rounded-md">
+      <div className="font-medium text-gray-900 flex items-center justify-between">
+        {doc.documentName}
+        {doc.resolvedIn && (
+          <button
+            onClick={() => onSelectDocument && onSelectDocument(doc.resolvedIn!.documentId, doc.resolvedIn!.page)}
+            className="text-xs bg-green-100 text-green-700 px-2 py-1 rounded hover:bg-green-200 ml-2"
+          >
+            View in {doc.resolvedIn.documentTitle || `Document ${doc.resolvedIn.documentId}`}
+          </button>
+        )}
+      </div>
+      <div className="text-sm text-gray-600 mt-1">{doc.reason}</div>
+      <div className="text-xs text-gray-500 mt-2">
+        Type: {doc.documentType} | Priority: {doc.priority}
+      </div>
+      <button
+        onClick={() => setPdfPageNumber(doc.page)}
+        className="text-xs bg-orange-100 text-orange-700 px-2 py-1 rounded mt-1 hover:bg-orange-200"
+      >
+        Original Reference: Page {doc.page}
+      </button>
+      {doc.suggestedLinks && doc.suggestedLinks.length > 0 && (
+        <div className="mt-2">
+          <div className="text-xs font-medium text-gray-700">Suggested Links:</div>
+          <ul className="list-disc pl-4 mt-1 text-xs text-blue-600">
+            {doc.suggestedLinks.map((link, linkIndex) => (
+              <li key={linkIndex}>
+                <a href={link.link} target="_blank" rel="noopener noreferrer" className="hover:underline">
+                  {link.title}
+                </a>
+                <p className="text-gray-500">{link.snippet}</p>
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
+    </div>
+  );
+
+  // Render resolved document item
+  const renderResolvedItem = (doc: NonNullable<PredictiveAnalysisResponse['analysis']['resolvedDocuments']>[0], index: number) => (
+    <div key={index} className="border-l-4 border-green-400 pl-4 py-3 bg-green-50 rounded-md">
+      <div className="font-medium text-gray-900 flex items-center justify-between">
+        {doc.documentName}
+        <button
+          onClick={() => onSelectDocument && onSelectDocument(doc.resolvedDocumentId, doc.resolvedPage)}
+          className="text-xs bg-green-100 text-green-700 px-2 py-1 rounded hover:bg-green-200 ml-2"
+        >
+          View in {doc.resolvedDocumentTitle || `Document ${doc.resolvedDocumentId}`} (Page {doc.resolvedPage})
+        </button>
+      </div>
+      <div className="text-sm text-gray-600 mt-1">{doc.reason}</div>
+      <div className="text-xs text-gray-500 mt-2">
+        Type: {doc.documentType} | Priority: {doc.priority}
+      </div>
+      <button
+        onClick={() => setPdfPageNumber(doc.originalPage)}
+        className="text-xs bg-green-100 text-green-700 px-2 py-1 rounded mt-1 hover:bg-green-200"
+      >
+        Original Reference: Page {doc.originalPage}
+      </button>
+    </div>
+  );
+
+  // Render recommendation item
+  const renderRecommendationItem = (rec: string, index: number) => (
+    <div key={index} className="border-l-4 border-green-400 pl-4 py-3 bg-green-50 rounded-md">
+      <div className="text-sm text-gray-600">{rec}</div>
+    </div>
+  );
 
   return (
     <>
@@ -267,7 +374,7 @@ export const DocumentContent: React.FC<DocumentContentProps> = ({
                 </div>
               </div>
 
-              {/* Missing Documents - Expandable Section */}
+              {/* Missing Documents Section */}
               {predictiveAnalysis.analysis.missingDocuments.length > 0 && (
                 <div className="bg-white border rounded-lg p-6">
                   <h3 className="text-lg font-semibold mb-4 flex items-center">
@@ -275,90 +382,22 @@ export const DocumentContent: React.FC<DocumentContentProps> = ({
                     Missing Documents
                   </h3>
                   <div className="space-y-4">
-                    {/* Always show first item */}
-                    {predictiveAnalysis.analysis.missingDocuments.slice(0, 1).map((doc, index) => (
-                      <div key={index} className="border-l-4 border-orange-400 pl-4">
-                        <div className="font-medium text-gray-900">{doc.documentName}</div>
-                        <div className="text-sm text-gray-600 mt-1">{doc.reason}</div>
-                        <div className="text-xs text-gray-500 mt-2">
-                          Type: {doc.documentType} | Priority: {doc.priority}
-                        </div>
-                        <button
-                          onClick={() => setPdfPageNumber(doc.page)}
-                          className="text-xs bg-orange-100 text-orange-700 px-2 py-1 rounded mt-1 hover:bg-orange-200"
-                        >
-                          Page {doc.page}
-                        </button>
-                        {doc.suggestedLinks && doc.suggestedLinks.length > 0 && (
-                          <div className="mt-2">
-                            <div className="text-xs font-medium text-gray-700">Suggested Links:</div>
-                            <ul className="list-disc pl-4 mt-1 text-xs text-blue-600">
-                              {doc.suggestedLinks.map((link, linkIndex) => (
-                                <li key={linkIndex}>
-                                  <a href={link.link} target="_blank" rel="noopener noreferrer">
-                                    {link.title}
-                                  </a>
-                                </li>
-                              ))}
-                            </ul>
-                          </div>
-                        )}
-                      </div>
-                    ))}
-                    {/* If more than 1, show expand button */}
-                    {predictiveAnalysis.analysis.missingDocuments.length > 1 && !isMissingExpanded && (
+                    {/* Show first item inline */}
+                    {predictiveAnalysis.analysis.missingDocuments[0] && renderMissingItem(predictiveAnalysis.analysis.missingDocuments[0], 0)}
+                    {/* View All button if more */}
+                    {predictiveAnalysis.analysis.missingDocuments.length > 1 && (
                       <button
-                        onClick={() => setIsMissingExpanded(true)}
-                        className="text-blue-600 hover:underline mt-2"
+                        onClick={() => setShowMissingModal(true)}
+                        className="text-blue-600 hover:underline mt-2 text-sm font-medium"
                       >
-                        Show More ({predictiveAnalysis.analysis.missingDocuments.length - 1} remaining)
+                        View All ({predictiveAnalysis.analysis.missingDocuments.length} total)
                       </button>
-                    )}
-                    {/* Expanded items */}
-                    {isMissingExpanded && (
-                      <>
-                        {predictiveAnalysis.analysis.missingDocuments.slice(1).map((doc, index) => (
-                          <div key={index + 1} className="border-l-4 border-orange-400 pl-4">
-                            <div className="font-medium text-gray-900">{doc.documentName}</div>
-                            <div className="text-sm text-gray-600 mt-1">{doc.reason}</div>
-                            <div className="text-xs text-gray-500 mt-2">
-                              Type: {doc.documentType} | Priority: {doc.priority}
-                            </div>
-                            <button
-                              onClick={() => setPdfPageNumber(doc.page)}
-                              className="text-xs bg-orange-100 text-orange-700 px-2 py-1 rounded mt-1 hover:bg-orange-200"
-                            >
-                              Page {doc.page}
-                            </button>
-                            {doc.suggestedLinks && doc.suggestedLinks.length > 0 && (
-                              <div className="mt-2">
-                                <div className="text-xs font-medium text-gray-700">Suggested Links:</div>
-                                <ul className="list-disc pl-4 mt-1 text-xs text-blue-600">
-                                  {doc.suggestedLinks.map((link, linkIndex) => (
-                                    <li key={linkIndex}>
-                                      <a href={link.link} target="_blank" rel="noopener noreferrer">
-                                        {link.title}
-                                      </a>
-                                    </li>
-                                  ))}
-                                </ul>
-                              </div>
-                            )}
-                          </div>
-                        ))}
-                        <button
-                          onClick={() => setIsMissingExpanded(false)}
-                          className="text-blue-600 hover:underline mt-2"
-                        >
-                          Show Less
-                        </button>
-                      </>
                     )}
                   </div>
                 </div>
               )}
 
-              {/* Recommendations - Expandable Section */}
+              {/* Recommendations Section */}
               {predictiveAnalysis.analysis.recommendations.length > 0 && (
                 <div className="bg-white border rounded-lg p-6">
                   <h3 className="text-lg font-semibold mb-4 flex items-center">
@@ -366,36 +405,37 @@ export const DocumentContent: React.FC<DocumentContentProps> = ({
                     Recommendations
                   </h3>
                   <div className="space-y-3">
-                    {/* Always show first item */}
-                    {predictiveAnalysis.analysis.recommendations.slice(0, 1).map((rec, index) => (
-                      <div key={index} className="border-l-4 border-green-400 pl-4">
-                        <div className="text-sm text-gray-600">{rec}</div>
-                      </div>
-                    ))}
-                    {/* If more than 1, show expand button */}
-                    {predictiveAnalysis.analysis.recommendations.length > 1 && !isRecommendationsExpanded && (
+                    {/* Show first item inline */}
+                    {predictiveAnalysis.analysis.recommendations[0] && renderRecommendationItem(predictiveAnalysis.analysis.recommendations[0], 0)}
+                    {/* View All button if more */}
+                    {predictiveAnalysis.analysis.recommendations.length > 1 && (
                       <button
-                        onClick={() => setIsRecommendationsExpanded(true)}
-                        className="text-blue-600 hover:underline mt-2"
+                        onClick={() => setShowRecommendationsModal(true)}
+                        className="text-blue-600 hover:underline mt-2 text-sm font-medium"
                       >
-                        Show More ({predictiveAnalysis.analysis.recommendations.length - 1} remaining)
+                        View All ({predictiveAnalysis.analysis.recommendations.length} total)
                       </button>
                     )}
-                    {/* Expanded items */}
-                    {isRecommendationsExpanded && (
-                      <>
-                        {predictiveAnalysis.analysis.recommendations.slice(1).map((rec, index) => (
-                          <div key={index + 1} className="border-l-4 border-green-400 pl-4">
-                            <div className="text-sm text-gray-600">{rec}</div>
-                          </div>
-                        ))}
-                        <button
-                          onClick={() => setIsRecommendationsExpanded(false)}
-                          className="text-blue-600 hover:underline mt-2"
-                        >
-                          Show Less
-                        </button>
-                      </>
+                  </div>
+                </div>
+              )}
+
+              {/* Resolved Documents Section */}
+              {predictiveAnalysis.analysis.resolvedDocuments && predictiveAnalysis.analysis.resolvedDocuments.length > 0 && (
+                <div className="bg-white border rounded-lg p-6">
+                  <h3 className="text-lg font-semibold mb-4 flex items-center">
+                    <Check className="w-5 h-5 text-green-500 mr-2" />
+                    Resolved References
+                  </h3>
+                  <div className="space-y-3">
+                    {predictiveAnalysis.analysis.resolvedDocuments[0] && renderResolvedItem(predictiveAnalysis.analysis.resolvedDocuments[0], 0)}
+                    {predictiveAnalysis.analysis.resolvedDocuments.length > 1 && (
+                      <button
+                        onClick={() => setShowResolvedModal(true)}
+                        className="text-blue-600 hover:underline mt-2 text-sm font-medium"
+                      >
+                        View All ({predictiveAnalysis.analysis.resolvedDocuments.length} total)
+                      </button>
                     )}
                   </div>
                 </div>
@@ -410,7 +450,7 @@ export const DocumentContent: React.FC<DocumentContentProps> = ({
                   </h3>
                   <div className="space-y-3">
                     {predictiveAnalysis.analysis.suggestedRelatedDocuments.map((doc, index) => (
-                      <div key={index} className="border-l-4 border-blue-400 pl-4">
+                      <div key={index} className="border-l-4 border-blue-400 pl-4 py-3 bg-blue-50 rounded-md">
                         <a
                           href={doc.link}
                           target="_blank"
@@ -419,7 +459,7 @@ export const DocumentContent: React.FC<DocumentContentProps> = ({
                         >
                           {doc.title}
                         </a>
-                        <div className="text-sm text-gray-600">{doc.snippet}</div>
+                        <div className="text-sm text-gray-600 mt-1">{doc.snippet}</div>
                       </div>
                     ))}
                   </div>
@@ -439,6 +479,31 @@ export const DocumentContent: React.FC<DocumentContentProps> = ({
           title={selectedDoc.title}
         />
       </div>
+
+      {/* Modals */}
+      {showMissingModal && predictiveAnalysis && (
+        <Modal title="All Missing Documents" onClose={() => setShowMissingModal(false)}>
+          <div className="space-y-4">
+            {predictiveAnalysis.analysis.missingDocuments.map(renderMissingItem)}
+          </div>
+        </Modal>
+      )}
+
+      {showRecommendationsModal && predictiveAnalysis && (
+        <Modal title="All Recommendations" onClose={() => setShowRecommendationsModal(false)}>
+          <div className="space-y-3">
+            {predictiveAnalysis.analysis.recommendations.map(renderRecommendationItem)}
+          </div>
+        </Modal>
+      )}
+
+      {showResolvedModal && predictiveAnalysis && predictiveAnalysis.analysis.resolvedDocuments && (
+        <Modal title="All Resolved References" onClose={() => setShowResolvedModal(false)}>
+          <div className="space-y-3">
+            {predictiveAnalysis.analysis.resolvedDocuments.map(renderResolvedItem)}
+          </div>
+        </Modal>
+      )}
     </>
   );
 };
