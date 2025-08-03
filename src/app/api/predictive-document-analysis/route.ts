@@ -163,7 +163,7 @@ export async function POST(request: Request) {
             category: docDetails.category
         };
 
-        // Call AI analysis through agent with timeout
+        // Call AI analysis through engine with timeout
         const analysisResult = await analyzeDocumentChunks(
             chunks,
             {
