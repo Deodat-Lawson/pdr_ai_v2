@@ -93,10 +93,6 @@ export default function HomePage() {
                                     <ArrowRight className="ml-2 w-5 h-5" />
                                 </button>
                             </SignUpButton>
-
-                            <button className={`${styles.btn} ${styles['btn-outline']} ${styles['btn-lg']}`}>
-                                Watch Demo
-                            </button>
                         </div>
                     </div>
                 </div>

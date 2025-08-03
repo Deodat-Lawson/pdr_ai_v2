@@ -58,6 +58,67 @@ interface fetchHistoryProp {
     chatHistory: chatHistoryProp[];
 }
 
+// Updated interface to match backend response structure
+interface PredictiveAnalysisResponse {
+  success: boolean;
+  documentId: number;
+  analysisType: string;
+  summary: {
+    totalMissingDocuments: number;
+    highPriorityItems: number;
+    totalRecommendations: number;
+    totalSuggestedRelated: number;
+    analysisTimestamp: string;
+  };
+  analysis: {
+    missingDocuments: Array<{
+      documentName: string;
+      documentType: string;
+      reason: string;
+      page: number;
+      priority: "high" | "medium" | "low";
+      suggestedLinks?: Array<{
+        title: string;
+        link: string;
+        snippet: string;
+      }>;
+      suggestedCompanyDocuments?: Array<{
+        documentId: number;
+        documentTitle: string;
+        similarity: number;
+        page: number;
+        snippet: string;
+      }>;
+      resolvedIn?: {
+        documentId: number;
+        page: number;
+        documentTitle?: string;
+      };
+    }>;
+    recommendations: string[];
+    suggestedRelatedDocuments?: Array<{
+      title: string;
+      link: string;
+      snippet: string;
+    }>;
+    resolvedDocuments?: Array<{
+      documentName: string;
+      documentType: string;
+      reason: string;
+      originalPage: number;
+      resolvedDocumentId: number;
+      resolvedPage: number;
+      resolvedDocumentTitle?: string;
+      priority: "high" | "medium" | "low";
+    }>;
+  };
+  metadata: {
+    pagesAnalyzed: number;
+    existingDocumentsChecked: number;
+  };
+  fromCache?: boolean;
+}
+
 
 const DocumentViewer: React.FC = () => {
     const router = useRouter();
@@ -90,6 +151,11 @@ const DocumentViewer: React.FC = () => {
 
     // Q&A History
     const [qaHistory, setQaHistory] = useState<QAHistoryEntry[]>([]);
+
+    // Predictive Analysis state
+    const [predictiveAnalysis, setPredictiveAnalysis] = useState<PredictiveAnalysisResponse | null>(null);
+    const [isPredictiveLoading, setIsPredictiveLoading] = useState(false);
+    const [predictiveError, setPredictiveError] = useState("");
 
 
     const saveToDatabase = async (Entry: QAHistoryEntry) => {
@@ -272,6 +338,67 @@ const DocumentViewer: React.FC = () => {
         }
     };
 
+    // Handler: Fetch predictive analysis (with optional forceRefresh)
+    const fetchPredictiveAnalysis = async (documentId: number, forceRefresh: boolean = false) => {
+        setPredictiveError("");
+        setPredictiveAnalysis(null);
+        setIsPredictiveLoading(true);
+
+        try {
+            const response = await fetch("/api/predictive-document-analysis", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({
+                    documentId,
+                    analysisType: "general",
+                    includeRelatedDocs: true,
+                    forceRefresh,
+                }),
+            });
+
+            if (!response.ok) {
+                throw new Error(`HTTP error! status: ${response.status}`);
+            }
+
+            const data = await response.json() as PredictiveAnalysisResponse;
+            if (!data.success) {
+                throw new Error("Analysis failed on server side");
+            }
+
+            // Enrich with document titles if not provided (lookup from documents)
+            if (data.analysis.resolvedDocuments) {
+                data.analysis.resolvedDocuments = data.analysis.resolvedDocuments.map(res => ({
+                    ...res,
+                    resolvedDocumentTitle: res.resolvedDocumentTitle || documents.find(d => d.id === res.resolvedDocumentId)?.title || `Document ${res.resolvedDocumentId}`
+                }));
+            }
+            if (data.analysis.missingDocuments.some(md => md.resolvedIn)) {
+                data.analysis.missingDocuments = data.analysis.missingDocuments.map(md => {
+                    if (md.resolvedIn) {
+                        md.resolvedIn.documentTitle = md.resolvedIn.documentTitle || documents.find(d => d.id === md.resolvedIn!.documentId)?.title || `Document ${md.resolvedIn.documentId}`;
+                    }
+                    return md;
+                });
+            }
+
+            setPredictiveAnalysis(data);
+        } catch (error) {
+            console.error("Error fetching predictive analysis:", error);
+            setPredictiveError("Failed to perform predictive analysis. Please try again.");
+        } finally {
+            setIsPredictiveLoading(false);
+        }
+    };
+
+    // Handler: Select document and set page
+    const handleSelectDocument = (docId: number, page: number) => {
+        const targetDoc = documents.find(d => d.id === docId);
+        if (targetDoc) {
+            setSelectedDoc(targetDoc);
+            setPdfPageNumber(page);
+        }
+    };
+
 
 
 
@@ -310,7 +437,12 @@ const DocumentViewer: React.FC = () => {
         fetchHistory().catch(console.error);
     }, [userId, selectedDoc]);
 
+    // Effect: Fetch predictive analysis when mode is active
+    useEffect(() => {
+        if (viewMode !== "predictive-analysis" || !selectedDoc?.id) return;
 
+        fetchPredictiveAnalysis(selectedDoc.id, false);
+    }, [viewMode, selectedDoc]);
 
     // 5. Display loading states
     if (roleLoading) {
@@ -358,6 +490,11 @@ const DocumentViewer: React.FC = () => {
                     aiStyle={aiStyle}
                     setAiStyle={setAiStyle}
                     styleOptions={SYSTEM_PROMPTS}
+                    predictiveAnalysis={predictiveAnalysis}
+                    predictiveLoading={isPredictiveLoading}
+                    predictiveError={predictiveError}
+                    onRefreshAnalysis={() => selectedDoc && fetchPredictiveAnalysis(selectedDoc.id, true)}
+                    onSelectDocument={handleSelectDocument}
                 />
             </main>
         </div>

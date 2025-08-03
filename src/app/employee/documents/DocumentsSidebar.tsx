@@ -1,7 +1,7 @@
 // DocumentViewer/DocumentsSidebar.tsx
 "use client";
 
-import React from "react";
+import React, { useState } from "react";
 import {
   FileText,
   Search,
@@ -9,6 +9,10 @@ import {
   ChevronRight,
   ChevronDown,
   LogOut,
+  Eye,
+  MessageCircle,
+  History,
+  BarChart3,
 } from "lucide-react";
 import { SignOutButton, UserButton } from "@clerk/nextjs";
 import styles from "~/styles/Employee/DocumentViewer.module.css";
@@ -28,8 +32,6 @@ interface CategoryGroup {
   documents: DocumentType[];
 }
 
-// Define our "view mode" type if you need typed usage
-
 interface DocumentsSidebarProps {
   categories: CategoryGroup[];
   searchTerm: string;
@@ -40,6 +42,35 @@ interface DocumentsSidebarProps {
   setViewMode: React.Dispatch<React.SetStateAction<ViewMode>>;
 }
 
+interface ViewModeConfig {
+  mode: ViewMode;
+  icon: React.ComponentType<any>;
+  tooltip: string;
+}
+
+const viewModeConfigs: ViewModeConfig[] = [
+  {
+    mode: "document-only",
+    icon: Eye,
+    tooltip: "Document Only"
+  },
+  {
+    mode: "with-ai-qa",
+    icon: MessageCircle,
+    tooltip: "AI Q&A"
+  },
+  {
+    mode: "with-ai-qa-history",
+    icon: History,
+    tooltip: "Q&A History"
+  },
+  {
+    mode: "predictive-analysis",
+    icon: BarChart3,
+    tooltip: "Predictive Analysis"
+  }
+];
+
 export const DocumentsSidebar: React.FC<DocumentsSidebarProps> = ({
   categories,
   searchTerm,
@@ -49,6 +80,8 @@ export const DocumentsSidebar: React.FC<DocumentsSidebarProps> = ({
   viewMode,
   setViewMode,
 }) => {
+  const [hoveredTooltip, setHoveredTooltip] = useState<string | null>(null);
+
   return (
     <aside className={styles.sidebar}>
       {/* Header */}
@@ -72,30 +105,33 @@ export const DocumentsSidebar: React.FC<DocumentsSidebarProps> = ({
       </div>
 
       {/* View-Mode Buttons */}
-      <div className={styles.viewModeButtons}>
-        <button
-          className={`${styles.viewModeButton} ${viewMode === "document-only" ? styles.activeViewMode : ""
-            }`}
-          onClick={() => setViewMode("document-only")}
-        >
-          Document Only
-        </button>
-
-        <button
-          className={`${styles.viewModeButton} ${viewMode === "with-ai-qa" ? styles.activeViewMode : ""
-            }`}
-          onClick={() => setViewMode("with-ai-qa")}
-        >
-          AI Q&A + Doc
-        </button>
-
-        <button
-          className={`${styles.viewModeButton} ${viewMode === "with-ai-qa-history" ? styles.activeViewMode : ""
-            }`}
-          onClick={() => setViewMode("with-ai-qa-history")}
-        >
-          AI Q&A History + Doc
-        </button>
+      <div className={styles.viewModeContainer}>
+        <div className={styles.viewModeHeader}>
+          <span className={styles.viewModeTitle}>View Options</span>
+        </div>
+        <div className={styles.viewModeButtons}>
+          {viewModeConfigs.map(({ mode, icon: Icon, tooltip }) => (
+            <div
+              key={mode}
+              className={styles.tooltipContainer}
+              onMouseEnter={() => setHoveredTooltip(mode)}
+              onMouseLeave={() => setHoveredTooltip(null)}
+            >
+              <button
+                className={`${styles.viewModeButton} ${viewMode === mode ? styles.activeViewMode : ""}`}
+                onClick={() => setViewMode(mode)}
+              >
+                <Icon className={styles.viewModeIcon} />
+              </button>
+              {hoveredTooltip === mode && (
+                <div className={styles.tooltip}>
+                  <span className={styles.tooltipText}>{tooltip}</span>
+                  <div className={styles.tooltipArrow}></div>
+                </div>
+              )}
+            </div>
+          ))}
+        </div>
       </div>
 
       {/* Document List */}
