@@ -41,6 +41,13 @@ interface PredictiveAnalysisResponse {
         link: string;
         snippet: string;
       }>;
+      suggestedCompanyDocuments?: Array<{
+        documentId: number;
+        documentTitle: string;
+        similarity: number;
+        page: number;
+        snippet: string;
+      }>;
       resolvedIn?: {
         documentId: number;
         page: number;
@@ -171,9 +178,34 @@ export const DocumentContent: React.FC<DocumentContentProps> = ({
       >
         Original Reference: Page {doc.page}
       </button>
+      {doc.suggestedCompanyDocuments && doc.suggestedCompanyDocuments.length > 0 && (
+        <div className="mt-2">
+          <div className="text-xs font-medium text-gray-700">Possible Company Documents:</div>
+          <div className="mt-1 space-y-1">
+            {doc.suggestedCompanyDocuments.map((companyDoc, companyIndex) => (
+              <div key={companyIndex} className="bg-blue-50 border border-blue-200 rounded p-2">
+                <div className="flex items-center justify-between">
+                  <button
+                    onClick={() => onSelectDocument && onSelectDocument(companyDoc.documentId, companyDoc.page)}
+                    className="text-xs font-medium text-blue-700 hover:underline"
+                  >
+                    {companyDoc.documentTitle}
+                  </button>
+                  <span className="text-xs text-blue-600">
+                    {Math.round(companyDoc.similarity * 100)}% match
+                  </span>
+                </div>
+                <div className="text-xs text-gray-600 mt-1">
+                  Page {companyDoc.page}: {companyDoc.snippet}
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
       {doc.suggestedLinks && doc.suggestedLinks.length > 0 && (
         <div className="mt-2">
-          <div className="text-xs font-medium text-gray-700">Suggested Links:</div>
+          <div className="text-xs font-medium text-gray-700">External Suggested Links:</div>
           <ul className="list-disc pl-4 mt-1 text-xs text-blue-600">
             {doc.suggestedLinks.map((link, linkIndex) => (
               <li key={linkIndex}>

@@ -74,6 +74,13 @@ interface PredictiveAnalysisResponse {
         link: string;
         snippet: string;
       }>;
+      suggestedCompanyDocuments?: Array<{
+        documentId: number;
+        documentTitle: string;
+        similarity: number;
+        page: number;
+        snippet: string;
+      }>;
       resolvedIn?: {
         documentId: number;
         page: number;

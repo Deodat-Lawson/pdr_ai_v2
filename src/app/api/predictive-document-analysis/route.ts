@@ -183,6 +183,7 @@ export async function POST(request: Request) {
                 totalMissingDocuments: analysisResult.missingDocuments.length,
                 highPriorityItems: analysisResult.missingDocuments.filter(doc => doc.priority === 'high').length,
                 totalRecommendations: analysisResult.recommendations.length,
+                totalSuggestedRelated: analysisResult.suggestedRelatedDocuments?.length || 0,
                 analysisTimestamp: new Date().toISOString()
             },
             analysis: analysisResult,
