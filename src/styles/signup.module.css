@@ -1,10 +1,12 @@
+/* Modern Signup Page Styles - Matching Homepage Theme */
 
 .container {
-    @apply min-h-screen bg-gray-50;
+    @apply min-h-screen bg-gradient-to-br from-slate-50 via-white to-purple-50;
 }
 
+/* Navigation - Modern Glassmorphism */
 .navbar {
-    @apply bg-white border-b border-gray-200;
+    @apply bg-white/80 backdrop-blur-md border-b border-gray-200/50 sticky top-0 z-50;
 }
 
 .navContent {
@@ -12,92 +14,219 @@
 }
 
 .logoContainer {
-    @apply flex items-center;
+    @apply flex items-center space-x-3 cursor-pointer;
 }
 
 .logoIcon {
-    @apply w-8 h-8 text-purple-600;
+    @apply w-8 h-8 text-purple-600 transition-colors duration-300;
 }
 
 .logoText {
-    @apply ml-2 text-xl font-bold text-black;
+    @apply text-2xl font-bold bg-gradient-to-r from-purple-600 to-indigo-600 
+    bg-clip-text text-transparent transition-all duration-300;
 }
 
+/* Main Content - Enhanced Layout */
 .main {
-    @apply flex items-center justify-center min-h-[calc(100vh-4rem)] px-4;
+    @apply flex items-center justify-center min-h-[calc(100vh-4rem)] px-4 py-12;
 }
 
 .contentWrapper {
-    @apply max-w-3xl w-full py-12;
+    @apply max-w-4xl w-full text-center;
 }
 
 .title {
-    @apply text-3xl font-bold text-center text-gray-900 mb-3;
+    @apply text-5xl md:text-6xl font-extrabold mb-6 leading-tight;
+    background: linear-gradient(135deg, #1f2937 0%, #4f46e5 50%, #7c3aed 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
 }
 
 .subtitle {
-    @apply text-lg text-center text-gray-600 mb-12;
+    @apply text-xl md:text-2xl text-gray-600 mb-16 max-w-3xl mx-auto leading-relaxed;
 }
 
+/* Role Cards - Premium Design */
 .cardsContainer {
-    @apply grid grid-cols-1 md:grid-cols-2 gap-6 mb-8;
+    @apply grid grid-cols-1 md:grid-cols-2 gap-8 mb-12;
 }
 
 .roleCard {
-    @apply bg-white p-6 rounded-lg border-2 border-gray-200 cursor-pointer
-    transition-all duration-200 hover:border-purple-300 hover:shadow-md;
+    @apply bg-white/80 backdrop-blur-sm rounded-2xl shadow-xl p-8 
+    border-2 border-gray-100 hover:border-purple-300 
+    cursor-pointer transition-all duration-500
+    transform hover:-translate-y-2 hover:shadow-2xl;
 }
 
 .roleCard.selected {
-    @apply border-purple-600 bg-purple-50;
+    @apply border-purple-500 bg-gradient-to-br from-purple-50 to-indigo-50
+    shadow-2xl ring-2 ring-purple-200;
 }
 
 .iconWrapper {
-    @apply mb-4 p-3 bg-purple-100 rounded-lg inline-block;
+    @apply w-20 h-20 bg-gradient-to-br from-purple-100 to-indigo-100 
+    rounded-2xl flex items-center justify-center mx-auto mb-6
+    transition-transform duration-300;
+}
+
+.roleCard:hover .iconWrapper {
+    @apply scale-110;
+}
+
+.roleCard.selected .iconWrapper {
+    @apply bg-gradient-to-br from-purple-200 to-indigo-200 scale-110;
 }
 
 .cardIcon {
-    @apply w-8 h-8 text-purple-600;
+    @apply w-10 h-10 text-purple-600;
+}
+
+.roleCard.selected .cardIcon {
+    @apply text-purple-700;
 }
 
 .cardTitle {
-    @apply text-xl font-semibold text-gray-900 mb-2;
+    @apply text-2xl md:text-3xl font-bold text-gray-900 mb-4
+    transition-colors duration-300;
+}
+
+.roleCard:hover .cardTitle {
+    @apply text-purple-600;
+}
+
+.roleCard.selected .cardTitle {
+    @apply text-purple-700;
 }
 
 .cardDescription {
-    @apply text-gray-600 text-sm;
+    @apply text-lg text-gray-600 leading-relaxed;
 }
 
+.roleCard.selected .cardDescription {
+    @apply text-gray-700;
+}
+
+/* Continue Button - Modern Design */
 .continueButton {
-    @apply w-full flex items-center justify-center px-6 py-3 rounded-lg
-    text-gray-400 bg-gray-100 cursor-not-allowed
-    transition-all duration-200 font-medium;
+    @apply flex items-center justify-center px-10 py-4 
+    bg-gray-300 text-gray-500 font-semibold rounded-xl
+    transition-all duration-300 mx-auto
+    disabled:cursor-not-allowed;
 }
 
 .continueButton.active {
-    @apply bg-purple-600 text-white cursor-pointer hover:bg-purple-700;
+    @apply bg-gradient-to-r from-purple-600 to-indigo-600 text-white
+    hover:from-purple-700 hover:to-indigo-700 
+    shadow-lg hover:shadow-xl transform hover:-translate-y-0.5
+    focus:outline-none focus:ring-2 focus:ring-purple-500 focus:ring-offset-2;
 }
 
 .buttonIcon {
-    @apply ml-2 w-5 h-5;
+    @apply w-5 h-5 ml-2 transition-transform duration-300;
 }
 
-/* Interactive States */
-.roleCard:focus {
-    @apply outline-none ring-2 ring-purple-500 ring-opacity-50;
+.continueButton.active:hover .buttonIcon {
+    @apply translate-x-1;
 }
 
-/* Responsive Adjustments */
-@media (max-width: 768px) {
-    .contentWrapper {
-        @apply py-8;
+/* Enhanced Hover Effects */
+.logoContainer:hover .logoIcon {
+    @apply text-purple-700 scale-110;
+}
+
+/* Animation Classes */
+.fade-in {
+    animation: fadeIn 0.6s ease-out;
+}
+
+.slide-up {
+    animation: slideUp 0.8s ease-out;
+}
+
+@keyframes fadeIn {
+    from { opacity: 0; }
+    to { opacity: 1; }
+}
+
+@keyframes slideUp {
+    from { 
+        opacity: 0; 
+        transform: translateY(30px); 
     }
+    to { 
+        opacity: 1; 
+        transform: translateY(0); 
+    }
+}
 
+/* Pulse animation for selected card */
+.roleCard.selected {
+    animation: pulse-glow 2s infinite;
+}
+
+@keyframes pulse-glow {
+    0%, 100% {
+        box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25), 0 0 0 1px rgba(147, 51, 234, 0.2);
+    }
+    50% {
+        box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25), 0 0 0 1px rgba(147, 51, 234, 0.4);
+    }
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
     .title {
-        @apply text-2xl;
+        @apply text-3xl;
     }
 
     .subtitle {
-        @apply text-base mb-8;
+        @apply text-lg mb-12;
+    }
+
+    .cardsContainer {
+        @apply gap-6;
+    }
+
+    .roleCard {
+        @apply p-6;
+    }
+
+    .cardTitle {
+        @apply text-xl;
+    }
+
+    .cardDescription {
+        @apply text-base;
+    }
+
+    .continueButton {
+        @apply px-8 py-3 text-sm;
+    }
+}
+
+@media (max-width: 640px) {
+    .main {
+        @apply py-8;
+    }
+
+    .navbar {
+        @apply px-4;
+    }
+
+    .cardsContainer {
+        @apply gap-4;
+    }
+
+    .roleCard {
+        @apply p-4;
+    }
+
+    .iconWrapper {
+        @apply w-16 h-16;
+    }
+
+    .cardIcon {
+        @apply w-8 h-8;
     }
 }

@@ -1,9 +1,12 @@
+/* Modern Employer Home Page - Matching Homepage Theme */
+
 .container {
-    @apply min-h-screen bg-gray-50;
+    @apply min-h-screen bg-gradient-to-br from-slate-50 via-white to-purple-50;
 }
 
+/* Navigation - Modern Glassmorphism */
 .navbar {
-    @apply bg-white border-b border-gray-200;
+    @apply bg-white/80 backdrop-blur-md border-b border-gray-200/50 sticky top-0 z-50;
 }
 
 .navContent {
@@ -11,97 +14,178 @@
 }
 
 .logoContainer {
-    @apply flex items-center;
+    @apply flex items-center space-x-3 cursor-pointer;
 }
 
 .logoIcon {
-    @apply w-8 h-8 text-purple-600;
+    @apply w-8 h-8 text-purple-600 transition-colors duration-300;
 }
 
 .logoText {
-    @apply ml-2 text-xl font-bold text-black;
+    @apply text-2xl font-bold bg-gradient-to-r from-purple-600 to-indigo-600 
+    bg-clip-text text-transparent transition-all duration-300;
 }
 
 .profileButton {
-    @apply px-4 py-2 rounded-lg bg-purple-600 text-white hover:bg-purple-700 transition-colors;
+    @apply px-6 py-3 rounded-xl font-semibold
+    bg-gradient-to-r from-purple-600 to-indigo-600 text-white 
+    hover:from-purple-700 hover:to-indigo-700 
+    shadow-lg hover:shadow-xl transition-all duration-300
+    transform hover:-translate-y-0.5;
 }
 
+/* Main Content - Enhanced Layout */
 .main {
-    @apply max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12;
+    @apply max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-20;
 }
 
 .welcomeSection {
-    @apply text-center mb-12;
+    @apply text-center mb-16;
 }
 
 .welcomeTitle {
-    @apply text-4xl font-bold text-gray-900 mb-4;
+    @apply text-5xl md:text-6xl font-extrabold mb-6 leading-tight;
+    background: linear-gradient(135deg, #1f2937 0%, #4f46e5 50%, #7c3aed 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
 }
 
 .welcomeText {
-    @apply text-xl text-gray-600 max-w-2xl mx-auto;
+    @apply text-xl md:text-2xl text-gray-600 max-w-4xl mx-auto leading-relaxed;
 }
 
+/* Menu Grid - Premium Card Layout */
 .menuGrid {
-    @apply grid grid-cols-1 md:grid-cols-3 gap-8 mb-12;
+    @apply grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 mb-16;
 }
 
 .menuCard {
-    @apply bg-white p-6 rounded-lg shadow-sm border border-gray-200 hover:border-purple-400
-    transition-all duration-300 cursor-pointer hover:shadow-md;
+    @apply bg-white/80 backdrop-blur-sm rounded-2xl shadow-xl p-8 
+    border border-gray-100 hover:border-purple-300 
+    cursor-pointer transition-all duration-500
+    transform hover:-translate-y-2 hover:shadow-2xl;
 }
 
 .iconContainer {
-    @apply mb-4 p-3 bg-purple-50 rounded-lg inline-block;
+    @apply w-16 h-16 bg-gradient-to-br from-purple-100 to-indigo-100 
+    rounded-2xl flex items-center justify-center mb-6
+    transition-transform duration-300;
 }
 
 .menuIcon {
-    @apply w-8 h-8 text-purple-600;
+    @apply w-8 h-8 text-purple-600 transition-colors duration-300;
 }
 
 .menuTitle {
-    @apply text-xl font-semibold text-gray-900 mb-2;
+    @apply text-2xl font-bold text-gray-900 mb-3
+    transition-colors duration-300;
 }
 
 .menuDescription {
-    @apply text-gray-600 mb-4;
+    @apply text-gray-600 mb-6 leading-relaxed text-lg;
 }
 
 .cardFooter {
-    @apply mt-auto pt-4 border-t border-gray-100;
+    @apply mt-auto pt-6 border-t border-gray-100/50;
 }
 
 .getStarted {
-    @apply text-purple-600 font-medium hover:text-purple-700 transition-colors;
+    @apply text-purple-600 font-semibold text-lg
+    transition-all duration-300
+    flex items-center;
 }
 
+.getStarted::after {
+    content: "→";
+    @apply ml-2 transition-transform duration-300;
+}
+
+/* Statistics Container - Enhanced Design */
 .statsContainer {
     @apply grid grid-cols-1 md:grid-cols-3 gap-8;
 }
 
 .stat {
-    @apply bg-white p-6 rounded-lg shadow-sm border border-gray-200 text-center;
+    @apply bg-white/80 backdrop-blur-sm rounded-2xl shadow-xl p-8 
+    border border-gray-100 text-center
+    hover:shadow-2xl transition-all duration-500
+    transform hover:-translate-y-1;
 }
 
 .statNumber {
-    @apply block text-3xl font-bold text-purple-600 mb-1;
+    @apply block text-4xl md:text-5xl font-extrabold mb-3;
+    background: linear-gradient(135deg, #7c3aed 0%, #4f46e5 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
 }
 
 .statLabel {
-    @apply text-gray-600;
+    @apply text-gray-600 text-lg font-medium;
+}
+
+/* Enhanced Hover Effects */
+.logoContainer:hover .logoIcon {
+    @apply text-purple-700 scale-110;
+}
+
+.menuCard:hover .iconContainer {
+    @apply bg-gradient-to-br from-purple-200 to-indigo-200 scale-110;
+}
+
+.menuCard:hover .menuIcon {
+    @apply text-purple-700;
+}
+
+.menuCard:hover .menuTitle {
+    @apply text-purple-600;
+}
+
+.menuCard:hover .getStarted {
+    @apply text-purple-700;
+}
+
+.menuCard:hover .getStarted::after {
+    @apply translate-x-1;
+}
+
+/* Animation Classes */
+.fade-in {
+    animation: fadeIn 0.6s ease-out;
+}
+
+.slide-up {
+    animation: slideUp 0.8s ease-out;
+}
+
+@keyframes fadeIn {
+    from { opacity: 0; }
+    to { opacity: 1; }
+}
+
+@keyframes slideUp {
+    from { 
+        opacity: 0; 
+        transform: translateY(30px); 
+    }
+    to { 
+        opacity: 1; 
+        transform: translateY(0); 
+    }
 }
 
 /* Interactive States */
-.menuCard:hover {
-    transform: translateY(-2px);
-}
-
 .menuCard:focus {
-    @apply outline-none ring-2 ring-purple-500 ring-opacity-50;
+    @apply outline-none ring-2 ring-purple-500 ring-offset-2;
 }
 
-/* Responsive Adjustments */
+/* Responsive Design */
 @media (max-width: 768px) {
+    .main {
+        @apply py-16;
+    }
+
     .welcomeTitle {
         @apply text-3xl;
     }
@@ -110,7 +194,49 @@
         @apply text-lg;
     }
 
+    .menuGrid {
+        @apply grid-cols-1 gap-6;
+    }
+
+    .menuCard {
+        @apply p-6;
+    }
+
+    .menuTitle {
+        @apply text-xl;
+    }
+
+    .menuDescription {
+        @apply text-base;
+    }
+
     .statNumber {
-        @apply text-2xl;
+        @apply text-3xl;
+    }
+
+    .statsContainer {
+        @apply gap-6;
+    }
+}
+
+@media (max-width: 640px) {
+    .main {
+        @apply py-12;
+    }
+
+    .navbar {
+        @apply px-4;
+    }
+
+    .menuCard {
+        @apply p-4;
+    }
+
+    .iconContainer {
+        @apply w-12 h-12;
+    }
+
+    .menuIcon {
+        @apply w-6 h-6;
     }
 }
