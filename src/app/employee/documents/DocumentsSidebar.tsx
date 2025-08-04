@@ -13,6 +13,7 @@ import {
   MessageCircle,
   History,
   BarChart3,
+  ChevronLeft,
 } from "lucide-react";
 import { SignOutButton, UserButton } from "@clerk/nextjs";
 import styles from "~/styles/Employee/DocumentViewer.module.css";
@@ -40,6 +41,7 @@ interface DocumentsSidebarProps {
   setSelectedDoc: (doc: DocumentType) => void;
   viewMode: ViewMode;
   setViewMode: React.Dispatch<React.SetStateAction<ViewMode>>;
+  toggleCategory?: (categoryName: string) => void;
 }
 
 interface ViewModeConfig {
@@ -79,11 +81,35 @@ export const DocumentsSidebar: React.FC<DocumentsSidebarProps> = ({
   setSelectedDoc,
   viewMode,
   setViewMode,
+  toggleCategory,
 }) => {
   const [hoveredTooltip, setHoveredTooltip] = useState<string | null>(null);
+  const [isCollapsed, setIsCollapsed] = useState(false);
+  const [isSearchFocused, setIsSearchFocused] = useState(false);
+
+  const toggleSidebar = () => {
+    setIsCollapsed(!isCollapsed);
+  };
+
+  const handleCategoryClick = (categoryName: string) => {
+    if (toggleCategory) {
+      toggleCategory(categoryName);
+    }
+  };
 
   return (
-    <aside className={styles.sidebar}>
+    <aside className={`${styles.sidebar} ${isCollapsed ? styles.collapsed : ""}`}>
+      {/* Toggle Button */}
+      <button 
+        className={styles.toggleButton}
+        onClick={toggleSidebar}
+        aria-label={isCollapsed ? "Expand sidebar" : "Collapse sidebar"}
+      >
+        <ChevronLeft 
+          className={`${styles.toggleIcon} ${isCollapsed ? "rotate-180" : ""}`}
+        />
+      </button>
+
       {/* Header */}
       <div className={styles.sidebarHeader}>
         <button className={styles.logoContainer}>
@@ -93,13 +119,15 @@ export const DocumentsSidebar: React.FC<DocumentsSidebarProps> = ({
 
         {/* Search Bar */}
         <div className={styles.searchContainer}>
-          <Search className={styles.searchIcon} />
+          <Search className={`${styles.searchIcon} ${isSearchFocused ? 'text-purple-600 scale-110' : ''}`} />
           <input
             type="text"
             placeholder="Search documents..."
             className={styles.searchInput}
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
+            onFocus={() => setIsSearchFocused(true)}
+            onBlur={() => setIsSearchFocused(false)}
           />
         </div>
       </div>
@@ -138,7 +166,18 @@ export const DocumentsSidebar: React.FC<DocumentsSidebarProps> = ({
       <nav className={styles.docList}>
         {categories.map((category) => (
           <div key={category.name} className={styles.categoryGroup}>
-            <div className={styles.categoryHeader}>
+            <div 
+              className={styles.categoryHeader}
+              onClick={() => handleCategoryClick(category.name)}
+              role="button"
+              tabIndex={0}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter' || e.key === ' ') {
+                  e.preventDefault();
+                  handleCategoryClick(category.name);
+                }
+              }}
+            >
               {category.isOpen ? (
                 <ChevronDown className={styles.chevronIcon} />
               ) : (

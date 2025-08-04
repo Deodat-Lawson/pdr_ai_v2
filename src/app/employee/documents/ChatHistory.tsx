@@ -4,9 +4,7 @@ import React from "react";
 import { Clock, ChevronDown, ChevronUp } from "lucide-react";
 import dayjs from "dayjs";
 
-/**
- * Shared interface for QA history entries.
- */
+
 export interface QAHistoryEntry {
     id: string;
     question: string;

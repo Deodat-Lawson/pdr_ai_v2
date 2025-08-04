@@ -6,7 +6,6 @@ import styles from "~/styles/Employee/DocumentViewer.module.css";
 import { ViewMode } from "./types";
 import { SYSTEM_PROMPTS } from "./page";
 
-// Import the QAHistory component AND the QAHistoryEntry interface
 import QAHistory, { QAHistoryEntry } from "./ChatHistory";
 
 interface DocumentType {
@@ -17,7 +16,6 @@ interface DocumentType {
   url: string;
 }
 
-// Updated to match backend response
 interface PredictiveAnalysisResponse {
   success: boolean;
   documentId: number;
@@ -51,7 +49,7 @@ interface PredictiveAnalysisResponse {
       resolvedIn?: {
         documentId: number;
         page: number;
-        documentTitle?: string; // Optional, if provided by backend
+        documentTitle?: string;
       };
     }>;
     recommendations: string[];
@@ -90,15 +88,15 @@ interface DocumentContentProps {
   referencePages: number[];
   pdfPageNumber: number;
   setPdfPageNumber: React.Dispatch<React.SetStateAction<number>>;
-  qaHistory: QAHistoryEntry[]; // <-- Provide the Q&A history
+  qaHistory: QAHistoryEntry[];
   aiStyle: keyof typeof SYSTEM_PROMPTS;
   setAiStyle: React.Dispatch<React.SetStateAction<keyof typeof SYSTEM_PROMPTS>>;
   styleOptions: typeof SYSTEM_PROMPTS;
   predictiveAnalysis: PredictiveAnalysisResponse | null;
   predictiveLoading: boolean;
   predictiveError: string;
-  onRefreshAnalysis: () => void; // New: Callback to refresh analysis
-  onSelectDocument?: (docId: number, page: number) => void; // New: For navigating to other documents
+  onRefreshAnalysis: () => void;
+  onSelectDocument?: (docId: number, page: number) => void;
 }
 
 export const DocumentContent: React.FC<DocumentContentProps> = ({
@@ -123,7 +121,6 @@ export const DocumentContent: React.FC<DocumentContentProps> = ({
   onRefreshAnalysis,
   onSelectDocument,
 }) => {
-  // States for modals
   const [showMissingModal, setShowMissingModal] = useState(false);
   const [showRecommendationsModal, setShowRecommendationsModal] = useState(false);
   const [showResolvedModal, setShowResolvedModal] = useState(false);
@@ -136,10 +133,8 @@ export const DocumentContent: React.FC<DocumentContentProps> = ({
     );
   }
 
-  // Helper to get PDF URL with page
   const getPdfSrcWithPage = (url: string, page: number) => `${url}#page=${page}`;
 
-  // Helper component for modals
   const Modal = ({ title, children, onClose }: { title: string; children: React.ReactNode; onClose: () => void }) => (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
       <div className="bg-white p-6 rounded-lg max-w-3xl w-full max-h-[80vh] overflow-y-auto shadow-xl">
@@ -154,7 +149,6 @@ export const DocumentContent: React.FC<DocumentContentProps> = ({
     </div>
   );
 
-  // Render missing document item
   const renderMissingItem = (doc: PredictiveAnalysisResponse['analysis']['missingDocuments'][0], index: number) => (
     <div key={index} className="border-l-4 border-orange-400 pl-4 py-3 bg-orange-50 rounded-md">
       <div className="font-medium text-gray-900 flex items-center justify-between">
@@ -246,7 +240,6 @@ export const DocumentContent: React.FC<DocumentContentProps> = ({
     </div>
   );
 
-  // Render recommendation item
   const renderRecommendationItem = (rec: string, index: number) => (
     <div key={index} className="border-l-4 border-green-400 pl-4 py-3 bg-green-50 rounded-md">
       <div className="text-sm text-gray-600">{rec}</div>
@@ -259,7 +252,6 @@ export const DocumentContent: React.FC<DocumentContentProps> = ({
         <h1 className={styles.docTitle}>{selectedDoc.title}</h1>
       </div>
 
-      {/* AI Q&A Section */}
       {viewMode === "with-ai-qa" && (
         <div className={styles.summaryContainer}>
           <div className={styles.summaryHeader}>
@@ -325,7 +317,6 @@ export const DocumentContent: React.FC<DocumentContentProps> = ({
         </div>
       )}
 
-      {/* Q&A History Section */}
       {viewMode === "with-ai-qa-history" && (
         <div className="mt-6">
           <div className={styles.summaryHeader}>
@@ -343,7 +334,6 @@ export const DocumentContent: React.FC<DocumentContentProps> = ({
         </div>
       )}
 
-      {/* Predictive Analysis Section */}
       {viewMode === "predictive-analysis" && (
         <div className="mt-6">
           <div className={styles.summaryHeader}>
@@ -378,7 +368,6 @@ export const DocumentContent: React.FC<DocumentContentProps> = ({
 
           {predictiveAnalysis && (
             <div className="space-y-6">
-              {/* Summary Stats */}
               <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
                 <div className="bg-blue-50 p-4 rounded-lg">
                   <div className="text-2xl font-bold text-blue-600">
@@ -406,7 +395,6 @@ export const DocumentContent: React.FC<DocumentContentProps> = ({
                 </div>
               </div>
 
-              {/* Missing Documents Section */}
               {predictiveAnalysis.analysis.missingDocuments.length > 0 && (
                 <div className="bg-white border rounded-lg p-6">
                   <h3 className="text-lg font-semibold mb-4 flex items-center">
@@ -414,9 +402,7 @@ export const DocumentContent: React.FC<DocumentContentProps> = ({
                     Missing Documents
                   </h3>
                   <div className="space-y-4">
-                    {/* Show first item inline */}
                     {predictiveAnalysis.analysis.missingDocuments[0] && renderMissingItem(predictiveAnalysis.analysis.missingDocuments[0], 0)}
-                    {/* View All button if more */}
                     {predictiveAnalysis.analysis.missingDocuments.length > 1 && (
                       <button
                         onClick={() => setShowMissingModal(true)}
@@ -429,7 +415,6 @@ export const DocumentContent: React.FC<DocumentContentProps> = ({
                 </div>
               )}
 
-              {/* Recommendations Section */}
               {predictiveAnalysis.analysis.recommendations.length > 0 && (
                 <div className="bg-white border rounded-lg p-6">
                   <h3 className="text-lg font-semibold mb-4 flex items-center">
@@ -437,9 +422,7 @@ export const DocumentContent: React.FC<DocumentContentProps> = ({
                     Recommendations
                   </h3>
                   <div className="space-y-3">
-                    {/* Show first item inline */}
                     {predictiveAnalysis.analysis.recommendations[0] && renderRecommendationItem(predictiveAnalysis.analysis.recommendations[0], 0)}
-                    {/* View All button if more */}
                     {predictiveAnalysis.analysis.recommendations.length > 1 && (
                       <button
                         onClick={() => setShowRecommendationsModal(true)}
@@ -452,7 +435,6 @@ export const DocumentContent: React.FC<DocumentContentProps> = ({
                 </div>
               )}
 
-              {/* Resolved Documents Section */}
               {predictiveAnalysis.analysis.resolvedDocuments && predictiveAnalysis.analysis.resolvedDocuments.length > 0 && (
                 <div className="bg-white border rounded-lg p-6">
                   <h3 className="text-lg font-semibold mb-4 flex items-center">
@@ -473,7 +455,6 @@ export const DocumentContent: React.FC<DocumentContentProps> = ({
                 </div>
               )}
 
-              {/* Suggested Related Documents */}
               {predictiveAnalysis.analysis.suggestedRelatedDocuments && predictiveAnalysis.analysis.suggestedRelatedDocuments.length > 0 && (
                 <div className="bg-white border rounded-lg p-6">
                   <h3 className="text-lg font-semibold mb-4 flex items-center">
@@ -502,7 +483,6 @@ export const DocumentContent: React.FC<DocumentContentProps> = ({
         </div>
       )}
 
-      {/* PDF Viewer */}
       <div className={styles.pdfContainer}>
         <iframe
           key={pdfPageNumber}
@@ -512,7 +492,6 @@ export const DocumentContent: React.FC<DocumentContentProps> = ({
         />
       </div>
 
-      {/* Modals */}
       {showMissingModal && predictiveAnalysis && (
         <Modal title="All Missing Documents" onClose={() => setShowMissingModal(false)}>
           <div className="space-y-4">
