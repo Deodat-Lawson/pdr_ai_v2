@@ -36,7 +36,7 @@ export default function HomePage() {
                             </div>
                             <div className={styles["nav-links"]}>
                                 {/* Link to /pricing page */}
-                                <Link href="/unavailable">
+                                <Link href="/pricing">
                                     <button className={`${styles.btn} ${styles["btn-ghost"]}`}>
                                         Pricing
                                     </button>
@@ -187,15 +187,15 @@ export default function HomePage() {
                                 
                                 <div className={styles['stats-grid']}>
                                     <div className={styles['stat-item']}>
-                                        <div className={styles['stat-number']}>10k+</div>
+                                        <div className={styles['stat-number']}>5k+</div>
                                         <div className={styles['stat-label']}>Documents Analyzed</div>
                                     </div>
                                     <div className={styles['stat-item']}>
-                                        <div className={styles['stat-number']}>99.9%</div>
+                                        <div className={styles['stat-number']}>99%</div>
                                         <div className={styles['stat-label']}>Prediction Accuracy</div>
                                     </div>
                                     <div className={styles['stat-item']}>
-                                        <div className={styles['stat-number']}>500+</div>
+                                        <div className={styles['stat-number']}>50+</div>
                                         <div className={styles['stat-label']}>Companies Managed</div>
                                     </div>
                                 </div>
