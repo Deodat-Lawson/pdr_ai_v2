@@ -1,11 +1,12 @@
+/* Modern Support Page Styles - Matching Homepage Theme */
 
 .container {
-    @apply min-h-screen bg-gray-50;
+    @apply min-h-screen bg-gradient-to-br from-slate-50 via-white to-purple-50;
 }
 
-/* Navigation */
+/* Navigation - Modern Glassmorphism */
 .navbar {
-    @apply bg-white border-b border-gray-200;
+    @apply bg-white/80 backdrop-blur-md border-b border-gray-200/50 sticky top-0 z-50;
 }
 
 .navContent {
@@ -13,144 +14,222 @@
 }
 
 .logoContainer {
-    @apply flex items-center space-x-2;
+    @apply flex items-center space-x-3 cursor-pointer;
 }
 
 .logoIcon {
-    @apply w-8 h-8 text-purple-600;
+    @apply w-8 h-8 text-purple-600 transition-colors duration-300;
 }
 
 .logoText {
-    @apply text-xl font-bold text-purple-600;
+    @apply text-2xl font-bold bg-gradient-to-r from-purple-600 to-indigo-600 
+    bg-clip-text text-transparent transition-all duration-300;
 }
 
 .homeButton {
-    @apply flex items-center px-4 py-2 bg-purple-600 text-white rounded-lg
-    hover:bg-purple-700 transition-colors duration-200;
+    @apply flex items-center px-6 py-3 rounded-xl font-semibold
+    bg-gradient-to-r from-purple-600 to-indigo-600 text-white 
+    hover:from-purple-700 hover:to-indigo-700 
+    shadow-lg hover:shadow-xl transition-all duration-300
+    transform hover:-translate-y-0.5;
 }
 
 .homeIcon {
     @apply w-5 h-5 mr-2;
 }
 
-/* Main Content */
+/* Main Content - Enhanced Layout */
 .main {
-    @apply max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12;
+    @apply max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-24;
 }
 
 .header {
-    @apply text-center mb-12;
+    @apply text-center mb-16;
 }
 
 .title {
-    @apply text-3xl font-bold text-gray-900 mb-2;
+    @apply text-5xl md:text-6xl font-extrabold mb-6 leading-tight;
+    background: linear-gradient(135deg, #1f2937 0%, #4f46e5 50%, #7c3aed 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
 }
 
 .subtitle {
-    @apply text-gray-600 max-w-2xl mx-auto;
+    @apply text-xl text-gray-600 max-w-3xl mx-auto leading-relaxed;
 }
 
 .contentGrid {
-    @apply grid grid-cols-1 lg:grid-cols-2 gap-8;
+    @apply grid grid-cols-1 lg:grid-cols-2 gap-12;
 }
 
-/* Contact Form */
+/* Contact Form - Premium Design */
 .contactSection {
-    @apply bg-white rounded-lg shadow-sm p-6 border border-gray-200;
+    @apply bg-white/80 backdrop-blur-sm rounded-2xl shadow-xl p-8 
+    border border-gray-100 hover:shadow-2xl transition-all duration-500
+    transform hover:-translate-y-1;
 }
 
 .sectionTitle {
-    @apply text-xl font-bold text-gray-900 mb-6 flex items-center;
+    @apply text-2xl font-bold text-gray-900 mb-8 flex items-center;
 }
 
 .sectionIcon {
-    @apply w-5 h-5 text-purple-600 mr-2;
+    @apply w-6 h-6 text-purple-600 mr-3;
 }
 
 .contactForm {
-    @apply space-y-4;
+    @apply space-y-6;
 }
 
 .formGroup {
-    @apply space-y-1;
+    @apply space-y-2;
 }
 
 .label {
-    @apply block text-sm font-medium text-gray-700;
+    @apply block text-sm font-semibold text-gray-700 mb-2;
 }
 
 .input {
-    @apply block w-full px-4 py-2 border border-gray-300 rounded-lg
-    focus:ring-2 focus:ring-purple-500 focus:border-transparent
-    placeholder-gray-400;
+    @apply block w-full px-4 py-3 border-2 border-gray-200 rounded-xl
+    focus:ring-2 focus:ring-purple-500 focus:border-purple-500
+    placeholder-gray-400 transition-all duration-300
+    hover:border-purple-300 bg-white/50;
 }
 
 .textarea {
-    @apply block w-full px-4 py-2 border border-gray-300 rounded-lg
-    focus:ring-2 focus:ring-purple-500 focus:border-transparent
-    placeholder-gray-400 resize-none;
+    @apply block w-full px-4 py-3 border-2 border-gray-200 rounded-xl
+    focus:ring-2 focus:ring-purple-500 focus:border-purple-500
+    placeholder-gray-400 resize-none transition-all duration-300
+    hover:border-purple-300 bg-white/50;
 }
 
 .submitButton {
-    @apply w-full flex items-center justify-center px-4 py-2 bg-purple-600 text-white
-    rounded-lg hover:bg-purple-700 transition-colors duration-200
-    focus:outline-none focus:ring-2 focus:ring-purple-500 focus:ring-offset-2;
+    @apply w-full flex items-center justify-center px-6 py-4 
+    bg-gradient-to-r from-purple-600 to-indigo-600 text-white font-semibold
+    rounded-xl hover:from-purple-700 hover:to-indigo-700 
+    shadow-lg hover:shadow-xl transition-all duration-300
+    focus:outline-none focus:ring-2 focus:ring-purple-500 focus:ring-offset-2
+    transform hover:-translate-y-0.5 disabled:opacity-50 disabled:transform-none;
 }
 
 .buttonIcon {
     @apply w-5 h-5 mr-2;
 }
 
-/* FAQ Section */
+/* FAQ Section - Modern Card Design */
 .faqSection {
-    @apply bg-white rounded-lg shadow-sm p-6 border border-gray-200;
+    @apply bg-white/80 backdrop-blur-sm rounded-2xl shadow-xl p-8 
+    border border-gray-100 hover:shadow-2xl transition-all duration-500
+    transform hover:-translate-y-1;
 }
 
 .faqList {
-    @apply space-y-2;
+    @apply space-y-4;
 }
 
 .faqItem {
-    @apply border border-gray-200 rounded-lg overflow-hidden;
+    @apply border border-gray-200 rounded-xl overflow-hidden
+    hover:border-purple-300 transition-all duration-300
+    bg-white/50 backdrop-blur-sm;
 }
 
 .faqButton {
-    @apply w-full flex items-center justify-between px-4 py-3 text-left
-    hover:bg-gray-50 transition-colors duration-200;
+    @apply w-full flex items-center justify-between px-6 py-4 text-left font-medium
+    hover:bg-purple-50 transition-all duration-300
+    focus:outline-none focus:ring-2 focus:ring-purple-500 focus:ring-offset-2;
 }
 
 .faqIcon {
-    @apply w-5 h-5 text-gray-400;
+    @apply w-5 h-5 text-gray-400 transition-colors duration-300;
 }
 
 .faqAnswer {
-    @apply px-4 py-3 bg-gray-50 text-gray-600 border-t border-gray-200;
+    @apply px-6 py-4 bg-gradient-to-r from-gray-50 to-purple-50 
+    text-gray-700 border-t border-gray-200 leading-relaxed;
 }
 
-/* Hover States */
+/* Success and Error Messages */
+.successMessage {
+    @apply mt-4 p-4 bg-green-50 border border-green-200 rounded-xl
+    text-green-700 font-medium flex items-center;
+}
+
+.errorMessage {
+    @apply mt-4 p-4 bg-red-50 border border-red-200 rounded-xl
+    text-red-700 font-medium flex items-center;
+}
+
+/* Enhanced Hover States */
 .input:hover, .textarea:hover {
-    @apply border-purple-300;
+    @apply border-purple-400 shadow-md;
 }
 
 .faqButton:hover .faqIcon {
     @apply text-purple-600;
 }
 
-/* Focus States */
-.faqButton:focus {
-    @apply outline-none ring-2 ring-purple-500 ring-offset-2;
+.logoContainer:hover .logoIcon {
+    @apply text-purple-700 scale-110;
 }
 
-/* Responsive Adjustments */
+/* Animation Classes */
+.fade-in {
+    animation: fadeIn 0.6s ease-out;
+}
+
+.slide-up {
+    animation: slideUp 0.8s ease-out;
+}
+
+@keyframes fadeIn {
+    from { opacity: 0; }
+    to { opacity: 1; }
+}
+
+@keyframes slideUp {
+    from { 
+        opacity: 0; 
+        transform: translateY(30px); 
+    }
+    to { 
+        opacity: 1; 
+        transform: translateY(0); 
+    }
+}
+
+/* Responsive Design */
 @media (max-width: 768px) {
     .main {
-        @apply py-8;
+        @apply py-16;
     }
 
     .title {
-        @apply text-2xl;
+        @apply text-3xl;
     }
 
+    .subtitle {
+        @apply text-lg;
+    }
+
+    .contactSection, .faqSection {
+        @apply p-6;
+    }
+
+    .contentGrid {
+        @apply gap-8;
+    }
+}
+
+@media (max-width: 640px) {
+    .navbar {
+        @apply px-4;
+    }
+    
+    .homeButton {
+        @apply px-4 py-2 text-sm;
+    }
+    
     .contactSection, .faqSection {
         @apply p-4;
     }

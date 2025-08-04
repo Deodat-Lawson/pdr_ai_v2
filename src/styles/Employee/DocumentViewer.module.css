@@ -1,58 +1,34 @@
-/* Profile Section at bottom of sidebar */
-.profileSection {
-    @apply p-4 border-t border-gray-200 mt-auto;
-}
-
-.userDetails {
-    @apply flex items-center space-x-3 mb-3;
-}
-
-.userIcon {
-    @apply w-8 h-8 text-purple-600;
-}
-
-.username {
-    @apply font-semibold text-gray-700;
-}
-
-.userEmail {
-    @apply text-sm text-gray-500;
-}
-
-/* Logout Button */
-.logoutButton {
-    @apply flex items-center justify-center w-full bg-red-500 text-white py-2 px-4 rounded-lg
-    hover:bg-red-600 focus:outline-none focus:ring-2 focus:ring-red-400
-    transition-colors duration-200;
-}
-
-.logoutIcon {
-    @apply w-5 h-5 mr-2;
-}
+/* Modern Employee Document Viewer - Matching Homepage Theme */
 
 .container {
-    @apply flex min-h-screen bg-gray-50;
+    @apply flex min-h-screen bg-gradient-to-br from-slate-50 via-white to-purple-50;
 }
 
-/* Sidebar Styles */
+/* Sidebar Styles - Modern Glassmorphism */
 .sidebar {
-    @apply w-80 bg-white border-r border-gray-200 flex flex-col h-screen sticky top-0;
+    @apply w-80 bg-white/80 backdrop-blur-md border-r border-gray-200/50 
+    flex flex-col h-screen sticky top-0 shadow-lg;
 }
 
 .sidebarHeader {
-    @apply p-4 border-b border-gray-200;
+    @apply p-6 border-b border-gray-200/50;
 }
 
 .logoContainer {
-    @apply flex items-center space-x-2 mb-4;
+    @apply flex items-center space-x-3 mb-6 cursor-pointer;
 }
 
 .logoIcon {
-    @apply w-6 h-6 text-purple-600;
+    @apply w-8 h-8 text-purple-600 transition-colors duration-300;
+}
+
+.logoContainer:hover .logoIcon {
+    @apply text-purple-700 scale-110;
 }
 
 .logoText {
-    @apply text-lg font-semibold text-purple-600;
+    @apply text-xl font-bold bg-gradient-to-r from-purple-600 to-indigo-600 
+    bg-clip-text text-transparent transition-all duration-300;
 }
 
 .searchContainer {
@@ -60,111 +36,24 @@
 }
 
 .searchIcon {
-    @apply w-5 h-5 absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400;
+    @apply w-5 h-5 absolute left-4 top-1/2 transform -translate-y-1/2 text-gray-400;
 }
 
 .searchInput {
-    @apply w-full pl-10 pr-4 py-2 border border-gray-200 rounded-lg
-    focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent
-    placeholder-gray-400;
+    @apply w-full pl-12 pr-4 py-3 border-2 border-gray-200 rounded-xl
+    focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-purple-500
+    placeholder-gray-400 transition-all duration-300 bg-white/50 backdrop-blur-sm;
 }
 
-/* Document List Styles */
+.searchInput:hover {
+    @apply border-purple-300 shadow-md;
+}
+
+/* Document List Styles - Enhanced */
 .docList {
-    @apply flex-1 overflow-y-auto p-2;
-}
-
-.categoryGroup {
-    @apply mb-2;
-}
-
-.categoryHeader {
-    @apply flex items-center px-2 py-1 text-sm font-medium text-gray-600 hover:bg-gray-100 rounded cursor-pointer;
-}
-
-.chevronIcon {
-    @apply w-4 h-4 mr-1 text-gray-400;
-}
-
-.categoryName {
-    @apply font-medium;
-}
-
-.categoryDocs {
-    @apply ml-6 space-y-1 mt-1;
-}
-
-.docItem {
-    @apply flex items-center w-full px-2 py-1.5 text-sm text-gray-700 hover:bg-purple-50 rounded
-    transition-colors duration-150 focus:outline-none focus:bg-purple-50;
-}
-
-.docItem.selected {
-    @apply bg-purple-100 text-purple-700;
-}
-
-.docIcon {
-    @apply w-4 h-4 mr-2 flex-shrink-0;
-}
-
-.docName {
-    @apply truncate text-left;
-}
-
-/* Main Content Styles */
-.mainContent {
-    @apply flex-1 p-6;
-}
-
-.docHeader {
-    @apply mb-6;
-}
-
-.docTitle {
-    @apply text-2xl font-bold text-gray-900;
-}
-
-.summaryContainer {
-    @apply bg-white rounded-lg shadow-sm p-6 mb-6;
-}
-
-.summaryHeader {
-    @apply flex items-center mb-4;
-}
-
-.summaryIcon {
-    @apply w-6 h-6 text-purple-600 mr-2;
-}
-
-.summaryTitle {
-    @apply text-lg font-semibold text-gray-900;
-}
-
-.summaryText {
-    @apply text-gray-600 leading-relaxed;
-}
-
-.pdfContainer {
-    @apply bg-white rounded-lg shadow-sm p-4 h-[calc(100vh-20rem)];
-}
-
-.pdfViewer {
-    @apply w-full h-full border-0;
-}
-
-/* Interactive States */
-.docItem:hover .docIcon {
-    @apply text-purple-600;
-}
-
-.docItem.selected .docIcon {
-    @apply text-purple-600;
-}
-
-/* Scrollbar Styles */
-.docList {
+    @apply flex-1 overflow-y-auto p-4;
     scrollbar-width: thin;
-    scrollbar-color: theme('colors.gray.300') theme('colors.gray.100');
+    scrollbar-color: theme('colors.purple.300') theme('colors.gray.100');
 }
 
 .docList::-webkit-scrollbar {
@@ -172,17 +61,325 @@
 }
 
 .docList::-webkit-scrollbar-track {
-    @apply bg-gray-100;
+    @apply bg-gray-100 rounded-full;
 }
 
 .docList::-webkit-scrollbar-thumb {
-    @apply bg-gray-300 rounded-full;
+    @apply bg-purple-300 rounded-full;
 }
 
-/* Responsive Adjustments */
+.docList::-webkit-scrollbar-thumb:hover {
+    @apply bg-purple-400;
+}
+
+.categoryGroup {
+    @apply mb-4;
+}
+
+.categoryHeader {
+    @apply flex items-center px-4 py-3 text-sm font-semibold text-gray-700 
+    hover:bg-gradient-to-r hover:from-purple-50 hover:to-indigo-50 
+    rounded-xl cursor-pointer transition-all duration-300;
+}
+
+.chevronIcon {
+    @apply w-5 h-5 mr-3 text-gray-400 transition-transform duration-300;
+}
+
+.categoryHeader:hover .chevronIcon {
+    @apply text-purple-600;
+}
+
+.categoryName {
+    @apply font-semibold;
+}
+
+.categoryDocs {
+    @apply ml-8 space-y-2 mt-3;
+}
+
+.docItem {
+    @apply flex items-center w-full px-4 py-3 text-sm text-gray-700 
+    hover:bg-gradient-to-r hover:from-purple-50 hover:to-indigo-50 
+    rounded-xl transition-all duration-300 
+    focus:outline-none focus:ring-2 focus:ring-purple-500 focus:ring-offset-2;
+}
+
+.docItem.selected {
+    @apply bg-gradient-to-r from-purple-100 to-indigo-100 text-purple-700 
+    shadow-md border border-purple-200;
+}
+
+.docIcon {
+    @apply w-5 h-5 mr-3 flex-shrink-0 transition-colors duration-300;
+}
+
+.docItem:hover .docIcon {
+    @apply text-purple-600 scale-110;
+}
+
+.docItem.selected .docIcon {
+    @apply text-purple-600;
+}
+
+.docName {
+    @apply truncate text-left font-medium;
+}
+
+/* VIEW-MODE BUTTONS - Enhanced */
+.viewModeContainer {
+    @apply p-6 border-b border-gray-200/50 
+    bg-gradient-to-r from-purple-50/80 to-indigo-50/80 backdrop-blur-sm;
+}
+
+.viewModeHeader {
+    @apply mb-4;
+}
+
+.viewModeTitle {
+    @apply text-sm font-bold text-gray-700 tracking-wide uppercase 
+    text-center pb-2 border-b border-gray-200;
+}
+
+.viewModeButtons {
+    @apply flex flex-row justify-between space-x-3;
+}
+
+.viewModeButton {
+    @apply flex items-center justify-center w-14 h-14 
+    bg-white/80 backdrop-blur-sm
+    border-2 border-gray-200 
+    rounded-2xl shadow-lg
+    transition-all duration-300 ease-in-out
+    focus:outline-none focus:ring-2 focus:ring-purple-500 focus:ring-offset-2
+    relative transform;
+}
+
+.viewModeButton:hover {
+    @apply scale-110 border-purple-300 shadow-xl
+    bg-gradient-to-br from-purple-50 to-indigo-50;
+}
+
+.viewModeButton:hover .viewModeIcon {
+    @apply text-purple-600;
+}
+
+.viewModeIcon {
+    @apply w-6 h-6 text-gray-600 
+    transition-all duration-300;
+}
+
+/* Active view mode styling */
+.activeViewMode {
+    @apply bg-gradient-to-br from-purple-600 to-indigo-600 
+    border-purple-600 shadow-xl scale-105;
+}
+
+.activeViewMode .viewModeIcon {
+    @apply text-white;
+}
+
+.activeViewMode:hover {
+    @apply from-purple-700 to-indigo-700 border-purple-700;
+}
+
+/* Tooltip Styles - Enhanced */
+.tooltipContainer {
+    @apply relative;
+}
+
+.tooltip {
+    @apply absolute left-1/2 transform -translate-x-1/2 
+    bottom-full mb-3 z-50
+    pointer-events-none;
+}
+
+.tooltipText {
+    @apply bg-gray-900/90 backdrop-blur-sm text-white text-xs font-semibold
+    px-3 py-2 rounded-lg shadow-xl
+    whitespace-nowrap;
+}
+
+.tooltipArrow {
+    @apply absolute top-full left-1/2 transform -translate-x-1/2
+    w-0 h-0 border-l-4 border-r-4 border-t-4
+    border-l-transparent border-r-transparent border-t-gray-900;
+}
+
+/* Main Content Styles - Enhanced */
+.mainContent {
+    @apply flex-1 p-8;
+}
+
+.docHeader {
+    @apply mb-8;
+}
+
+.docTitle {
+    @apply text-4xl md:text-5xl font-extrabold;
+    background: linear-gradient(135deg, #1f2937 0%, #4f46e5 50%, #7c3aed 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+}
+
+.summaryContainer {
+    @apply bg-white/80 backdrop-blur-sm rounded-2xl shadow-xl p-8 mb-8 
+    border border-gray-100 hover:shadow-2xl transition-all duration-500;
+}
+
+.summaryHeader {
+    @apply flex items-center mb-6;
+}
+
+.summaryIcon {
+    @apply w-8 h-8 text-purple-600 mr-4 p-1 bg-gradient-to-br from-purple-100 to-indigo-100 
+    rounded-xl;
+}
+
+.summaryTitle {
+    @apply text-2xl font-bold text-gray-900;
+}
+
+.summaryText {
+    @apply text-gray-700 leading-relaxed text-lg;
+}
+
+.pdfContainer {
+    @apply bg-white/80 backdrop-blur-sm rounded-2xl shadow-xl p-6 
+    h-[calc(100vh-20rem)] border border-gray-100;
+}
+
+.pdfViewer {
+    @apply w-full h-full border-0 rounded-xl;
+}
+
+/* Loading States - Enhanced */
+.loadingContainer {
+    @apply flex min-h-screen bg-gradient-to-br from-slate-50 via-white to-purple-50;
+}
+
+.mainLoadingContent {
+    @apply flex-1 flex items-center justify-center p-8;
+}
+
+.loadingContent {
+    @apply flex flex-col items-center justify-center;
+}
+
+.loadingIcon {
+    @apply w-16 h-16 text-purple-600 mb-6 animate-spin;
+}
+
+.loadingText {
+    @apply text-xl text-gray-700 font-semibold;
+}
+
+/* Profile Section - Enhanced */
+.profileSection {
+    @apply p-6 border-t border-gray-200/50 mt-auto;
+}
+
+.userDetails {
+    @apply flex items-center space-x-4 mb-4 p-4 bg-white/50 rounded-xl;
+}
+
+.userIcon {
+    @apply w-10 h-10 text-purple-600 p-1 bg-gradient-to-br from-purple-100 to-indigo-100 
+    rounded-xl;
+}
+
+.username {
+    @apply font-bold text-gray-800;
+}
+
+.userEmail {
+    @apply text-sm text-gray-600;
+}
+
+/* Logout Button - Enhanced */
+.logoutButton {
+    @apply flex items-center justify-center w-full 
+    bg-gradient-to-r from-red-500 to-red-600 text-white 
+    py-3 px-6 rounded-xl font-semibold
+    hover:from-red-600 hover:to-red-700 
+    shadow-lg hover:shadow-xl transition-all duration-300
+    transform hover:-translate-y-0.5
+    focus:outline-none focus:ring-2 focus:ring-red-400 focus:ring-offset-2;
+}
+
+.logoutIcon {
+    @apply w-5 h-5 mr-3;
+}
+
+/* Home Button - Enhanced */
+.homeButton {
+    @apply flex items-center justify-center w-full
+    bg-gradient-to-r from-purple-600 to-indigo-600 text-white 
+    py-3 px-6 rounded-xl font-semibold
+    hover:from-purple-700 hover:to-indigo-700 
+    shadow-lg hover:shadow-xl transition-all duration-300
+    transform hover:-translate-y-0.5
+    focus:outline-none focus:ring-2 focus:ring-purple-500 focus:ring-offset-2;
+}
+
+/* AI Search / Q&A - Enhanced */
+.aiSearchForm {
+    @apply flex flex-col space-y-4 p-4 bg-white/50 rounded-xl;
+}
+
+.aiSearchInput {
+    @apply border-2 border-gray-200 rounded-xl p-3 w-full
+    focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-purple-500
+    transition-all duration-300 bg-white/50;
+}
+
+.aiSearchButton {
+    @apply bg-gradient-to-r from-purple-600 to-indigo-600 text-white 
+    px-6 py-3 rounded-xl font-semibold
+    hover:from-purple-700 hover:to-indigo-700 
+    shadow-lg hover:shadow-xl transition-all duration-300
+    transform hover:-translate-y-0.5;
+}
+
+.aiAnswerContainer {
+    @apply bg-gradient-to-r from-gray-50 to-purple-50 rounded-xl p-6 mt-4 
+    border border-gray-200;
+}
+
+/* No document selected - Enhanced */
+.noDocSelected {
+    @apply flex flex-col items-center justify-center h-full text-center;
+}
+
+.noDocTitle {
+    @apply text-2xl font-semibold text-gray-500 mb-4;
+}
+
+.noDocDescription {
+    @apply text-lg text-gray-400;
+}
+
+/* Responsive Design */
 @media (max-width: 768px) {
     .sidebar {
-        @apply w-64;
+        @apply w-72;
+    }
+
+    .mainContent {
+        @apply p-6;
+    }
+
+    .docTitle {
+        @apply text-3xl;
+    }
+
+    .summaryContainer {
+        @apply p-6;
+    }
+
+    .pdfContainer {
+        @apply h-[calc(100vh-24rem)] p-4;
     }
 }
 
@@ -199,139 +396,28 @@
         @apply p-4;
     }
 
-    .pdfContainer {
-        @apply h-[calc(100vh-24rem)];
+    .docTitle {
+        @apply text-2xl;
     }
-}
 
-/* Reuse your container layout */
-.loadingContainer {
-    @apply flex min-h-screen bg-gray-50;
-}
+    .summaryContainer {
+        @apply p-4;
+    }
 
-.mainLoadingContent {
-    @apply flex-1 flex items-center justify-center p-6;
-}
+    .pdfContainer {
+        @apply h-[calc(100vh-28rem)] p-3;
+    }
 
-.loadingContent {
-    @apply flex flex-col items-center justify-center;
-}
+    .viewModeButtons {
+        @apply space-x-2;
+    }
 
-.loadingIcon {
-    @apply w-12 h-12 text-purple-600 mb-4 animate-spin;
-}
+    .viewModeButton {
+        @apply w-12 h-12;
+    }
 
-.loadingText {
-    @apply text-lg text-gray-700 font-medium;
-}
-
-.aiSearchForm {
-    @apply flex flex-col space-y-2;
-}
-
-.aiSearchInput {
-    @apply border border-gray-300 rounded p-2 w-full;
-}
-
-.aiSearchButton {
-    @apply bg-purple-600 text-white px-4 py-2 rounded hover:bg-purple-700
-    transition-colors duration-200;
-}
-
-.aiAnswerContainer {
-    @apply bg-gray-100 rounded p-3 mt-2;
-}
-
-/* VIEW-MODE BUTTONS */
-.viewModeContainer {
-    @apply p-4 border-b border-gray-200 bg-gradient-to-r from-purple-50 to-blue-50;
-}
-
-.viewModeHeader {
-    @apply mb-3;
-}
-
-.viewModeTitle {
-    @apply text-sm font-semibold text-gray-700 tracking-wide uppercase;
-}
-
-.viewModeButtons {
-    @apply flex flex-row justify-between space-x-2;
-}
-
-
-
-.viewModeButton {
-    @apply flex items-center justify-center w-12 h-12 
-    bg-white hover:bg-purple-50 
-    border border-gray-200 hover:border-purple-300
-    rounded-xl shadow-sm hover:shadow-md
-    transition-all duration-200 ease-in-out
-    focus:outline-none focus:ring-2 focus:ring-purple-500 focus:ring-offset-2
-    relative;
-}
-
-.viewModeButton:hover {
-    @apply transform scale-105;
-}
-
-.viewModeButton:hover .viewModeIcon {
-    @apply text-purple-600;
-}
-
-.viewModeIcon {
-    @apply w-5 h-5 text-gray-600 
-    transition-colors duration-200;
-}
-
-/* Active view mode styling */
-.activeViewMode {
-    @apply bg-purple-600 border-purple-600 shadow-lg;
-}
-
-.activeViewMode .viewModeIcon {
-    @apply text-white;
-}
-
-.activeViewMode:hover {
-    @apply bg-purple-700 border-purple-700;
-}
-
-/* Tooltip Styles */
-.tooltipContainer {
-    @apply relative;
-}
-
-.tooltip {
-    @apply absolute left-1/2 transform -translate-x-1/2 
-    bottom-full mb-2 z-50
-    pointer-events-none;
-}
-
-.tooltipText {
-    @apply bg-gray-900 text-white text-xs font-medium
-    px-3 py-2 rounded-lg shadow-lg
-    whitespace-nowrap;
-}
-
-.tooltipArrow {
-    @apply absolute top-full left-1/2 transform -translate-x-1/2
-    w-0 h-0 border-l-4 border-r-4 border-t-4
-    border-l-transparent border-r-transparent border-t-gray-900;
-}
-
-/* No document selected */
-.noDocSelected {
-    @apply flex items-center justify-center h-full;
-}
-
-.noDocTitle {
-    @apply text-xl font-medium text-gray-500;
-}
-
-.homeButton {
-    @apply flex items-center px-4 py-2 bg-purple-600 text-white rounded-lg
-    hover:bg-purple-700 transition-colors duration-200
-    focus:outline-none focus:ring-2 focus:ring-purple-500 focus:ring-offset-2;
+    .viewModeIcon {
+        @apply w-5 h-5;
+    }
 }
 

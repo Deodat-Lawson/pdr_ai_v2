@@ -1,79 +1,108 @@
+/* Modern Feature Unavailable Page - Matching Homepage Theme */
+
 .container {
-    @apply min-h-screen bg-gray-50 flex items-center justify-center px-4;
+    @apply min-h-screen bg-gradient-to-br from-slate-50 via-white to-purple-50
+    flex items-center justify-center px-4;
 }
 
 .content {
-    @apply max-w-lg w-full bg-white rounded-lg shadow-lg p-8 text-center;
+    @apply max-w-2xl w-full text-center;
 }
 
 .iconContainer {
-    @apply mx-auto w-20 h-20 bg-purple-100 rounded-full flex items-center justify-center mb-6;
+    @apply flex justify-center mb-8;
 }
 
 .icon {
-    @apply w-10 h-10 text-purple-600;
+    @apply w-24 h-24 text-purple-600;
+    animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
 }
 
 .title {
-    @apply text-2xl font-bold text-gray-900 mb-4;
+    @apply text-4xl md:text-5xl font-extrabold mb-6 leading-tight;
+    background: linear-gradient(135deg, #1f2937 0%, #4f46e5 50%, #7c3aed 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
 }
 
 .description {
-    @apply text-gray-600 mb-6;
+    @apply text-xl text-gray-600 mb-8 leading-relaxed;
 }
 
 .messageBox {
-    @apply bg-purple-50 rounded-lg p-4 flex items-center justify-center space-x-2 mb-8;
+    @apply bg-amber-50 border border-amber-200 rounded-2xl p-6 mb-8
+    flex items-center justify-center space-x-3;
 }
 
 .alertIcon {
-    @apply w-5 h-5 text-purple-600;
+    @apply w-6 h-6 text-amber-600;
 }
 
 .message {
-    @apply text-purple-700 font-medium;
+    @apply text-amber-800 font-semibold;
 }
 
 .alternativesBox {
-    @apply text-left bg-gray-50 rounded-lg p-6 mb-8;
+    @apply bg-white/80 backdrop-blur-sm rounded-2xl shadow-xl p-8 
+    border border-gray-100 mb-8;
 }
 
 .alternativesTitle {
-    @apply text-lg font-semibold text-gray-900 mb-3;
+    @apply text-2xl font-bold text-gray-900 mb-6;
 }
 
 .alternativesList {
-    @apply space-y-2 text-gray-600 list-disc pl-5;
+    @apply text-left space-y-3 text-gray-700;
 }
 
 .alternativesList li {
-    @apply pl-2;
+    @apply flex items-center;
+}
+
+.alternativesList li::before {
+    content: "✓";
+    @apply text-purple-600 font-bold mr-3;
 }
 
 .backButton {
-    @apply inline-flex items-center px-6 py-3 bg-purple-600 text-white rounded-lg
-    hover:bg-purple-700 transition-colors duration-200 font-medium;
+    @apply flex items-center justify-center px-8 py-4 
+    bg-gradient-to-r from-purple-600 to-indigo-600 text-white font-semibold
+    rounded-xl hover:from-purple-700 hover:to-indigo-700 
+    shadow-lg hover:shadow-xl transition-all duration-300
+    transform hover:-translate-y-0.5
+    focus:outline-none focus:ring-2 focus:ring-purple-500 focus:ring-offset-2;
 }
 
 .backIcon {
     @apply w-5 h-5 mr-2;
 }
 
-/* Responsive Adjustments */
-@media (max-width: 640px) {
-    .content {
+/* Animation for icon */
+@keyframes pulse {
+    0%, 100% {
+        opacity: 1;
+    }
+    50% {
+        opacity: .5;
+    }
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+    .title {
+        @apply text-3xl;
+    }
+
+    .description {
+        @apply text-lg;
+    }
+
+    .alternativesBox {
         @apply p-6;
     }
 
-    .title {
-        @apply text-xl;
-    }
-
-    .iconContainer {
-        @apply w-16 h-16;
-    }
-
-    .icon {
-        @apply w-8 h-8;
+    .backButton {
+        @apply px-6 py-3 text-sm;
     }
 }

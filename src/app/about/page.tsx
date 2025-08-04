@@ -110,7 +110,9 @@ const AboutPage: React.FC = () => {
                 <div className={styles.missionSection}>
                     <h2 className={styles.missionTitle}>Our Mission</h2>
                     <p className={styles.missionText}>
-                        Example Mission Statement
+                        To revolutionize how professionals interact with documents through cutting-edge AI technology. 
+                        We're building the future of predictive document analysis and intelligent company management, 
+                        making complex document workflows simple, efficient, and secure for enterprises worldwide.
                     </p>
                 </div>
             </main>

@@ -1,11 +1,12 @@
+/* Modern About Page Styles - Matching Homepage Theme */
 
 .container {
-    @apply min-h-screen bg-gray-50;
+    @apply min-h-screen bg-gradient-to-br from-slate-50 via-white to-purple-50;
 }
 
-/* Navigation */
+/* Navigation - Modern Glassmorphism */
 .navbar {
-    @apply bg-white border-b border-gray-200;
+    @apply bg-white/80 backdrop-blur-md border-b border-gray-200/50 sticky top-0 z-50;
 }
 
 .navContent {
@@ -13,20 +14,24 @@
 }
 
 .logoWrapper {
-    @apply flex items-center space-x-2;
+    @apply flex items-center space-x-3 cursor-pointer;
 }
 
 .logoIcon {
-    @apply w-8 h-8 text-purple-600;
+    @apply w-8 h-8 text-purple-600 transition-colors duration-300;
 }
 
 .logoText {
-    @apply text-xl font-bold text-black;
+    @apply text-2xl font-bold bg-gradient-to-r from-purple-600 to-indigo-600 
+    bg-clip-text text-transparent transition-all duration-300;
 }
 
 .homeButton {
-    @apply flex items-center px-4 py-2 bg-purple-600 text-white rounded-lg
-    hover:bg-purple-700 transition-colors duration-200
+    @apply flex items-center px-6 py-3 rounded-xl font-semibold
+    bg-gradient-to-r from-purple-600 to-indigo-600 text-white 
+    hover:from-purple-700 hover:to-indigo-700 
+    shadow-lg hover:shadow-xl transition-all duration-300
+    transform hover:-translate-y-0.5
     focus:outline-none focus:ring-2 focus:ring-purple-500 focus:ring-offset-2;
 }
 
@@ -34,98 +39,150 @@
     @apply w-5 h-5 mr-2;
 }
 
-/* Main Content */
+/* Main Content - Enhanced Layout */
 .main {
-    @apply max-w-7xl mx-auto px-6 py-12;
+    @apply max-w-7xl mx-auto px-6 py-24;
 }
 
-/* Header Section */
+/* Header Section - Modern Typography */
 .header {
-    @apply text-center mb-16;
+    @apply text-center mb-20;
 }
 
 .title {
-    @apply text-4xl font-bold text-gray-900 mb-4;
+    @apply text-5xl md:text-6xl font-extrabold mb-6 leading-tight;
+    background: linear-gradient(135deg, #1f2937 0%, #4f46e5 50%, #7c3aed 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
 }
 
 .subtitle {
-    @apply text-xl text-gray-600 max-w-2xl mx-auto;
+    @apply text-xl md:text-2xl text-gray-600 max-w-4xl mx-auto leading-relaxed;
 }
 
-/* Team Grid */
+/* Team Grid - Enhanced Layout */
 .teamGrid {
-    @apply grid grid-cols-1 md:grid-cols-2 gap-12 mb-16;
+    @apply grid grid-cols-1 lg:grid-cols-2 gap-16 mb-20;
 }
 
-/* Member Card */
+/* Member Card - Premium Design */
 .memberCard {
-    @apply bg-white rounded-lg shadow-sm overflow-hidden border border-gray-200
-    hover:shadow-md transition-shadow duration-200;
+    @apply bg-white/80 backdrop-blur-sm rounded-2xl shadow-xl overflow-hidden 
+    border border-gray-100 hover:shadow-2xl transition-all duration-500
+    transform hover:-translate-y-2;
 }
 
 .memberImageContainer {
-    @apply relative bg-gray-100;
-    padding-top: 75%; /* 4:3 Aspect Ratio */
+    @apply relative bg-gradient-to-br from-purple-100 to-indigo-100 overflow-hidden;
+    padding-top: 60%; /* 5:3 Aspect Ratio for better proportion */
 }
 
 .memberImage {
-    @apply absolute top-0 left-0 w-full h-full object-cover;
+    @apply absolute top-0 left-0 w-full h-full object-cover
+    transition-transform duration-500 hover:scale-105;
 }
 
 .memberInfo {
-    @apply p-6;
+    @apply p-8;
 }
 
 .memberName {
-    @apply text-2xl font-bold text-gray-900 mb-1;
+    @apply text-3xl font-bold text-gray-900 mb-2
+    transition-colors duration-300;
 }
 
 .memberRole {
-    @apply text-purple-600 font-medium mb-4;
+    @apply text-lg font-semibold bg-gradient-to-r from-purple-600 to-indigo-600 
+    bg-clip-text text-transparent mb-4;
 }
 
 .memberDescription {
-    @apply text-gray-600 mb-6 leading-relaxed;
+    @apply text-gray-700 mb-8 leading-relaxed text-lg;
 }
 
-/* Social Links */
+/* Social Links - Modern Design */
 .socialLinks {
     @apply flex space-x-4;
 }
 
 .socialLink {
-    @apply p-2 text-gray-600 hover:text-purple-600 rounded-full
-    hover:bg-purple-50 transition-colors duration-200;
+    @apply p-3 text-gray-600 hover:text-white rounded-xl
+    bg-gray-100 hover:bg-gradient-to-r hover:from-purple-600 hover:to-indigo-600
+    transition-all duration-300 transform hover:scale-110 hover:shadow-lg;
 }
 
 .socialIcon {
-    @apply w-5 h-5;
+    @apply w-6 h-6;
 }
 
-/* Mission Section */
+/* Mission Section - Premium Card */
 .missionSection {
-    @apply bg-white rounded-lg shadow-sm p-8 border border-gray-200 max-w-3xl mx-auto;
+    @apply bg-white/80 backdrop-blur-sm rounded-2xl shadow-xl p-12 
+    border border-gray-100 max-w-4xl mx-auto
+    hover:shadow-2xl transition-all duration-500;
 }
 
 .missionTitle {
-    @apply text-2xl font-bold text-gray-900 mb-4;
+    @apply text-3xl md:text-4xl font-bold mb-6 text-center;
+    background: linear-gradient(135deg, #1f2937 0%, #4f46e5 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
 }
 
 .missionText {
-    @apply text-gray-600 leading-relaxed;
+    @apply text-xl text-gray-700 leading-relaxed text-center;
 }
 
-/* Hover Effects */
+/* Enhanced Hover Effects */
 .memberCard:hover .memberName {
     @apply text-purple-600;
+}
+
+.memberCard:hover .memberImage {
+    @apply scale-105;
+}
+
+.logoWrapper:hover .logoIcon {
+    @apply text-purple-700 scale-110;
 }
 
 .socialLink:focus {
     @apply outline-none ring-2 ring-purple-500 ring-offset-2;
 }
 
-/* Responsive Adjustments */
+/* Animation Classes */
+.fade-in {
+    animation: fadeIn 0.6s ease-out;
+}
+
+.slide-up {
+    animation: slideUp 0.8s ease-out;
+}
+
+@keyframes fadeIn {
+    from { opacity: 0; }
+    to { opacity: 1; }
+}
+
+@keyframes slideUp {
+    from { 
+        opacity: 0; 
+        transform: translateY(30px); 
+    }
+    to { 
+        opacity: 1; 
+        transform: translateY(0); 
+    }
+}
+
+/* Responsive Design */
 @media (max-width: 768px) {
+    .main {
+        @apply py-16;
+    }
+
     .title {
         @apply text-3xl;
     }
@@ -135,20 +192,44 @@
     }
 
     .memberName {
-        @apply text-xl;
+        @apply text-2xl;
+    }
+
+    .memberInfo {
+        @apply p-6;
     }
 
     .missionSection {
-        @apply p-6;
+        @apply p-8;
+    }
+
+    .teamGrid {
+        @apply gap-12;
     }
 }
 
 @media (max-width: 640px) {
     .main {
-        @apply px-4 py-8;
+        @apply px-4 py-12;
+    }
+
+    .navbar {
+        @apply px-4;
+    }
+
+    .homeButton {
+        @apply px-4 py-2 text-sm;
     }
 
     .teamGrid {
         @apply gap-8;
+    }
+
+    .memberInfo {
+        @apply p-4;
+    }
+
+    .missionSection {
+        @apply p-6;
     }
 }

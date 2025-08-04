@@ -133,7 +133,7 @@ const HomeScreen = () => {
                             <h2 className={styles.menuTitle}>{option.title}</h2>
                             <p className={styles.menuDescription}>{option.description}</p>
                             <div className={styles.cardFooter}>
-                                <span className={styles.getStarted}>Get Started →</span>
+                                <span className={styles.getStarted}>Get Started</span>
                             </div>
                         </div>
                     ))}
