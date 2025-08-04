@@ -7,15 +7,48 @@
 /* Sidebar Styles - Modern Glassmorphism */
 .sidebar {
     @apply w-80 bg-white/80 backdrop-blur-md border-r border-gray-200/50 
-    flex flex-col h-screen sticky top-0 shadow-lg;
+    flex flex-col h-screen sticky top-0 shadow-lg transition-all duration-300;
+}
+
+/* Collapsed Sidebar Styles */
+.sidebar.collapsed {
+    @apply w-20;
+}
+
+/* Toggle Button Styles */
+.toggleButton {
+    @apply absolute -right-3 top-6 z-10
+    bg-white/90 backdrop-blur-sm border border-gray-200 
+    rounded-full p-2 shadow-lg
+    hover:bg-purple-50 hover:border-purple-300
+    transition-all duration-300 transform hover:scale-110
+    focus:outline-none focus:ring-2 focus:ring-purple-500 focus:ring-offset-2;
+}
+
+.toggleIcon {
+    @apply w-4 h-4 text-gray-600 transition-transform duration-300;
+}
+
+.toggleButton:hover .toggleIcon {
+    @apply text-purple-600;
 }
 
 .sidebarHeader {
     @apply p-6 border-b border-gray-200/50;
 }
 
+/* Collapsed Header Styles */
+.sidebar.collapsed .sidebarHeader {
+    @apply p-4;
+}
+
 .logoContainer {
-    @apply flex items-center space-x-3 mb-6 cursor-pointer;
+    @apply flex items-center space-x-3 mb-6 cursor-pointer transition-all duration-300;
+}
+
+/* Collapsed Logo Styles */
+.sidebar.collapsed .logoContainer {
+    @apply justify-center space-x-0 mb-4;
 }
 
 .logoIcon {
@@ -31,22 +64,44 @@
     bg-clip-text text-transparent transition-all duration-300;
 }
 
+/* Hide logo text when collapsed */
+.sidebar.collapsed .logoText {
+    @apply opacity-0 w-0 overflow-hidden;
+}
+
 .searchContainer {
-    @apply relative;
+    @apply relative transition-all duration-300 mb-4;
+}
+
+/* Hide search when collapsed */
+.sidebar.collapsed .searchContainer {
+    @apply opacity-0 h-0 overflow-hidden mb-0;
 }
 
 .searchIcon {
-    @apply w-5 h-5 absolute left-4 top-1/2 transform -translate-y-1/2 text-gray-400;
+    @apply w-5 h-5 absolute left-4 top-1/2 transform -translate-y-1/2 
+    text-gray-500 transition-all duration-300 z-10;
 }
 
 .searchInput {
-    @apply w-full pl-12 pr-4 py-3 border-2 border-gray-200 rounded-xl
-    focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-purple-500
-    placeholder-gray-400 transition-all duration-300 bg-white/50 backdrop-blur-sm;
+    @apply w-full pl-12 pr-4 py-3.5 
+    border border-gray-200/60 rounded-2xl
+    focus:outline-none focus:ring-2 focus:ring-purple-500/50 focus:border-purple-400
+    placeholder-gray-500 transition-all duration-300 
+    bg-gradient-to-r from-white/90 to-gray-50/90 backdrop-blur-md
+    shadow-sm hover:shadow-md focus:shadow-lg
+    text-gray-700 font-medium;
 }
 
 .searchInput:hover {
-    @apply border-purple-300 shadow-md;
+    @apply border-purple-300/80 shadow-md bg-gradient-to-r from-white to-purple-50/30;
+}
+
+/* Search icon styling is now handled in the component */
+
+.searchInput:focus {
+    @apply bg-gradient-to-r from-white to-purple-50/40 
+    ring-purple-500/30 border-purple-400/70;
 }
 
 /* Document List Styles - Enhanced */
@@ -54,6 +109,11 @@
     @apply flex-1 overflow-y-auto p-4;
     scrollbar-width: thin;
     scrollbar-color: theme('colors.purple.300') theme('colors.gray.100');
+}
+
+/* Collapsed Document List */
+.sidebar.collapsed .docList {
+    @apply p-2;
 }
 
 .docList::-webkit-scrollbar {
@@ -82,8 +142,18 @@
     rounded-xl cursor-pointer transition-all duration-300;
 }
 
+/* Collapsed Category Header */
+.sidebar.collapsed .categoryHeader {
+    @apply px-2 justify-center;
+}
+
 .chevronIcon {
     @apply w-5 h-5 mr-3 text-gray-400 transition-transform duration-300;
+}
+
+/* Hide chevron text when collapsed */
+.sidebar.collapsed .chevronIcon {
+    @apply mr-0;
 }
 
 .categoryHeader:hover .chevronIcon {
@@ -91,11 +161,21 @@
 }
 
 .categoryName {
-    @apply font-semibold;
+    @apply font-semibold transition-all duration-300;
+}
+
+/* Hide category name when collapsed */
+.sidebar.collapsed .categoryName {
+    @apply opacity-0 w-0 overflow-hidden;
 }
 
 .categoryDocs {
-    @apply ml-8 space-y-2 mt-3;
+    @apply ml-8 space-y-2 mt-3 transition-all duration-300;
+}
+
+/* Hide category docs when collapsed */
+.sidebar.collapsed .categoryDocs {
+    @apply opacity-0 h-0 overflow-hidden ml-0 mt-0;
 }
 
 .docItem {
@@ -103,6 +183,11 @@
     hover:bg-gradient-to-r hover:from-purple-50 hover:to-indigo-50 
     rounded-xl transition-all duration-300 
     focus:outline-none focus:ring-2 focus:ring-purple-500 focus:ring-offset-2;
+}
+
+/* Collapsed Doc Item */
+.sidebar.collapsed .docItem {
+    @apply px-2 justify-center;
 }
 
 .docItem.selected {
@@ -114,6 +199,11 @@
     @apply w-5 h-5 mr-3 flex-shrink-0 transition-colors duration-300;
 }
 
+/* Collapsed Doc Icon */
+.sidebar.collapsed .docIcon {
+    @apply mr-0;
+}
+
 .docItem:hover .docIcon {
     @apply text-purple-600 scale-110;
 }
@@ -123,17 +213,32 @@
 }
 
 .docName {
-    @apply truncate text-left font-medium;
+    @apply truncate text-left font-medium transition-all duration-300;
+}
+
+/* Hide doc name when collapsed */
+.sidebar.collapsed .docName {
+    @apply opacity-0 w-0 overflow-hidden;
 }
 
 /* VIEW-MODE BUTTONS - Enhanced */
 .viewModeContainer {
     @apply p-6 border-b border-gray-200/50 
-    bg-gradient-to-r from-purple-50/80 to-indigo-50/80 backdrop-blur-sm;
+    bg-gradient-to-r from-purple-50/80 to-indigo-50/80 backdrop-blur-sm transition-all duration-300;
+}
+
+/* Collapsed View Mode Container */
+.sidebar.collapsed .viewModeContainer {
+    @apply p-2;
 }
 
 .viewModeHeader {
-    @apply mb-4;
+    @apply mb-4 transition-all duration-300;
+}
+
+/* Hide view mode header when collapsed */
+.sidebar.collapsed .viewModeHeader {
+    @apply opacity-0 h-0 overflow-hidden mb-2;
 }
 
 .viewModeTitle {
@@ -142,7 +247,12 @@
 }
 
 .viewModeButtons {
-    @apply flex flex-row justify-between space-x-3;
+    @apply flex flex-row justify-between space-x-3 transition-all duration-300;
+}
+
+/* Collapsed View Mode Buttons */
+.sidebar.collapsed .viewModeButtons {
+    @apply flex-col space-x-0 space-y-2;
 }
 
 .viewModeButton {
@@ -153,6 +263,11 @@
     transition-all duration-300 ease-in-out
     focus:outline-none focus:ring-2 focus:ring-purple-500 focus:ring-offset-2
     relative transform;
+}
+
+/* Collapsed View Mode Button */
+.sidebar.collapsed .viewModeButton {
+    @apply w-12 h-12;
 }
 
 .viewModeButton:hover {
@@ -167,6 +282,11 @@
 .viewModeIcon {
     @apply w-6 h-6 text-gray-600 
     transition-all duration-300;
+}
+
+/* Collapsed View Mode Icon */
+.sidebar.collapsed .viewModeIcon {
+    @apply w-5 h-5;
 }
 
 /* Active view mode styling */
@@ -194,6 +314,11 @@
     pointer-events-none;
 }
 
+/* Adjust tooltip position for collapsed state */
+.sidebar.collapsed .tooltip {
+    @apply left-full ml-3 bottom-1/2 transform translate-y-1/2 translate-x-0;
+}
+
 .tooltipText {
     @apply bg-gray-900/90 backdrop-blur-sm text-white text-xs font-semibold
     px-3 py-2 rounded-lg shadow-xl
@@ -204,6 +329,13 @@
     @apply absolute top-full left-1/2 transform -translate-x-1/2
     w-0 h-0 border-l-4 border-r-4 border-t-4
     border-l-transparent border-r-transparent border-t-gray-900;
+}
+
+/* Adjust tooltip arrow for collapsed state */
+.sidebar.collapsed .tooltipArrow {
+    @apply top-1/2 left-0 transform -translate-y-1/2 -translate-x-full
+    border-l-0 border-r-4 border-t-4 border-b-4
+    border-r-gray-900 border-t-transparent border-b-transparent;
 }
 
 /* Main Content Styles - Enhanced */
@@ -277,7 +409,12 @@
 
 /* Profile Section - Enhanced */
 .profileSection {
-    @apply p-6 border-t border-gray-200/50 mt-auto;
+    @apply p-6 border-t border-gray-200/50 mt-auto transition-all duration-300;
+}
+
+/* Collapsed Profile Section */
+.sidebar.collapsed .profileSection {
+    @apply p-4;
 }
 
 .userDetails {
@@ -308,8 +445,22 @@
     focus:outline-none focus:ring-2 focus:ring-red-400 focus:ring-offset-2;
 }
 
+/* Collapsed Logout Button */
+.sidebar.collapsed .logoutButton {
+    @apply px-3 w-auto;
+}
+
 .logoutIcon {
-    @apply w-5 h-5 mr-3;
+    @apply w-5 h-5 mr-3 transition-all duration-300;
+}
+
+/* Hide logout text when collapsed */
+.sidebar.collapsed .logoutIcon {
+    @apply mr-0;
+}
+
+.sidebar.collapsed .logoutButton span {
+    @apply opacity-0 w-0 overflow-hidden;
 }
 
 /* Home Button - Enhanced */
@@ -419,5 +570,32 @@
     .viewModeIcon {
         @apply w-5 h-5;
     }
+}
+
+.docButton {
+    @apply flex items-center w-full text-left
+    px-2 py-1 text-sm text-gray-700 font-medium
+    hover:bg-gradient-to-r hover:from-purple-50 hover:to-indigo-50 
+    rounded-xl transition-all duration-300
+    focus-within:outline-none focus-within:ring-2 focus-within:ring-purple-500 focus-within:ring-offset-2;
+}
+
+.docButton .docItem {
+    @apply flex-1 flex items-center px-2 py-2 rounded-lg
+    hover:bg-transparent border-0 focus:outline-none focus:ring-0;
+}
+
+/* Document Management Buttons */
+.deleteButton {
+    @apply inline-flex items-center justify-center
+    p-2 text-gray-400 rounded-lg
+    hover:text-red-600 hover:bg-red-50
+    transition-all duration-300 transform hover:scale-110
+    opacity-0
+    focus:outline-none focus:ring-2 focus:ring-red-400 focus:ring-offset-2;
+}
+
+.trashIcon {
+    @apply w-5 h-5;
 }
 

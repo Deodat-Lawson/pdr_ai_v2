@@ -131,6 +131,9 @@ const DocumentViewer: React.FC = () => {
     // Searching/filtering
     const [searchTerm, setSearchTerm] = useState("");
 
+    // Category open/closed state
+    const [openCategories, setOpenCategories] = useState<Set<string>>(new Set());
+
     // Loading states
     const [loading, setLoading] = useState(true);
     const [roleLoading, setRoleLoading] = useState(true); // for role-check
@@ -271,6 +274,19 @@ const DocumentViewer: React.FC = () => {
         fetchDocuments().catch(console.error);
     }, [userId]);
 
+    // Toggle category open/closed state
+    const toggleCategory = (categoryName: string) => {
+        setOpenCategories(prev => {
+            const newSet = new Set(prev);
+            if (newSet.has(categoryName)) {
+                newSet.delete(categoryName);
+            } else {
+                newSet.add(categoryName);
+            }
+            return newSet;
+        });
+    };
+
     // 3. Build category groups
     const categories: CategoryGroup[] = Object.values(
         documents.reduce((acc: Record<string, CategoryGroup>, doc) => {
@@ -284,7 +300,7 @@ const DocumentViewer: React.FC = () => {
             if (!acc[doc.category]) {
                 acc[doc.category] = {
                     name: doc.category,
-                    isOpen: true,
+                    isOpen: openCategories.has(doc.category),
                     documents: [],
                 };
             }
@@ -470,6 +486,7 @@ const DocumentViewer: React.FC = () => {
                 }}
                 viewMode={viewMode}
                 setViewMode={setViewMode}
+                toggleCategory={toggleCategory}
             />
 
             {/* Main Content */}

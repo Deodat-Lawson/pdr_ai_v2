@@ -13,6 +13,8 @@ import {
     MessageCircle,
     History,
     BarChart3,
+    ChevronLeft,
+    Trash2,
 } from "lucide-react";
 import { useRouter } from "next/navigation";
 import styles from "~/styles/Employer/DocumentViewer.module.css";
@@ -40,6 +42,8 @@ interface DocumentsSidebarProps {
     setSelectedDoc: (doc: DocumentType) => void;
     viewMode: ViewMode;
     setViewMode: React.Dispatch<React.SetStateAction<ViewMode>>;
+    toggleCategory?: (categoryName: string) => void;
+    deleteDocument?: (docId: number) => void;
 }
 
 interface ViewModeConfig {
@@ -79,38 +83,64 @@ export const DocumentsSidebar: React.FC<DocumentsSidebarProps> = ({
     setSelectedDoc,
     viewMode,
     setViewMode,
+    toggleCategory,
+    deleteDocument,
 }) => {
     const router = useRouter();
     const [hoveredTooltip, setHoveredTooltip] = useState<string | null>(null);
+    const [isCollapsed, setIsCollapsed] = useState(false);
+    const [isSearchFocused, setIsSearchFocused] = useState(false);
+
+    const toggleSidebar = () => {
+        setIsCollapsed(!isCollapsed);
+    };
+
+    const handleCategoryClick = (categoryName: string) => {
+        if (toggleCategory) {
+            toggleCategory(categoryName);
+        }
+    };
+
+    const handleDeleteDocument = (docId: number, e: React.MouseEvent) => {
+        e.stopPropagation(); 
+        if (deleteDocument) {
+            deleteDocument(docId);
+        }
+    };
 
     return (
-        <aside className={styles.sidebar}>
-            {/* Header */}
-            <div className={styles.sidebarHeader}>
+        <aside className={`${styles.sidebar} ${isCollapsed ? styles.collapsed : ""}`}>
+            <button 
+                className={styles.toggleButton}
+                onClick={toggleSidebar}
+                aria-label={isCollapsed ? "Expand sidebar" : "Collapse sidebar"}
+            >
+                <ChevronLeft 
+                    className={`${styles.toggleIcon} ${isCollapsed ? "rotate-180" : ""}`}
+                />
+            </button>
 
-                {/* Logo */}
+            <div className={styles.sidebarHeader}>
                 <button className={styles.logoContainer}>
                     <Brain className={styles.logoIcon} />
                     <span className={styles.logoText}>PDR AI</span>
                 </button>
 
-
                 {/* Search Bar */}
                 <div className={styles.searchContainer}>
-                    <Search className={styles.searchIcon} />
+                    <Search className={`${styles.searchIcon} ${isSearchFocused ? 'text-purple-600 scale-110' : ''}`} />
                     <input
                         type="text"
                         placeholder="Search documents..."
                         className={styles.searchInput}
                         value={searchTerm}
                         onChange={(e) => setSearchTerm(e.target.value)}
+                        onFocus={() => setIsSearchFocused(true)}
+                        onBlur={() => setIsSearchFocused(false)}
                     />
                 </div>
-
-
             </div>
 
-            {/* View-Mode Buttons */}
             <div className={styles.viewModeContainer}>
                 <div className={styles.viewModeHeader}>
                     <span className={styles.viewModeTitle}>View Options</span>
@@ -141,11 +171,21 @@ export const DocumentsSidebar: React.FC<DocumentsSidebarProps> = ({
                 </div>
             </div>
 
-            {/* Document List */}
             <nav className={styles.docList}>
                 {categories.map((category) => (
                     <div key={category.name} className={styles.categoryGroup}>
-                        <div className={styles.categoryHeader}>
+                        <div 
+                            className={styles.categoryHeader}
+                            onClick={() => handleCategoryClick(category.name)}
+                            role="button"
+                            tabIndex={0}
+                            onKeyDown={(e) => {
+                                if (e.key === 'Enter' || e.key === ' ') {
+                                    e.preventDefault();
+                                    handleCategoryClick(category.name);
+                                }
+                            }}
+                        >
                             {category.isOpen ? (
                                 <ChevronDown className={styles.chevronIcon} />
                             ) : (
@@ -157,17 +197,25 @@ export const DocumentsSidebar: React.FC<DocumentsSidebarProps> = ({
                         {category.isOpen && (
                             <div className={styles.categoryDocs}>
                                 {category.documents.map((doc) => (
-                                    <button
-                                        key={doc.id}
-                                        onClick={() => setSelectedDoc(doc)}
-                                        className={`${styles.docItem} ${selectedDoc && selectedDoc.id === doc.id
-                                            ? styles.selected
-                                            : ""
-                                            }`}
-                                    >
-                                        <FileText className={styles.docIcon} />
-                                        <span className={styles.docName}>{doc.title}</span>
-                                    </button>
+                                    <div key={doc.id} className={`${styles.docButton} group ${selectedDoc && selectedDoc.id === doc.id ? styles.selected : ""}`}>
+                                        <button
+                                            onClick={() => setSelectedDoc(doc)}
+                                            className={styles.docItem}
+                                        >
+                                            <FileText className={styles.docIcon} />
+                                            <span className={styles.docName}>{doc.title}</span>
+                                        </button>
+                                        {!isCollapsed && deleteDocument && (
+                                            <button
+                                                onClick={(e) => handleDeleteDocument(doc.id, e)}
+                                                className={`${styles.deleteButton} group-hover:opacity-100`}
+                                                title="Delete document"
+                                                aria-label={`Delete document ${doc.title}`}
+                                            >
+                                                <Trash2 className={styles.trashIcon} />
+                                            </button>
+                                        )}
+                                    </div>
                                 ))}
                             </div>
                         )}
@@ -175,7 +223,7 @@ export const DocumentsSidebar: React.FC<DocumentsSidebarProps> = ({
                 ))}
             </nav>
 
-            {/* Profile Section (go back home, etc.) */}
+            {/* Sidebar Footer - Home Button */}
             <div className={styles.sidebarFooter}>
                 <Link href="/employer/home">
                     <button className={styles.homeButton}>

@@ -5,11 +5,7 @@ import styles from '../styles/home.module.css';
 
 import {
     ClerkProvider,
-    SignInButton,
     SignUpButton,
-    SignedIn,
-    SignedOut,
-    UserButton
 } from '@clerk/nextjs'
 
 

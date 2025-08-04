@@ -122,6 +122,9 @@ const DocumentViewer: React.FC = () => {
   // Searching/filtering
   const [searchTerm, setSearchTerm] = useState("");
 
+  // Category open/closed state
+  const [openCategories, setOpenCategories] = useState<Set<string>>(new Set());
+
   // Loading states
   const [isLoading, setIsLoading] = useState(true);
   const [isRoleLoading, setIsRoleLoading] = useState(true);
@@ -286,6 +289,19 @@ const DocumentViewer: React.FC = () => {
     fetchHistory();
   }, [userId, selectedDoc]);
 
+  // Toggle category open/closed state
+  const toggleCategory = (categoryName: string) => {
+    setOpenCategories(prev => {
+      const newSet = new Set(prev);
+      if (newSet.has(categoryName)) {
+        newSet.delete(categoryName);
+      } else {
+        newSet.add(categoryName);
+      }
+      return newSet;
+    });
+  };
+
   // Effect: Fetch predictive analysis when mode is active
   useEffect(() => {
     if (viewMode !== "predictive-analysis" || !selectedDoc?.id) return;
@@ -393,7 +409,46 @@ const DocumentViewer: React.FC = () => {
     }
   };
 
-  // Build category groups with search filtering
+  // Handler: Delete document
+  const deleteDocument = async (docId: number) => {
+    if (!window.confirm('Are you sure you want to delete this document? This will permanently remove the document and all related data including chat history, analysis results, and references. This action cannot be undone.')) {
+      return;
+    }
+
+    try {
+      const response = await fetch('/api/deleteDocument', {
+        method: 'DELETE',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ docId: docId.toString() }),
+      });
+
+      const result = await response.json();
+
+      if (!response.ok) {
+        throw new Error(result.details || result.error || 'Failed to delete document');
+      }
+
+      // Update local state - remove the document
+      setDocuments(prev => prev.filter(doc => doc.id !== docId));
+      
+      // Clear selected document if it was the one deleted
+      if (selectedDoc && selectedDoc.id === docId) {
+        setSelectedDoc(null);
+        setAiAnswer("");
+        setReferencePages([]);
+        setPredictiveAnalysis(null);
+        setQaHistory([]);
+      }
+
+      // Show success message
+      alert(result.message || 'Document and all related data deleted successfully');
+    } catch (error) {
+      console.error('Error deleting document:', error);
+      alert(`Failed to delete document: ${error instanceof Error ? error.message : 'Unknown error'}`);
+    }
+  };
+
+
   const categories: CategoryGroup[] = Object.values(
     documents.reduce((acc: Record<string, CategoryGroup>, doc) => {
       const lowerSearch = searchTerm.toLowerCase();
@@ -405,7 +460,7 @@ const DocumentViewer: React.FC = () => {
       if (!acc[doc.category]) {
         acc[doc.category] = {
           name: doc.category,
-          isOpen: true,
+          isOpen: openCategories.has(doc.category),
           documents: [],
         };
       }
@@ -434,6 +489,8 @@ const DocumentViewer: React.FC = () => {
         }}
         viewMode={viewMode}
         setViewMode={setViewMode}
+        toggleCategory={toggleCategory}
+        deleteDocument={deleteDocument}
       />
 
       {/* Main Content */}
