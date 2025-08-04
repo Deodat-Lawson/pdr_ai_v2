@@ -1,0 +1,305 @@
+/* Pricing Page Styles */
+
+.container {
+    @apply min-h-screen bg-gradient-to-br from-slate-50 via-white to-purple-50;
+}
+
+/* Navigation */
+.navContainer {
+    @apply w-full px-6 py-4 bg-white/80 backdrop-blur-md border-b border-gray-200/50 sticky top-0 z-50;
+}
+
+.navContent {
+    @apply max-w-7xl mx-auto;
+}
+
+.navWrapper {
+    @apply flex items-center justify-between;
+}
+
+.logoContainer {
+    @apply flex items-center space-x-3 cursor-pointer no-underline;
+}
+
+.iconPurple {
+    @apply w-8 h-8 text-purple-600;
+}
+
+.logoText {
+    @apply text-xl font-bold bg-gradient-to-r from-purple-600 to-indigo-600 
+    bg-clip-text text-transparent;
+}
+
+.navLinks {
+    @apply flex items-center space-x-4;
+}
+
+/* Buttons */
+.btn {
+    @apply px-6 py-2.5 rounded-xl font-semibold transition-all duration-300 
+    focus:outline-none focus:ring-2 focus:ring-offset-2 border-0 cursor-pointer;
+}
+
+.btnGhost {
+    @apply text-gray-700 hover:text-purple-600 hover:bg-purple-50;
+}
+
+.btnPrimary {
+    @apply bg-gradient-to-r from-purple-600 to-indigo-600 text-white 
+    hover:from-purple-700 hover:to-indigo-700 shadow-lg hover:shadow-xl 
+    transform hover:-translate-y-0.5 focus:ring-purple-500;
+}
+
+.btnOutline {
+    @apply border-2 border-purple-600 text-purple-600 
+    hover:bg-purple-600 hover:text-white;
+}
+
+.btnLg {
+    @apply px-8 py-4 text-lg;
+}
+
+/* Hero Section */
+.heroSection {
+    @apply py-20 px-6;
+}
+
+.heroContent {
+    @apply max-w-4xl mx-auto text-center;
+}
+
+.heroTitle {
+    @apply text-5xl md:text-6xl font-extrabold mb-6;
+    background: linear-gradient(135deg, #1f2937 0%, #4f46e5 50%, #7c3aed 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+}
+
+.heroDescription {
+    @apply text-xl text-gray-600 max-w-2xl mx-auto leading-relaxed;
+}
+
+/* Sponsorship Section */
+.sponsorshipSection {
+    @apply py-16 px-6 bg-gradient-to-r from-blue-50 to-indigo-50;
+}
+
+.sponsorshipContainer {
+    @apply max-w-4xl mx-auto;
+}
+
+.sponsorshipContent {
+    @apply text-center;
+}
+
+.sponsorshipBadge {
+    @apply inline-flex items-center space-x-2 px-4 py-2 
+    bg-red-100 text-red-700 rounded-full font-semibold mb-8;
+}
+
+.heartIcon {
+    @apply w-5 h-5 text-red-500;
+}
+
+.universityLogo {
+    @apply mb-8;
+}
+
+.logoPlaceholder {
+    @apply flex items-center justify-center space-x-4 
+    bg-white/80 backdrop-blur-sm p-8 rounded-2xl shadow-xl border border-gray-100
+    max-w-md mx-auto;
+}
+
+.universityIcon {
+    @apply w-16 h-16 text-blue-600;
+}
+
+.universityText h3 {
+    @apply text-2xl font-bold text-gray-900 mb-1;
+}
+
+.universityText p {
+    @apply text-gray-600 font-medium;
+}
+
+.sponsorshipDescription {
+    @apply text-lg text-gray-700 max-w-3xl mx-auto leading-relaxed;
+}
+
+/* Pricing Section */
+.pricingSection {
+    @apply py-20 px-6;
+}
+
+.pricingContainer {
+    @apply max-w-2xl mx-auto;
+}
+
+.pricingCard {
+    @apply bg-white/80 backdrop-blur-sm rounded-3xl shadow-xl 
+    border border-gray-100 p-8 md:p-12 hover:shadow-2xl hover:scale-105 transition-all duration-500;
+}
+
+.cardHeader {
+    @apply text-center mb-10;
+}
+
+.planBadge {
+    @apply inline-flex items-center space-x-2 px-4 py-2 
+    bg-green-100 text-green-700 rounded-full font-semibold mb-6;
+}
+
+.awardIcon {
+    @apply w-5 h-5 text-green-600;
+}
+
+.planTitle {
+    @apply text-3xl font-bold text-gray-900 mb-4;
+}
+
+.priceContainer {
+    @apply flex items-baseline justify-center space-x-2 mb-6;
+}
+
+.price {
+    @apply text-6xl font-extrabold bg-gradient-to-r from-purple-600 to-indigo-600 
+    bg-clip-text text-transparent;
+}
+
+.priceSubtext {
+    @apply text-xl text-gray-600 font-medium;
+}
+
+.planDescription {
+    @apply text-lg text-gray-600 max-w-md mx-auto leading-relaxed;
+}
+
+/* Features */
+.featuresContainer {
+    @apply mb-10;
+}
+
+.featuresTitle {
+    @apply text-xl font-bold text-gray-900 mb-6;
+}
+
+.featuresList {
+    @apply space-y-4 list-none p-0 m-0;
+}
+
+.featureItem {
+    @apply flex items-center space-x-3;
+}
+
+.checkIcon {
+    @apply w-5 h-5 text-green-500 flex-shrink-0;
+}
+
+.featureItem span {
+    @apply text-gray-700 font-medium;
+}
+
+/* CTA */
+.ctaContainer {
+    @apply text-center;
+}
+
+.arrowIcon {
+    @apply w-5 h-5 ml-2;
+}
+
+.ctaSubtext {
+    @apply text-sm text-gray-500 mt-4;
+}
+
+/* Benefits Section */
+.benefitsSection {
+    @apply py-16 px-6 bg-gradient-to-r from-purple-50 to-indigo-50;
+}
+
+.benefitsContainer {
+    @apply max-w-6xl mx-auto;
+}
+
+.benefitsTitle {
+    @apply text-3xl font-bold text-center text-gray-900 mb-12;
+}
+
+.benefitsGrid {
+    @apply grid grid-cols-1 md:grid-cols-3 gap-8;
+}
+
+.benefitCard {
+    @apply bg-white/80 backdrop-blur-sm rounded-2xl p-8 text-center 
+    shadow-lg hover:shadow-xl transition-all duration-300 border border-gray-100;
+}
+
+.benefitIcon {
+    @apply w-12 h-12 text-purple-600 mx-auto mb-4;
+}
+
+.benefitTitle {
+    @apply text-xl font-bold text-gray-900 mb-4;
+}
+
+.benefitDescription {
+    @apply text-gray-600 leading-relaxed;
+}
+
+/* Footer CTA */
+.footerCta {
+    @apply py-20 px-6 bg-gradient-to-r from-purple-600 to-indigo-600;
+}
+
+.footerCtaContainer {
+    @apply max-w-4xl mx-auto text-center;
+}
+
+.footerCtaTitle {
+    @apply text-4xl font-bold text-white mb-6;
+}
+
+.footerCtaDescription {
+    @apply text-xl text-purple-100 mb-10 max-w-2xl mx-auto leading-relaxed;
+}
+
+.footerCtaButtons {
+    @apply flex flex-col sm:flex-row items-center justify-center space-y-4 sm:space-y-0 sm:space-x-6;
+}
+
+.footerCtaButtons .btnPrimary {
+    @apply bg-white text-purple-600 hover:bg-gray-50;
+}
+
+.footerCtaButtons .btnOutline {
+    @apply border-white text-white hover:bg-white hover:text-purple-600;
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+    .heroTitle {
+        @apply text-4xl;
+    }
+    
+    .logoPlaceholder {
+        @apply flex-col space-x-0 space-y-4;
+    }
+    
+    .price {
+        @apply text-5xl;
+    }
+    
+    .pricingCard {
+        @apply p-6;
+    }
+    
+    .navLinks {
+        @apply space-x-2;
+    }
+    
+    .btn {
+        @apply px-4 py-2 text-sm;
+    }
+} 
