@@ -1,14 +1,15 @@
 import { NextResponse } from "next/server";
-import { db } from "../../../server/db/index";
+import { ChatOpenAI } from "@langchain/openai";
+import { SystemMessage, HumanMessage } from "@langchain/core/messages";
+import { OpenAIEmbeddings } from "@langchain/openai";
+import { db } from "~/server/db/index";
 import { sql } from "drizzle-orm";
-import { ChatOpenAI, OpenAIEmbeddings } from "@langchain/openai";
-import { HumanMessage, SystemMessage } from "@langchain/core/messages";
-
+import ANNOptimizer from "../predictive-document-analysis/services/annOptimizer";
 
 type PostBody = {
-    documentId: number; 
+    documentId: number;
     question: string;
-    style?: keyof typeof SYSTEM_PROMPTS;
+    style?: "concise" | "detailed" | "academic" | "bullet-points";
 };
 
 type PdfChunkRow = Record<string, unknown> & {
@@ -18,51 +19,60 @@ type PdfChunkRow = Record<string, unknown> & {
     distance: number;
 };
 
-
 const SYSTEM_PROMPTS = {
-    concise: `You are an expert document analyst. Your role is to provide accurate, concise answers based on the provided document chunks. 
+    concise: `You are a professional document analysis assistant. Provide clear, concise answers based only on the provided document content. 
 
-    Guidelines:
-    - Answer directly and precisely
-    - Use information only from the provided chunks
-    - If the chunks don't contain enough information, clearly state this
-    - Maintain factual accuracy above all else
-    - Use clear, professional language`,
+Guidelines:
+- Keep responses under 150 words
+- Focus on the most relevant information
+- Use bullet points when listing multiple items
+- If the information isn't in the provided content, say "This information is not available in the provided document sections"
+- Always include page references when citing information`,
 
-    detailed: `You are a comprehensive document analyst. Provide thorough, well-structured answers based on the document chunks.
+    detailed: `You are a comprehensive document analysis assistant. Provide thorough, detailed answers based on the provided document content.
 
-    Guidelines:
-    - Provide detailed explanations with context
-    - Connect related information across chunks when relevant
-    - Include relevant examples or specifics from the text
-    - Structure your response logically with clear flow
-    - If information is incomplete, explain what's missing`,
+Guidelines:
+- Provide comprehensive explanations with context
+- Include relevant details and background information
+- Structure your response with clear sections when appropriate  
+- Explain technical terms or concepts when relevant
+- If the information isn't in the provided content, say "This information is not available in the provided document sections"
+- Always include page references when citing information`,
 
-    academic: `You are a scholarly document analyst. Provide academic-level responses with proper analysis and critical thinking.
+    academic: `You are an academic research assistant specializing in document analysis. Provide scholarly, analytical responses based on the provided document content.
 
-    Guidelines:
-    - Analyze the information critically
-    - Discuss implications and connections
-    - Note any limitations or gaps in the provided information
-    - Use formal academic tone
-    - Support statements with specific references to the text`,
+Guidelines:
+- Use formal academic language and structure
+- Provide analytical insights and interpretations
+- Consider implications and broader context
+- Use precise terminology and definitions
+- If the information isn't in the provided content, say "The provided document sections do not contain sufficient information to address this query"
+- Include detailed page references for all citations`,
 
-    'bullet-points': `You are a structured information analyst. Provide clear, organized responses in bullet-point format.
+    "bullet-points": `You are a structured document analysis assistant. Organize all information into clear bullet points and lists.
 
-    Guidelines:
-    - Organize information into clear bullet points
-    - Group related information logically
-    - Use sub-bullets for detailed explanations
-    - Start with the most important information
-    - Keep each point concise but complete`
+Guidelines:
+- Structure ALL responses using bullet points
+- Group related information under clear headings
+- Use sub-bullets for detailed breakdown
+- Keep each bullet point concise but informative
+- If the information isn't in the provided content, say "• This information is not available in the provided document sections"
+- Always include page references in parentheses`
 };
 
+// Initialize ANN optimizer specifically for Q&A retrieval
+const qaAnnOptimizer = new ANNOptimizer({ 
+    strategy: 'hnsw', // HNSW works best for Q&A with precise relevance
+    efSearch: 200
+});
 
 export async function POST(request: Request) {
+    const startTime = Date.now();
+    
     try {
-
         const { documentId, question, style } = (await request.json()) as PostBody;
         
+        console.log(`🤖 [Q&A-ANN] Processing question for document ${documentId}`);
 
         const embeddings = new OpenAIEmbeddings({
             model: "text-embedding-ada-002",
@@ -70,64 +80,105 @@ export async function POST(request: Request) {
         });
         const questionEmbedding = await embeddings.embedQuery(question);
 
-        const bracketedEmbedding = `[${questionEmbedding.join(",")}]`;
+        let rows: PdfChunkRow[] = [];
 
-        console.log(documentId);
+        try {
+            // Try ANN-optimized search first
+            console.log(`🚀 [Q&A-ANN] Using optimized vector search`);
+            const annResults = await qaAnnOptimizer.searchSimilarChunks(
+                questionEmbedding,
+                [documentId],
+                5, // Slightly more chunks for better context
+                0.8 // Higher threshold for Q&A precision
+            );
 
-        const query = sql`
-          SELECT
-            id,
-            content,
-            page,
-            embedding <-> ${bracketedEmbedding}::vector(1536) AS distance
-          FROM pdr_ai_v2_pdf_chunks
-          WHERE document_id = ${documentId}
-          ORDER BY embedding <-> ${bracketedEmbedding}::vector(1536)
-          LIMIT 3
-        `;
+                         rows = annResults.map(result => ({
+                 id: result.id,
+                 content: result.content,
+                 page: result.page,
+                 distance: 1 - result.confidence, // Convert confidence back to distance
+                 documentId: result.documentId
+             })) as PdfChunkRow[];
 
+            console.log(`✅ [Q&A-ANN] Found ${rows.length} relevant chunks in ${Date.now() - startTime}ms`);
 
-        const result = await db.execute<PdfChunkRow>(query);
-        const rows = result.rows;
+        } catch (annError) {
+            console.warn(`⚠️ [Q&A-ANN] ANN search failed, falling back to traditional search:`, annError);
+            
+            // Fallback to traditional PostgreSQL vector search
+            const bracketedEmbedding = `[${questionEmbedding.join(",")}]`;
+
+            const query = sql`
+              SELECT
+                id,
+                content,
+                page,
+                embedding <-> ${bracketedEmbedding}::vector(1536) AS distance
+              FROM pdr_ai_v2_pdf_chunks
+              WHERE document_id = ${documentId}
+              ORDER BY embedding <-> ${bracketedEmbedding}::vector(1536)
+              LIMIT 3
+            `;
+
+            const result = await db.execute<PdfChunkRow>(query);
+            rows = result.rows;
+            
+            console.log(`📊 [Q&A-Fallback] Retrieved ${rows.length} chunks in ${Date.now() - startTime}ms`);
+        }
 
         if (rows.length === 0) {
             return NextResponse.json({
                 success: false,
-                message: "No chunks found for the given documentId.",
+                message: "No relevant content found for the given question and document.",
             });
         }
 
+        // Enhanced content combination with better context preservation
         const combinedContent = rows
-            .map(
-                (row, idx) =>
-                    `=== Chunk #${idx + 1}, Page ${row.page}, Distance: ${row.distance} === ${row.content}`
-            )
+            .map((row, idx) => {
+                const relevanceScore = Math.round((1 - Number(row.distance)) * 100);
+                return `=== Chunk #${idx + 1}, Page ${row.page}, Relevance: ${relevanceScore}% ===\n${row.content}`;
+            })
             .join("\n\n");
+
+        console.log(`📝 [Q&A-ANN] Combined ${rows.length} chunks, preparing AI response`);
 
         const chat = new ChatOpenAI({
             openAIApiKey: process.env.OPENAI_API_KEY,
             modelName: "gpt-4", // or gpt-3.5-turbo
-            temperature: 0.5,
+            temperature: 0.3, // Lower temperature for more consistent Q&A
         });
 
         const selectedStyle = style || 'concise';
         
         const summarizedAnswer = await chat.call([
-            new SystemMessage(
-                SYSTEM_PROMPTS[selectedStyle]
-            ),
+            new SystemMessage(SYSTEM_PROMPTS[selectedStyle]),
             new HumanMessage(
-                `User's question: "${question}"\n\n${combinedContent}\n\nAnswer concisely.`
+                `User's question: "${question}"\n\nRelevant document content:\n${combinedContent}\n\nProvide an accurate answer based solely on the provided content.`
             ),
         ]);
 
+        const totalTime = Date.now() - startTime;
+        console.log(`✅ [Q&A-ANN] Complete response generated in ${totalTime}ms`);
+
         return NextResponse.json({
             success: true,
-            summarizedAnswer: summarizedAnswer.text,
-            recommendedPages: rows.map((row) => row.page),
+            summarizedAnswer: summarizedAnswer.content,
+            recommendedPages: rows.map(r => r.page),
+                         retrievalMethod: rows.length > 0 && rows[0]?.distance !== undefined ? 'ann-optimized' : 'traditional',
+            processingTimeMs: totalTime,
+            chunksAnalyzed: rows.length
         });
-    } catch (error: unknown) {
-        console.error(error);
-        return NextResponse.json({ success: false, error: String(error) }, { status: 500 });
+
+    } catch (error) {
+        console.error("❌ [Q&A-ANN] Error in Q&A processing:", error);
+        return NextResponse.json(
+            { 
+                success: false, 
+                error: "An error occurred while processing your question.",
+                details: error instanceof Error ? error.message : "Unknown error"
+            },
+            { status: 500 }
+        );
     }
 }
