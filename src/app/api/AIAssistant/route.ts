@@ -71,8 +71,6 @@ export async function POST(request: Request) {
     
     try {
         const { documentId, question, style } = (await request.json()) as PostBody;
-        
-        console.log(`🤖 [Q&A-ANN] Processing question for document ${documentId}`);
 
         const embeddings = new OpenAIEmbeddings({
             model: "text-embedding-ada-002",
@@ -83,16 +81,14 @@ export async function POST(request: Request) {
         let rows: PdfChunkRow[] = [];
 
         try {
-            // Try ANN-optimized search first
-            console.log(`🚀 [Q&A-ANN] Using optimized vector search`);
             const annResults = await qaAnnOptimizer.searchSimilarChunks(
                 questionEmbedding,
                 [documentId],
-                5, // Slightly more chunks for better context
-                0.8 // Higher threshold for Q&A precision
+                5,
+                0.8
             );
 
-                         rows = annResults.map(result => ({
+            rows = annResults.map(result => ({
                  id: result.id,
                  content: result.content,
                  page: result.page,
@@ -105,7 +101,6 @@ export async function POST(request: Request) {
         } catch (annError) {
             console.warn(`⚠️ [Q&A-ANN] ANN search failed, falling back to traditional search:`, annError);
             
-            // Fallback to traditional PostgreSQL vector search
             const bracketedEmbedding = `[${questionEmbedding.join(",")}]`;
 
             const query = sql`
@@ -133,7 +128,6 @@ export async function POST(request: Request) {
             });
         }
 
-        // Enhanced content combination with better context preservation
         const combinedContent = rows
             .map((row, idx) => {
                 const relevanceScore = Math.round((1 - Number(row.distance)) * 100);
@@ -145,8 +139,8 @@ export async function POST(request: Request) {
 
         const chat = new ChatOpenAI({
             openAIApiKey: process.env.OPENAI_API_KEY,
-            modelName: "gpt-4", // or gpt-3.5-turbo
-            temperature: 0.3, // Lower temperature for more consistent Q&A
+            modelName: "gpt-4",
+            temperature: 0.3,
         });
 
         const selectedStyle = style || 'concise';

@@ -321,14 +321,10 @@ async function findOptimizedContextualMatches(
     }
     
     const searchTime = Date.now() - startTime;
-    console.log(`🚀 [ANN] Contextual search completed in ${searchTime}ms for ${docIds.length} documents`);
     
     return Array.from(bestMatches.values());
 }
 
-/**
- * Fallback traditional search method
- */
 async function findTraditionalContextualMatches(
     query: string,
     queryEmbedding: number[],

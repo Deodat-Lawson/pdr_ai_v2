@@ -1,6 +1,5 @@
 "use client"
 
-import Link from 'next/link';
 import React from 'react';
 import { Home, Github, Linkedin, Mail, Brain } from 'lucide-react';
 import styles from '../../styles/about.module.css';
@@ -31,7 +30,6 @@ const teamMembers = [
 const AboutPage: React.FC = () => {
     return (
         <div className={styles.container}>
-            {/* Navigation */}
             <nav className={styles.navbar}>
                 <div className={styles.navContent}>
                     <div className={styles.logoWrapper}>
@@ -49,7 +47,6 @@ const AboutPage: React.FC = () => {
             </nav>
 
             <main className={styles.main}>
-                {/* Header Section */}
                 <div className={styles.header}>
                     <h1 className={styles.title}>Meet Our Team</h1>
                     <p className={styles.subtitle}>
@@ -57,7 +54,6 @@ const AboutPage: React.FC = () => {
                     </p>
                 </div>
 
-                {/* Team Section */}
                 <div className={styles.teamGrid}>
                     {teamMembers.map(member => (
                         <div key={member.id} className={styles.memberCard}>
@@ -106,7 +102,6 @@ const AboutPage: React.FC = () => {
                     ))}
                 </div>
 
-                {/* Mission Statement */}
                 <div className={styles.missionSection}>
                     <h2 className={styles.missionTitle}>Our Mission</h2>
                     <p className={styles.missionText}>

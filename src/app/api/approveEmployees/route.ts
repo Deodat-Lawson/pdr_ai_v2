@@ -13,14 +13,13 @@ export async function POST(request: Request) {
     try {
         const { employeeId } = (await request.json()) as PostBody;
 
-        await db //update company
+        await db
             .update(users)
             .set({
                 status: "verified"
             })
             .where(eq(users.id, Number(employeeId)));
 
-        // Return as JSON
         return NextResponse.json({ status: 200 });
     } catch (error: unknown) {
         console.error("Error fetching documents:", error);

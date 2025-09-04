@@ -106,8 +106,6 @@ export class ANNOptimizer {
         limit: number,
         threshold: number
     ): Promise<ANNResult[]> {
-        
-
         const relevantClusters = await this.findRelevantDocumentClusters(
             queryEmbedding, 
             documentIds, 
@@ -251,7 +249,7 @@ export class ANNOptimizer {
             };
         }
 
-        const dimension = chunks[0].embedding?.length || 1536;
+        const dimension = chunks[0]?.embedding?.length || 1536;
         const centroid = new Array(dimension).fill(0);
         
         for (const chunk of chunks) {
@@ -272,7 +270,7 @@ export class ANNOptimizer {
         for (let i = 0; i < chunks.length && comparisons < 100; i++) {
             for (let j = i + 1; j < chunks.length && comparisons < 100; j++) {
                 if (chunks[i]?.embedding && chunks[j]?.embedding) {
-                    totalDistance += this.euclideanDistance(chunks[i].embedding, chunks[j].embedding);
+                    totalDistance += this.euclideanDistance(chunks[i]!.embedding!, chunks[j]!.embedding!);
                     comparisons++;
                 }
             }
@@ -325,9 +323,9 @@ export class ANNOptimizer {
         let normB = 0;
 
         for (let i = 0; i < a.length; i++) {
-            dotProduct += a[i] * b[i];
-            normA += a[i] * a[i];
-            normB += b[i] * b[i];
+            dotProduct += a[i]! * b[i]!;
+            normA += a[i]! * a[i]!;
+            normB += b[i]! * b[i]!;
         }
 
         if (normA === 0 || normB === 0) return 0;
@@ -339,7 +337,7 @@ export class ANNOptimizer {
 
         let sum = 0;
         for (let i = 0; i < a.length; i++) {
-            const diff = a[i] - b[i];
+            const diff = a[i]! - b[i]!;
             sum += diff * diff;
         }
         return Math.sqrt(sum);

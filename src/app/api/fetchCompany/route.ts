@@ -32,7 +32,6 @@ export async function POST(request: Request) {
             .from(company)
             .where(and(eq(company.id, Number(companyId))));
 
-        // Return as JSON
         return NextResponse.json(companies, { status: 200 });
     } catch (error: unknown) {
         console.error("Error fetching documents:", error);
