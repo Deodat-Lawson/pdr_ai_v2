@@ -36,13 +36,32 @@ function createAnalysisPrompt(
         existingDocsStr = `\nExisting documents (do not suggest these as missing): ${specification.existingDocuments.join(', ')}.`;
     }
 
-    const exampleByType = {
-        contract: `Example: If content mentions "See Exhibit A for payment terms" but Exhibit A isn't included, identify as missing with details.`,
-        financial: `Example: If content references "Balance Sheet as of Dec 31" without attachment, identify as missing with details.`,
-        technical: `Example: If content mentions "Refer to Manual v2.0" but not included, identify as missing with details.`,
-        compliance: `Example: If content references "GDPR Policy" without attachment, identify as missing with details.`,
-        general: `Example: If content mentions "See attached report" but not included, identify as missing with details.`
+    const guidanceByType = {
+        contract: `Focus on contractual references like exhibits, schedules, addendums, and supporting agreements that are mentioned but not present.`,
+        financial: `Focus on financial references like balance sheets, income statements, audit reports, and supporting financial documentation that are mentioned but not present.`,
+        technical: `Focus on technical references like specifications, manuals, diagrams, and project deliverables that are mentioned but not present.`,
+        compliance: `Focus on compliance references like regulatory filings, policy documents, certifications, and legal requirements that are mentioned but not present.`,
+        general: `Focus on any document references, attachments, or supporting materials that are mentioned but not present in the current document.`
     };
+ 
+    // Prevent hallucinations
+    const analysisInstructions = `
+        IMPORTANT: Base your analysis ONLY on what is explicitly mentioned in the document content. 
+        Do not assume or infer missing documents that aren't clearly referenced.
+        
+        Reference indicators to look for:
+        • Direct mentions of specific documents by name
+        • References to attachments, exhibits, schedules, or appendices
+        • Cross-references to other sections or documents
+        • Mentions of supporting documentation
+        • References to external files or resources
+        
+        For each potential missing document, verify:
+        ✓ Is it explicitly mentioned in the text?
+        ✓ Is the reference clear and specific?
+        ✓ Is it actually missing (not just referenced)?
+        ✓ What is its importance to understanding this document?
+    `;
 
     return `
         ${ANALYSIS_TYPES[specification.type]}
@@ -57,7 +76,9 @@ function createAnalysisPrompt(
         5. Avoid duplicates or suggestions for existing documents.
         6. Focus on explicit references; be concise and accurate.
 
-        ${exampleByType[specification.type] || exampleByType.general}
+        ${guidanceByType[specification.type] || guidanceByType.general}
+
+        ${analysisInstructions}
 
         Existing Documents: ${existingDocsStr}
 
