@@ -9,6 +9,7 @@ import type {
 } from "../types";
 import { getEmbeddings } from "../utils/embeddings";
 import { cleanText, hasReferencePattern, truncateText } from "../utils/content";
+import ANNOptimizer from "./annOptimizer";
 
 type MatchCandidate = {
     documentId: number;
@@ -20,6 +21,12 @@ type MatchCandidate = {
     finalScore: number;
 };
 
+const annOptimizer = new ANNOptimizer({ 
+    strategy: 'hybrid',
+    probeCount: 3,
+    prefilterThreshold: 0.3 
+});
+
 export async function findSuggestedCompanyDocuments(
     missingDoc: MissingDocumentPrediction,
     companyId: number,
@@ -27,7 +34,6 @@ export async function findSuggestedCompanyDocuments(
     docTitleMap: Map<number, string>
 ): Promise<{ documentId: number, documentTitle: string, similarity: number, page: number, snippet: string }[]> {
     try {
-        console.log(`🔍 Searching for company documents matching: "${missingDoc.documentName}" (${missingDoc.documentType})`);
         
         const otherDocsQuery = await db.select({ 
             id: document.id, 
@@ -42,7 +48,7 @@ export async function findSuggestedCompanyDocuments(
 
         const matchCandidates = new Map<number, MatchCandidate>();
 
-        // Strategy 1: Exact reference matching (highest priority)
+        // Strategy 1: Exact reference matching (highest priority) - no ANN needed
         const exactMatches = await findExactReferenceMatches(missingDoc, otherDocIds, docTitleMap);
         for (const match of exactMatches) {
             matchCandidates.set(match.documentId, {
@@ -52,7 +58,7 @@ export async function findSuggestedCompanyDocuments(
             });
         }
 
-        // Strategy 2: Smart title analysis
+        // Strategy 2: Smart title analysis - no ANN needed
         const titleMatches = await findSmartTitleMatches(missingDoc, otherDocsQuery);
         for (const match of titleMatches) {
             const existing = matchCandidates.get(match.documentId);
@@ -69,13 +75,14 @@ export async function findSuggestedCompanyDocuments(
             }
         }
 
-        // Strategy 3: Contextual content search (only if we have few high-confidence matches)
         const highConfidenceMatches = Array.from(matchCandidates.values()).filter(m => m.confidence > 0.7);
         if (highConfidenceMatches.length < 2) {
-            const contextMatches = await findContextualMatches(missingDoc, otherDocIds);
+            console.log(`🚀 [ANN] Using optimized contextual search for ${otherDocIds.length} documents`);
+            const contextMatches = await findOptimizedContextualMatches(missingDoc, otherDocIds);
+            
             for (const match of contextMatches) {
                 const existing = matchCandidates.get(match.documentId);
-                                 if (!existing || (match.similarity > existing.confidence && match.similarity > 0.5)) {
+                if (!existing || (match.similarity > existing.confidence && match.similarity > 0.5)) {
                     const validatedMatch = await validateContextualMatch(missingDoc, match);
                     if (validatedMatch.isValid && validatedMatch.confidence > 0.5) {
                         matchCandidates.set(match.documentId, {
@@ -84,7 +91,7 @@ export async function findSuggestedCompanyDocuments(
                             page: match.page,
                             snippet: validatedMatch.snippet,
                             reasons: validatedMatch.reasons,
-                            matchTypes: existing ? [...(existing.matchTypes || []), 'contextual'] : ['contextual'],
+                            matchTypes: existing ? [...(existing.matchTypes || []), 'contextual-ann'] : ['contextual-ann'],
                             finalScore: validatedMatch.confidence * 0.9 // Slightly lower weight for contextual
                         });
                     }
@@ -92,11 +99,11 @@ export async function findSuggestedCompanyDocuments(
             }
         }
 
-        // Convert to final format with intelligent scoring
         const finalSuggestions = Array.from(matchCandidates.values())
             .map(candidate => {
                 const multiMatchBonus = candidate.matchTypes.length > 1 ? 0.1 : 0;
-                const adjustedScore = Math.min(0.98, candidate.finalScore + multiMatchBonus);
+                const annBonus = candidate.matchTypes.includes('contextual-ann') ? 0.05 : 0; // Small bonus for ANN optimization
+                const adjustedScore = Math.min(0.98, candidate.finalScore + multiMatchBonus + annBonus);
                 
                 return {
                     documentId: candidate.documentId,
@@ -110,7 +117,7 @@ export async function findSuggestedCompanyDocuments(
             .sort((a, b) => b.similarity - a.similarity)
             .slice(0, 2); // Fewer but more accurate suggestions
 
-        console.log(`✅ Found ${finalSuggestions.length} high-quality suggestions for ${missingDoc.documentName}`);
+        console.log(`✅ [ANN] Found ${finalSuggestions.length} high-quality suggestions for ${missingDoc.documentName}`);
         finalSuggestions.forEach(s => 
             console.log(`  - ${s.documentTitle}: ${Math.round(s.similarity * 100)}% confidence`)
         );
@@ -166,7 +173,7 @@ async function findExactReferenceMatches(
     const searchTerms = [
         missingDoc.documentName.toLowerCase(),
         `"${missingDoc.documentName.toLowerCase()}"`,
-                 `${missingDoc.documentType.toLowerCase()} ${missingDoc.documentName.split(' ').pop()?.toLowerCase() || ''}`
+        `${missingDoc.documentType.toLowerCase()} ${missingDoc.documentName.split(' ').pop()?.toLowerCase() || ''}`
     ];
 
     for (const term of searchTerms) {
@@ -261,11 +268,12 @@ async function findSmartTitleMatches(
     return matches.sort((a, b) => b.confidence - a.confidence);
 }
 
-async function findContextualMatches(
+async function findOptimizedContextualMatches(
     missingDoc: MissingDocumentPrediction,
     docIds: number[]
 ): Promise<DocumentMatch[]> {
-    // Use more specific search queries that consider context
+    const startTime = Date.now();
+    
     const contextQueries = [
         `${missingDoc.documentType} containing ${missingDoc.documentName.split(' ').pop()}`,
         `document attachment ${missingDoc.documentName}`,
@@ -278,33 +286,31 @@ async function findContextualMatches(
         const queryEmbedding = await getEmbeddings(query);
         if (!queryEmbedding.length) continue;
 
-        const distanceSql = sql`embedding <=> ${`[${queryEmbedding.join(',')}]`}::vector`;
-        const results = await db.select({
-            id: pdfChunks.id,
-            content: pdfChunks.content,
-            page: pdfChunks.page,
-            documentId: pdfChunks.documentId,
-            distance: distanceSql
-        }).from(pdfChunks).where(and(
-            inArray(pdfChunks.documentId, docIds),
-            sql`${distanceSql} < 0.3` // Stricter threshold
-        )).orderBy(distanceSql).limit(5);
+        try {
+            const annResults = await annOptimizer.searchSimilarChunks(
+                queryEmbedding,
+                docIds,
+                8, 
+                0.35 
+            );
 
-        for (const result of results) {
-            const distance = Number(result.distance) || 1;
-            const similarity = Math.max(0, (1 - distance) * 0.7); // Scale down
+            for (const result of annResults) {
+                allMatches.push({
+                    documentId: result.documentId,
+                    page: result.page,
+                    snippet: truncateText(result.content, 150),
+                    similarity: result.confidence,
+                    content: result.content
+                });
+            }
+        } catch (error) {
+            console.warn(`ANN search failed for query "${query}", falling back to traditional search:`, error);
             
-            allMatches.push({
-                documentId: result.documentId,
-                page: result.page,
-                snippet: truncateText(result.content, 150),
-                similarity,
-                content: result.content
-            });
+            const fallbackMatches = await findTraditionalContextualMatches(query, queryEmbedding, docIds);
+            allMatches.push(...fallbackMatches);
         }
     }
     
-    // Group by document and get best match per document
     const bestMatches = new Map<number, DocumentMatch>();
     
     for (const match of allMatches) {
@@ -314,7 +320,44 @@ async function findContextualMatches(
         }
     }
     
+    const searchTime = Date.now() - startTime;
+    console.log(`🚀 [ANN] Contextual search completed in ${searchTime}ms for ${docIds.length} documents`);
+    
     return Array.from(bestMatches.values());
+}
+
+/**
+ * Fallback traditional search method
+ */
+async function findTraditionalContextualMatches(
+    query: string,
+    queryEmbedding: number[],
+    docIds: number[]
+): Promise<DocumentMatch[]> {
+    const distanceSql = sql`embedding <=> ${`[${queryEmbedding.join(',')}]`}::vector`;
+    const results = await db.select({
+        id: pdfChunks.id,
+        content: pdfChunks.content,
+        page: pdfChunks.page,
+        documentId: pdfChunks.documentId,
+        distance: distanceSql
+    }).from(pdfChunks).where(and(
+        inArray(pdfChunks.documentId, docIds),
+        sql`${distanceSql} < 0.3`
+    )).orderBy(distanceSql).limit(5);
+
+    return results.map(result => {
+        const distance = Number(result.distance) || 1;
+        const similarity = Math.max(0, (1 - distance) * 0.7);
+        
+        return {
+            documentId: result.documentId,
+            page: result.page,
+            snippet: truncateText(result.content, 150),
+            similarity,
+            content: result.content
+        };
+    });
 }
 
 async function validateContextualMatch(
@@ -356,4 +399,14 @@ async function validateContextualMatch(
         reasons,
         snippet: truncateText(match.snippet, 100)
     };
+}
+
+// Export function to clear ANN cache for memory management
+export function clearANNCache(): void {
+    ANNOptimizer.clearCache();
+}
+
+// Export function to get cache statistics
+export function getANNCacheStats() {
+    return ANNOptimizer.getCacheStats();
 } 
