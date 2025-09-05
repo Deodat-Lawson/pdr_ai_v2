@@ -2,6 +2,7 @@ import { FlatCompat } from "@eslint/eslintrc";
 import js from "@eslint/js";
 import typescriptEslint from "@typescript-eslint/eslint-plugin";
 import tsParser from "@typescript-eslint/parser";
+// @ts-ignore - eslint-plugin-drizzle doesn't have type declarations
 import drizzle from "eslint-plugin-drizzle";
 import path from "node:path";
 import { fileURLToPath } from "node:url";

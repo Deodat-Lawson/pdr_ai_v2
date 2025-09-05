@@ -5,9 +5,7 @@ import { useRouter } from "next/navigation";
 import { useAuth } from "@clerk/nextjs";
 
 import styles from "~/styles/Employer/DocumentViewer.module.css";
-
 import LoadingPage from "~/app/_components/loading";
-
 import { fetchWithRetries } from "./fetchWithRetries";
 import { DocumentsSidebar } from "./DocumentsSidebar";
 import { DocumentContent } from "./DocumentContent";
@@ -121,7 +119,7 @@ const DocumentViewer: React.FC = () => {
   const [aiError, setAiError] = useState("");
   const [isAiLoading, setIsAiLoading] = useState(false);
   const [referencePages, setReferencePages] = useState<number[]>([]);
-  const [aiStyle, setAiStyle] = useState<keyof typeof SYSTEM_PROMPTS>("concise");
+  const [aiStyle, setAiStyle] = useState<string>("concise");
   const [pdfPageNumber, setPdfPageNumber] = useState<number>(1);
   const [qaHistory, setQaHistory] = useState<QAHistoryEntry[]>([]);
   const [predictiveAnalysis, setPredictiveAnalysis] = useState<PredictiveAnalysisResponse | null>(null);

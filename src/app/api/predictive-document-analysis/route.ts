@@ -1,7 +1,8 @@
 import { NextResponse } from "next/server";
 import { db } from "../../../server/db/index";
 import { eq, sql, and, gt, desc, ne } from "drizzle-orm";
-import { analyzeDocumentChunks, type PredictiveAnalysisResult } from "./agent";
+import { analyzeDocumentChunks } from "./agent";
+import type { PredictiveAnalysisResult } from "./agent";
 import { predictiveDocumentAnalysisResults, document, pdfChunks } from "~/server/db/schema";
 
 type PostBody = {
@@ -63,7 +64,7 @@ async function getCachedAnalysis(documentId: number, analysisType: string, inclu
     return result[0]?.resultJson ?? null;
 }
 
-async function storeAnalysisResult(documentId: number, analysisType: string, includeRelatedDocs: boolean, resultJson: PredictiveAnalysisResult) {
+async function storeAnalysisResult(documentId: number, analysisType: string, includeRelatedDocs: boolean, resultJson: PredictiveAnalysisOutput) {
     const result = await db.insert(predictiveDocumentAnalysisResults).values({
         documentId,
         analysisType,

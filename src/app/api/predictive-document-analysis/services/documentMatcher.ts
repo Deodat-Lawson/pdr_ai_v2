@@ -49,7 +49,7 @@ export async function findSuggestedCompanyDocuments(
         const matchCandidates = new Map<number, MatchCandidate>();
 
         // Strategy 1: Exact reference matching (highest priority) - no ANN needed
-        const exactMatches = await findExactReferenceMatches(missingDoc, otherDocIds, docTitleMap);
+        const exactMatches = await findExactReferenceMatches(missingDoc, otherDocIds);
         for (const match of exactMatches) {
             matchCandidates.set(match.documentId, {
                 ...match,

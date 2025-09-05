@@ -133,7 +133,7 @@ const DocumentViewer: React.FC = () => {
     const [aiError, setAiError] = useState("");
     const [aiLoading, setAiLoading] = useState(false);
     const [referencePages, setReferencePages] = useState<number[]>([]);
-    const [aiStyle, setAiStyle] = useState<keyof typeof SYSTEM_PROMPTS>("concise");
+    const [aiStyle, setAiStyle] = useState<string>("concise");
     const [pdfPageNumber, setPdfPageNumber] = useState<number>(1);
     const [qaHistory, setQaHistory] = useState<QAHistoryEntry[]>([]);
     const [predictiveAnalysis, setPredictiveAnalysis] = useState<PredictiveAnalysisResponse | null>(null);

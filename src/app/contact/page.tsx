@@ -56,7 +56,7 @@ const SupportPage = () => {
 
         try {
             emailjs
-                .send('service_q0kr5dd', 'template_vaka75k', formData, {
+                .send('service_q0kr5dd', 'template_vaka75k', formData as unknown as Record<string, unknown>, {
                     publicKey: 'DSuoTHVw3sJe7tFVJ',
                 })
                 .then(

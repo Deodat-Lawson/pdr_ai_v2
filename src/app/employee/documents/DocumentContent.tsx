@@ -4,7 +4,6 @@ import React, { useState } from "react";
 import { Brain, Clock, FileSearch, AlertTriangle, CheckCircle, AlertCircle, RefreshCw, Check } from "lucide-react";
 import styles from "~/styles/Employee/DocumentViewer.module.css";
 import { type ViewMode } from "./types";
-import { type SYSTEM_PROMPTS } from "./page";
 
 import QAHistory, { type QAHistoryEntry } from "./ChatHistory";
 
@@ -89,9 +88,9 @@ interface DocumentContentProps {
   pdfPageNumber: number;
   setPdfPageNumber: React.Dispatch<React.SetStateAction<number>>;
   qaHistory: QAHistoryEntry[];
-  aiStyle: keyof typeof SYSTEM_PROMPTS;
-  setAiStyle: React.Dispatch<React.SetStateAction<keyof typeof SYSTEM_PROMPTS>>;
-  styleOptions: typeof SYSTEM_PROMPTS;
+  aiStyle: string;
+  setAiStyle: React.Dispatch<React.SetStateAction<string>>;
+  styleOptions: Record<string, string>;
   predictiveAnalysis: PredictiveAnalysisResponse | null;
   predictiveLoading: boolean;
   predictiveError: string;
@@ -264,10 +263,10 @@ export const DocumentContent: React.FC<DocumentContentProps> = ({
               <label className="text-sm font-medium text-gray-700">Response Style:</label>
               <select
                 value={aiStyle}
-                onChange={(e) => setAiStyle(e.target.value as keyof typeof SYSTEM_PROMPTS)}
+                onChange={(e) => setAiStyle(e.target.value)}
                 className="border border-gray-300 rounded p-2 w-full focus:ring-2 focus:ring-purple-500 focus:border-purple-500"
               >
-                {Object.entries(styleOptions as Record<string, string>).map(([key, label]) => (
+                {Object.entries(styleOptions).map(([key, label]) => (
                   <option key={key} value={key}>
                     {label}
                   </option>
