@@ -14,7 +14,7 @@ export async function getEmbeddings(text: string): Promise<number[]> {
         });
         
         const [embedding] = await embeddings.embedDocuments([text]);
-        const result = embedding || [];
+        const result = embedding ?? [];
         
         embeddingCache.set(text, result);
         return result;
@@ -37,10 +37,10 @@ export async function batchGetEmbeddings(texts: string[]): Promise<number[][]> {
         const embeddingMap = new Map(uniqueTexts.map((text, i) => [text, results[i]]));
         
         embeddingMap.forEach((embedding, text) => {
-            embeddingCache.set(text, embedding || []);
+            embeddingCache.set(text, embedding ?? []);
         });
         
-        return texts.map(text => embeddingMap.get(text) || []);
+        return texts.map(text => embeddingMap.get(text) ?? []);
     } catch (error) {
         console.error("Error getting batch embeddings:", error);
         return texts.map(() => []);

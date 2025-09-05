@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@clerk/nextjs";
 
@@ -12,8 +12,8 @@ import LoadingPage from "~/app/_components/loading";
 import { fetchWithRetries } from "./fetchWithRetries";
 import { DocumentsSidebar } from "./DocumentsSidebar";
 import { DocumentContent } from "./DocumentContent";
-import { ViewMode } from "~/app/employer/documents/types";
-import { QAHistoryEntry } from "./ChatHistory";
+import { type ViewMode, type errorType } from "~/app/employer/documents/types";
+import { type QAHistoryEntry } from "./ChatHistory";
 
 const SYSTEM_PROMPTS = {
   concise: "Concise & Direct",
@@ -47,7 +47,7 @@ interface FetchHistoryProp {
   chatHistory: QAHistoryEntry[];
 }
 
-// Updated interface to match backend response structure from previous context
+
 interface PredictiveAnalysisResponse {
   success: boolean;
   documentId: number;
@@ -115,7 +115,6 @@ const DocumentViewer: React.FC = () => {
   const [selectedDoc, setSelectedDoc] = useState<DocumentType | null>(null);
   const [searchTerm, setSearchTerm] = useState("");
   const [openCategories, setOpenCategories] = useState<Set<string>>(new Set());
-  const [isLoading, setIsLoading] = useState(true);
   const [isRoleLoading, setIsRoleLoading] = useState(true);
   const [viewMode, setViewMode] = useState<ViewMode>("document-only");
   const [aiQuestion, setAiQuestion] = useState("");
@@ -170,30 +169,53 @@ const DocumentViewer: React.FC = () => {
     setQaHistory((prev) => [...prev, newEntry]);
   };
 
-  useEffect(() => {
-    if (!isLoaded) return;
+  const fetchDocuments = useCallback(async () => {
+    try {
+      const response = await fetch("/api/fetchDocument", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ userId }),
+      });
 
-    if (!userId) {
-      window.alert("Authentication failed! No user found.");
-      router.push("/");
-      return;
+      if (!response.ok) {
+        throw new Error("Failed to fetch documents");
+      }
+
+      const rawData: unknown = await response.json();
+      if (!Array.isArray(rawData)) {
+        throw new Error("Invalid data format, expected an array.");
+      }
+
+      const data = rawData as DocumentType[];
+      setDocuments(data);
+    } catch (error) {
+      console.error("Error fetching documents:", error);
     }
+  }, [userId]);
+
+  useEffect(() => {
+    if (!isLoaded || !userId) return;
 
     const checkEmployeeRole = async () => {
       try {
-        const response = await fetch("/api/employerAuth", {
+        const response = await fetch("/api/fetchUserInfo", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ userId }),
         });
 
-        if (response.status === 300) {
-          router.push("/employee/pending-approval");
+        if (!response.ok) {
+          window.alert("Authentication failed! No user found.");
+          router.push("/");
           return;
         }
 
-        if (!response.ok) {
-          throw new Error("Authentication failed");
+        const rawData: unknown = await response.json();
+        const data = rawData as { role?: string };
+        
+        if (data?.role !== "employer") {
+          window.alert("Authentication failed! You are not an employee.");
+          router.push("/");
         }
       } catch (error) {
         console.error("Error checking employee role:", error);
@@ -204,40 +226,13 @@ const DocumentViewer: React.FC = () => {
       }
     };
 
-    checkEmployeeRole();
+    checkEmployeeRole().catch(console.error);
   }, [isLoaded, userId, router]);
 
-  // Effect: Fetch documents
   useEffect(() => {
     if (!userId || isRoleLoading) return;
-
-    const fetchDocuments = async () => {
-      try {
-        const response = await fetch("/api/fetchDocument", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ userId }),
-        });
-
-        if (!response.ok) {
-          throw new Error("Failed to fetch documents");
-        }
-
-        const data = await response.json();
-        if (!Array.isArray(data)) {
-          throw new Error("Invalid data format, expected an array.");
-        }
-
-        setDocuments(data);
-      } catch (error) {
-        console.error("Error fetching documents:", error);
-      } finally {
-        setIsLoading(false);
-      }
-    };
-
-    fetchDocuments();
-  }, [userId, isRoleLoading]);
+    fetchDocuments().catch(console.error);
+  }, [userId, isRoleLoading, fetchDocuments]);
 
   useEffect(() => {
     if (!userId || !selectedDoc?.id) return;
@@ -254,14 +249,15 @@ const DocumentViewer: React.FC = () => {
           throw new Error("Failed to fetch Q&A history");
         }
 
-        const { chatHistory } = await response.json() as FetchHistoryProp;
+        const rawData: unknown = await response.json();
+        const { chatHistory } = rawData as FetchHistoryProp;
         setQaHistory(chatHistory);
       } catch (error) {
         console.error("Error fetching Q&A history:", error);
       }
     };
 
-    fetchHistory();
+    fetchHistory().catch(console.error);
   }, [userId, selectedDoc]);
 
   const toggleCategory = (categoryName: string) => {
@@ -276,11 +272,42 @@ const DocumentViewer: React.FC = () => {
     });
   };
 
+  const fetchPredictiveAnalysis = useCallback(async (documentId: number, forceRefresh = false) => {
+    setPredictiveError("");
+    setPredictiveAnalysis(null);
+    setIsPredictiveLoading(true);
+
+    try {
+      const response = await fetch("/api/predictive-document-analysis", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          documentId,
+          analysisType: "missing_documents",
+          includeRelatedDocs: true,
+          forceRefresh
+        }),
+      });
+
+      if (!response.ok) {
+        throw new Error("Failed to fetch predictive analysis");
+      }
+
+      const rawData: unknown = await response.json();
+      const data = rawData as PredictiveAnalysisResponse;
+      setPredictiveAnalysis(data);
+    } catch (error) {
+      console.error("Error fetching predictive analysis:", error);
+      setPredictiveError("Failed to perform predictive analysis. Please try again.");
+    } finally {
+      setIsPredictiveLoading(false);
+    }
+  }, []);
+
   useEffect(() => {
     if (viewMode !== "predictive-analysis" || !selectedDoc?.id) return;
-
-    fetchPredictiveAnalysis(selectedDoc.id, false);
-  }, [viewMode, selectedDoc]);
+    fetchPredictiveAnalysis(selectedDoc.id, false).catch(console.error);
+  }, [viewMode, selectedDoc, fetchPredictiveAnalysis]);
 
   const handleAiSearch = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -313,60 +340,10 @@ const DocumentViewer: React.FC = () => {
         setReferencePages(uniquePages);
         await saveToHistory(aiQuestion, data.summarizedAnswer, uniquePages);
       }
-    } catch (error) {
-      setAiError("Timeout or fetch error: Please try again later.");
+    } catch (error: unknown) {
+      setAiError("Timeout or fetch error: Please try again later." + (error as Error).toString());
     } finally {
       setIsAiLoading(false);
-    }
-  };
-
-  const fetchPredictiveAnalysis = async (documentId: number, forceRefresh: boolean = false) => {
-    setPredictiveError("");
-    setPredictiveAnalysis(null);
-    setIsPredictiveLoading(true);
-
-    try {
-      const response = await fetch("/api/predictive-document-analysis", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          documentId,
-          analysisType: "general",
-          includeRelatedDocs: true,
-          forceRefresh,
-        }),
-      });
-
-      if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
-      }
-
-      const data = await response.json() as PredictiveAnalysisResponse;
-      if (!data.success) {
-        throw new Error("Analysis failed on server side");
-      }
-
-      if (data.analysis.resolvedDocuments) {
-        data.analysis.resolvedDocuments = data.analysis.resolvedDocuments.map(res => ({
-          ...res,
-          resolvedDocumentTitle: res.resolvedDocumentTitle || documents.find(d => d.id === res.resolvedDocumentId)?.title || `Document ${res.resolvedDocumentId}`
-        }));
-      }
-      if (data.analysis.missingDocuments.some(md => md.resolvedIn)) {
-        data.analysis.missingDocuments = data.analysis.missingDocuments.map(md => {
-          if (md.resolvedIn) {
-            md.resolvedIn.documentTitle = md.resolvedIn.documentTitle || documents.find(d => d.id === md.resolvedIn!.documentId)?.title || `Document ${md.resolvedIn.documentId}`;
-          }
-          return md;
-        });
-      }
-
-      setPredictiveAnalysis(data);
-    } catch (error) {
-      console.error("Error fetching predictive analysis:", error);
-      setPredictiveError("Failed to perform predictive analysis. Please try again.");
-    } finally {
-      setIsPredictiveLoading(false);
     }
   };
 
@@ -390,10 +367,10 @@ const DocumentViewer: React.FC = () => {
         body: JSON.stringify({ docId: docId.toString() }),
       });
 
-      const result = await response.json();
+      const result = await response.json() as errorType;
 
       if (!response.ok) {
-        throw new Error(result.details || result.error || 'Failed to delete document');
+        throw new Error(result.details ?? result.error ?? 'Failed to delete document');
       }
 
       setDocuments(prev => prev.filter(doc => doc.id !== docId));
@@ -406,10 +383,10 @@ const DocumentViewer: React.FC = () => {
         setQaHistory([]);
       }
 
-      alert(result.message || 'Document and all related data deleted successfully');
+      alert(result.message ?? 'Document and all related data deleted successfully');
     } catch (error) {
       console.error('Error deleting document:', error);
-      alert(`Failed to delete document: ${error instanceof Error ? error.message : 'Unknown error'}`);
+      alert(`Failed to delete document: ${error instanceof Error ? error.message ?? 'Unknown error' : 'Unknown error'}`);
     }
   };
 
@@ -422,20 +399,18 @@ const DocumentViewer: React.FC = () => {
 
       if (!inTitle && !inSummary) return acc;
 
-      if (!acc[doc.category]) {
-        acc[doc.category] = {
+        acc[doc.category] ??= {
           name: doc.category,
           isOpen: openCategories.has(doc.category),
           documents: [],
         };
-      }
+      
       acc[doc.category]!.documents.push(doc);
       return acc;
     }, {})
   );
 
   if (isRoleLoading) return <LoadingPage />;
-  if (isLoading) return <LoadingDoc />;
 
   return (
     <div className={styles.container}>

@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useEffect, useState, useCallback } from "react";
+import React, { useState, useCallback } from "react";
 import { Brain, Home } from "lucide-react";
 import { useRouter } from "next/navigation";
 import EmployerAuthCheck from "./EmployerAuthCheck";
@@ -26,12 +26,17 @@ const Page: React.FC = () => {
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({ userId }),
             });
-
             if (!res.ok) {
                 throw new Error("Failed to fetch categories");
             }
-            const data = await res.json();
-            setCategories(data);
+            const rawData: unknown = await res.json();
+            if (Array.isArray(rawData)) {
+                const data = rawData as Category[];
+                setCategories(data);
+            } else {
+                console.error("Invalid categories data received");
+                setCategories([]);
+            }
         } catch (error) {
             console.error(error);
         }
@@ -49,9 +54,13 @@ const Page: React.FC = () => {
                 if (!res.ok) {
                     throw new Error("Failed to create category");
                 }
-                const createdCategory = await res.json();
-
-                setCategories((prev) => [...prev, createdCategory]);
+                const rawData: unknown = await res.json();
+                if (typeof rawData === "object" && rawData !== null) {
+                    const createdCategory = rawData as Category;
+                    setCategories((prev) => [...prev, createdCategory]);
+                } else {
+                    console.error("Invalid category data received");
+                }
             } catch (error) {
                 console.error(error);
                 alert("Error creating category. Check console for details.");
@@ -79,10 +88,8 @@ const Page: React.FC = () => {
         }
     }, []);
 
-    // --- Render ---
     return (
         <EmployerAuthCheck onAuthSuccess={fetchCategories}>
-            {/* Navbar / Header */}
             <nav className={styles.navbar}>
                 <div className={styles.navContent}>
                     <div className={styles.logoWrapper}>
@@ -105,10 +112,8 @@ const Page: React.FC = () => {
                     <p className={styles.subtitle}>Add a new document to your repository</p>
                 </div>
 
-                {/* Upload Form */}
                 <UploadForm categories={categories} />
 
-                {/* Category Management */}
                 <CategoryManagement
                     categories={categories}
                     onAddCategory={handleAddCategory}

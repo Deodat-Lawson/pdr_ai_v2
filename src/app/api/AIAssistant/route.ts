@@ -96,8 +96,6 @@ export async function POST(request: Request) {
                  documentId: result.documentId
              })) as PdfChunkRow[];
 
-            console.log(`✅ [Q&A-ANN] Found ${rows.length} relevant chunks in ${Date.now() - startTime}ms`);
-
         } catch (annError) {
             console.warn(`⚠️ [Q&A-ANN] ANN search failed, falling back to traditional search:`, annError);
             
@@ -118,7 +116,6 @@ export async function POST(request: Request) {
             const result = await db.execute<PdfChunkRow>(query);
             rows = result.rows;
             
-            console.log(`📊 [Q&A-Fallback] Retrieved ${rows.length} chunks in ${Date.now() - startTime}ms`);
         }
 
         if (rows.length === 0) {
@@ -135,15 +132,13 @@ export async function POST(request: Request) {
             })
             .join("\n\n");
 
-        console.log(`📝 [Q&A-ANN] Combined ${rows.length} chunks, preparing AI response`);
-
         const chat = new ChatOpenAI({
             openAIApiKey: process.env.OPENAI_API_KEY,
             modelName: "gpt-4",
             temperature: 0.3,
         });
 
-        const selectedStyle = style || 'concise';
+        const selectedStyle = style ?? 'concise';
         
         const summarizedAnswer = await chat.call([
             new SystemMessage(SYSTEM_PROMPTS[selectedStyle]),
@@ -153,7 +148,6 @@ export async function POST(request: Request) {
         ]);
 
         const totalTime = Date.now() - startTime;
-        console.log(`✅ [Q&A-ANN] Complete response generated in ${totalTime}ms`);
 
         return NextResponse.json({
             success: true,

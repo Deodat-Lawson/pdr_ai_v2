@@ -11,7 +11,6 @@ type PostBody = {
 export async function POST(request: Request) {
     try {
         const { userId } = (await request.json()) as PostBody;
-        console.log("user id", userId);
 
         const [userInfo] = await db
             .select()

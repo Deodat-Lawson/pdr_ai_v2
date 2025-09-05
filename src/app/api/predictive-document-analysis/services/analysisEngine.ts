@@ -87,7 +87,7 @@ function createAnalysisPrompt(
 `;
 }
 
-async function performWebSearch(query: string, maxResults: number = 5): Promise<SearchResult[]> {
+async function performWebSearch(query: string, maxResults = 5): Promise<SearchResult[]> {
     try {
         const searchTool = new DuckDuckGoSearch({ maxResults });
         const result = await searchTool.invoke(query);
@@ -102,7 +102,7 @@ async function performWebSearch(query: string, maxResults: number = 5): Promise<
 export async function callAIAnalysis(
     chunks: PdfChunk[],
     specification: AnalysisSpecification,
-    timeoutMs: number = 30000
+    timeoutMs = 30000
 ): Promise<PredictiveAnalysisResult> {
     const content = groupContentFromChunks(chunks);
     const prompt = createAnalysisPrompt(content, specification);
@@ -145,8 +145,8 @@ export async function callAIAnalysis(
 export async function analyzeDocumentChunks(
     allChunks: PdfChunk[],
     specification: AnalysisSpecification,
-    batchSize: number = 25,
-    timeoutMs: number = 30000
+    batchSize = 25,
+    timeoutMs = 30000
 ): Promise<PredictiveAnalysisResult> {
     console.log(`🚀 Starting document analysis for ${allChunks.length} chunks`);
     

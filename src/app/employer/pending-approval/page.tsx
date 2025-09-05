@@ -1,11 +1,10 @@
 "use client"
 
-import React, {useEffect, useState} from 'react';
-import { Brain, Clock, Building, Mail } from 'lucide-react';
+import React, { useEffect, useState} from 'react';
+import { Clock, Building, Mail } from 'lucide-react';
 import { useRouter } from "next/navigation"
 import { useAuth } from "@clerk/nextjs";
 import styles from '~/styles/Employer/PendingApproval.module.css';
-import ProfileDropdown from "~/app/employer/_components/ProfileDropdown";
 import NavBar from "~/app/employer/pending-approval/Navbar";
 
 interface EmployerData {
@@ -51,7 +50,7 @@ const PendingApproval: React.FC = () => {
         if (userId) {
             checkEmployerRole().catch(console.error);
         }
-    }, [userId]);
+    }, [userId, checkEmployerRole]);
 
     return (
         <div className={styles.container}>

@@ -1,7 +1,8 @@
 import Link from "next/link";
 import React from 'react';
-import { Brain, Check, ArrowRight, Users, Building2, Shield, Zap, Heart, Award, GraduationCap } from 'lucide-react';
+import { Brain, Check, Users, Heart, Award, GraduationCap } from 'lucide-react';
 import styles from '../../styles/pricing.module.css';
+import Image from "next/image";
 import {
     ClerkProvider,
     SignUpButton,
@@ -11,7 +12,6 @@ export default function PricingPage() {
     return (
         <ClerkProvider>
             <div className={styles.container}>
-                {/* Navigation */}
                 <nav className={styles.navContainer}>
                     <div className={styles.navContent}>
                         <div className={styles.navWrapper}>
@@ -62,7 +62,7 @@ export default function PricingPage() {
                             </div>
                             <div className={styles.universityLogo}>
                                 <div className={styles.logoPlaceholder}>
-                                    <img 
+                                    <Image 
                                         src="https://h0xotvuawi.ufs.sh/f/KSLubuOGoQY2bwMRkW2r4k1ug2cIMO7AxhWZJm08SoX5VeYq" 
                                         alt="Johns Hopkins University" 
                                         width={100} 
@@ -75,14 +75,13 @@ export default function PricingPage() {
                                 </div>
                             </div>
                             <p className={styles.sponsorshipDescription}>
-                                This project is made possible through the generous support of Johns Hopkins University's 
+                                This project is made possible through the generous support of Johns Hopkins University&apos;s 
                                 commitment to advancing AI research and providing cutting-edge tools to professionals worldwide.
                             </p>
                         </div>
                     </div>
                 </div>
 
-                {/* Pricing Card */}
                 <div className={styles.pricingSection}>
                     <div className={styles.pricingContainer}>
                         <div className={styles.pricingCard}>

@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect, PropsWithChildren } from "react";
+import React, { useState, useEffect, type PropsWithChildren } from "react";
 import { useAuth } from "@clerk/nextjs";
 import { useRouter } from "next/navigation";
 import LoadingPage from "~/app/_components/loading";

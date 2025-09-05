@@ -1,5 +1,5 @@
 "use client"
-import React, {FormEvent, useState} from 'react';
+import React, {type FormEvent, useState} from 'react';
 import { Brain, Mail, MessageSquare, ChevronDown, ChevronUp, Home } from 'lucide-react';
 import styles from '~/styles/SupportPage.module.css';
 import emailjs from '@emailjs/browser';

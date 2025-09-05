@@ -1,5 +1,5 @@
 import { db } from "../../../../server/db/index";
-import { and, eq, inArray, sql, desc } from "drizzle-orm";
+import { eq, sql } from "drizzle-orm";
 import { pdfChunks } from "~/server/db/schema";
 
 interface ANNConfig {
@@ -39,8 +39,8 @@ export class ANNOptimizer {
     async searchSimilarChunks(
         queryEmbedding: number[],
         documentIds: number[],
-        limit: number = 10,
-        distanceThreshold: number = 0.7
+        limit = 10,
+        distanceThreshold = 0.7
     ): Promise<ANNResult[]> {
         
         switch (this.config.strategy) {
@@ -90,8 +90,8 @@ export class ANNOptimizer {
         const refinedResults = results.rows
             .map(row => ({
                 ...row,
-                distance: Number(row.distance || 1),
-                confidence: Math.max(0, 1 - Number(row.distance || 1))
+                distance: Number(row.distance ?? 1),
+                confidence: Math.max(0, 1 - Number(row.distance ?? 1))
             }))
             .filter(r => r.distance <= threshold)
             .sort((a, b) => a.distance - b.distance)
@@ -109,7 +109,7 @@ export class ANNOptimizer {
         const relevantClusters = await this.findRelevantDocumentClusters(
             queryEmbedding, 
             documentIds, 
-            this.config.probeCount || 3
+            this.config.probeCount ?? 3
         );
 
         if (relevantClusters.length === 0) {
@@ -136,8 +136,8 @@ export class ANNOptimizer {
 
         return results.rows.map(row => ({
             ...row,
-            distance: Number(row.distance || 1),
-            confidence: Math.max(0, 1 - Number(row.distance || 1))
+            distance: Number(row.distance ?? 1),
+            confidence: Math.max(0, 1 - Number(row.distance ?? 1))
         })) as ANNResult[];
     }
 
@@ -152,7 +152,7 @@ export class ANNOptimizer {
         const docScores = await this.calculateDocumentRelevanceScores(queryEmbedding, documentIds);
         
         const sortedDocIds = docScores
-            .filter(d => d.score > (this.config.prefilterThreshold || 0.3))
+            .filter(d => d.score > (this.config.prefilterThreshold ?? 0.3))
             .sort((a, b) => b.score - a.score)
             .map(d => d.documentId);
 
@@ -182,8 +182,8 @@ export class ANNOptimizer {
             `);
 
             const mappedResults = docResults.rows.map(row => ({
-                ...row,                distance: Number(row.distance || 1),
-                confidence: Math.max(0, 1 - Number(row.distance || 1))
+                ...row,                distance: Number(row.distance ?? 1),
+                confidence: Math.max(0, 1 - Number(row.distance ?? 1))
             })) as ANNResult[];
 
             results.push(...mappedResults.slice(0, remaining));
@@ -249,7 +249,7 @@ export class ANNOptimizer {
             };
         }
 
-        const dimension = chunks[0]?.embedding?.length || 1536;
+        const dimension = chunks[0]?.embedding?.length ?? 1536;
         const centroid = new Array(dimension).fill(0);
         
         for (const chunk of chunks) {
@@ -280,7 +280,7 @@ export class ANNOptimizer {
 
         return {
             documentId,
-            centroid,
+            centroid: centroid as number[],
             chunkIds: chunks.map(c => c.id),
             avgDistance,
             lastUpdated: new Date()
@@ -290,7 +290,7 @@ export class ANNOptimizer {
     private async findRelevantDocumentClusters(
         queryEmbedding: number[],
         documentIds: number[],
-        topK: number = 3
+        topK = 3
     ): Promise<DocumentCluster[]> {
         
         const clusters: Array<{ cluster: DocumentCluster; similarity: number }> = [];

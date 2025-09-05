@@ -1,6 +1,6 @@
 "use client";
 
-import React, { FC } from "react";
+import React, { type FC } from "react";
 import { Eye, EyeOff, Lock, Building, Users } from "lucide-react";
 import styles from "~/styles/Employer/Signup.module.css";
 

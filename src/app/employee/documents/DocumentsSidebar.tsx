@@ -17,7 +17,7 @@ import {
 } from "lucide-react";
 import { SignOutButton, UserButton } from "@clerk/nextjs";
 import styles from "~/styles/Employee/DocumentViewer.module.css";
-import { ViewMode } from "./types";
+import { type ViewMode } from "./types";
 
 interface DocumentType {
   id: number;
@@ -46,7 +46,7 @@ interface DocumentsSidebarProps {
 
 interface ViewModeConfig {
   mode: ViewMode;
-  icon: React.ComponentType<any>;
+  icon: React.ComponentType<React.SVGProps<SVGSVGElement>>;
   tooltip: string;
 }
 

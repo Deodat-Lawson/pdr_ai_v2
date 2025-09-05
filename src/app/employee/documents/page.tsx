@@ -1,4 +1,3 @@
-// DocumentViewer/index.tsx
 "use client";
 
 import React, { useEffect, useState } from "react";
@@ -13,8 +12,8 @@ import LoadingPage from "~/app/_components/loading";
 import { fetchWithRetries } from "./fetchWithRetries";
 import { DocumentsSidebar } from "./DocumentsSidebar";
 import { DocumentContent } from "./DocumentContent";
-import { QAHistoryEntry } from "~/app/employer/documents/ChatHistory";
-import { ViewMode } from "~/app/employee/documents/types";
+import { type QAHistoryEntry } from "~/app/employer/documents/ChatHistory";
+import { type ViewMode } from "~/app/employee/documents/types";
 
 const SYSTEM_PROMPTS = {
     concise: "Concise & Direct",
@@ -58,7 +57,6 @@ interface fetchHistoryProp {
     chatHistory: chatHistoryProp[];
 }
 
-// Updated interface to match backend response structure
 interface PredictiveAnalysisResponse {
   success: boolean;
   documentId: number;
@@ -123,39 +121,21 @@ interface PredictiveAnalysisResponse {
 const DocumentViewer: React.FC = () => {
     const router = useRouter();
     const { isLoaded, userId } = useAuth();
-
-    // State for documents
     const [documents, setDocuments] = useState<DocumentType[]>([]);
     const [selectedDoc, setSelectedDoc] = useState<DocumentType | null>(null);
-
-    // Searching/filtering
     const [searchTerm, setSearchTerm] = useState("");
-
-    // Category open/closed state
     const [openCategories, setOpenCategories] = useState<Set<string>>(new Set());
-
-    // Loading states
     const [loading, setLoading] = useState(true);
-    const [roleLoading, setRoleLoading] = useState(true); // for role-check
-
-    // View mode state
+    const [roleLoading, setRoleLoading] = useState(true);
     const [viewMode, setViewMode] = useState<ViewMode>("document-only");
-
-    // AI Q&A states
     const [aiQuestion, setAiQuestion] = useState("");
     const [aiAnswer, setAiAnswer] = useState("");
     const [aiError, setAiError] = useState("");
     const [aiLoading, setAiLoading] = useState(false);
     const [referencePages, setReferencePages] = useState<number[]>([]);
     const [aiStyle, setAiStyle] = useState<keyof typeof SYSTEM_PROMPTS>("concise");
-
-    // PDF page states
     const [pdfPageNumber, setPdfPageNumber] = useState<number>(1);
-
-    // Q&A History
     const [qaHistory, setQaHistory] = useState<QAHistoryEntry[]>([]);
-
-    // Predictive Analysis state
     const [predictiveAnalysis, setPredictiveAnalysis] = useState<PredictiveAnalysisResponse | null>(null);
     const [isPredictiveLoading, setIsPredictiveLoading] = useState(false);
     const [predictiveError, setPredictiveError] = useState("");
@@ -198,13 +178,8 @@ const DocumentViewer: React.FC = () => {
         setQaHistory((prev) => [...prev, newEntry]);
     };
 
-
-
-
-
-    // 1. Check Clerk Auth & Role
     useEffect(() => {
-        if (!isLoaded) return; // wait until Clerk is loaded
+        if (!isLoaded) return;
 
         if (!userId) {
             window.alert("Authentication failed! No user found.");
@@ -221,7 +196,6 @@ const DocumentViewer: React.FC = () => {
                 });
 
                 if (response.status === 300) {
-                    // Pending approval
                     router.push("/employee/pending-approval");
                     return;
                 } else if (!response.ok) {
@@ -241,7 +215,6 @@ const DocumentViewer: React.FC = () => {
         checkEmployeeRole().catch(console.error);
     }, [isLoaded, userId, router]);
 
-    // 2. Fetch documents for this employee
     useEffect(() => {
         if (!userId) return;
 
@@ -295,15 +268,14 @@ const DocumentViewer: React.FC = () => {
             const inSummary =
                 doc.aiSummary?.toLowerCase().includes(searchTerm.toLowerCase()) ?? false;
 
-            if (!inTitle && !inSummary) return acc;
-
-            if (!acc[doc.category]) {
-                acc[doc.category] = {
-                    name: doc.category,
-                    isOpen: openCategories.has(doc.category),
-                    documents: [],
-                };
-            }
+            if (!inTitle && !inSummary) return acc;   
+                     
+            acc[doc.category] ??= {
+                name: doc.category,
+                isOpen: openCategories.has(doc.category),
+                documents: [],
+            };
+            
             acc[doc.category]!.documents.push(doc);
             return acc;
         }, {})
@@ -342,20 +314,17 @@ const DocumentViewer: React.FC = () => {
                 const uniquePages = Array.from(new Set(data.recommendedPages));
                 setReferencePages(uniquePages);
 
-                // Save Q&A to history
                 await saveToHistory(aiQuestion, data.summarizedAnswer, uniquePages);
             }
 
         } catch (err: unknown) {
-            // If all retries fail or a non-timeout error:
-            setAiError("Timeout error: Please try again later.");
+            setAiError("Timeout error: Please try again later." + (err instanceof Error ? err.message : "Unknown error"));
         } finally {
             setAiLoading(false);
         }
     };
 
-    // Handler: Fetch predictive analysis (with optional forceRefresh)
-    const fetchPredictiveAnalysis = async (documentId: number, forceRefresh: boolean = false) => {
+    const fetchPredictiveAnalysis = async (documentId: number, forceRefresh = false) => {
         setPredictiveError("");
         setPredictiveAnalysis(null);
         setIsPredictiveLoading(true);
@@ -381,17 +350,16 @@ const DocumentViewer: React.FC = () => {
                 throw new Error("Analysis failed on server side");
             }
 
-            // Enrich with document titles if not provided (lookup from documents)
             if (data.analysis.resolvedDocuments) {
                 data.analysis.resolvedDocuments = data.analysis.resolvedDocuments.map(res => ({
                     ...res,
-                    resolvedDocumentTitle: res.resolvedDocumentTitle || documents.find(d => d.id === res.resolvedDocumentId)?.title || `Document ${res.resolvedDocumentId}`
+                    resolvedDocumentTitle: res.resolvedDocumentTitle ?? documents.find(d => d.id === res.resolvedDocumentId)?.title ?? `Document ${res.resolvedDocumentId}`
                 }));
             }
             if (data.analysis.missingDocuments.some(md => md.resolvedIn)) {
                 data.analysis.missingDocuments = data.analysis.missingDocuments.map(md => {
                     if (md.resolvedIn) {
-                        md.resolvedIn.documentTitle = md.resolvedIn.documentTitle || documents.find(d => d.id === md.resolvedIn!.documentId)?.title || `Document ${md.resolvedIn.documentId}`;
+                        md.resolvedIn.documentTitle = md.resolvedIn.documentTitle ?? documents.find(d => d.id === md.resolvedIn!.documentId)?.title ?? `Document ${md.resolvedIn.documentId}`;
                     }
                     return md;
                 });
@@ -406,7 +374,6 @@ const DocumentViewer: React.FC = () => {
         }
     };
 
-    // Handler: Select document and set page
     const handleSelectDocument = (docId: number, page: number) => {
         const targetDoc = documents.find(d => d.id === docId);
         if (targetDoc) {
@@ -418,7 +385,6 @@ const DocumentViewer: React.FC = () => {
 
 
 
-    // 5. Fetch Q&A History
     useEffect(() => {
 
         const fetchHistory = async () => {
@@ -453,14 +419,12 @@ const DocumentViewer: React.FC = () => {
         fetchHistory().catch(console.error);
     }, [userId, selectedDoc]);
 
-    // Effect: Fetch predictive analysis when mode is active
     useEffect(() => {
         if (viewMode !== "predictive-analysis" || !selectedDoc?.id) return;
 
         fetchPredictiveAnalysis(selectedDoc.id, false);
-    }, [viewMode, selectedDoc]);
+    }, [viewMode, selectedDoc, fetchPredictiveAnalysis]);
 
-    // 5. Display loading states
     if (roleLoading) {
         return <LoadingPage />;
     }
@@ -468,17 +432,14 @@ const DocumentViewer: React.FC = () => {
         return <LoadingDoc />;
     }
 
-    // 6. Render
     return (
         <div className={styles.container}>
-            {/* Sidebar */}
             <DocumentsSidebar
                 categories={categories}
                 searchTerm={searchTerm}
                 setSearchTerm={setSearchTerm}
                 selectedDoc={selectedDoc}
                 setSelectedDoc={(doc) => {
-                    // Whenever we pick a doc, reset some states
                     setSelectedDoc(doc);
                     setPdfPageNumber(1);
                     setAiAnswer("");
@@ -489,7 +450,6 @@ const DocumentViewer: React.FC = () => {
                 toggleCategory={toggleCategory}
             />
 
-            {/* Main Content */}
             <main className={styles.mainContent}>
                 <DocumentContent
                     selectedDoc={selectedDoc}

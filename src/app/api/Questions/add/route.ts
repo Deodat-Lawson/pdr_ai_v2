@@ -1,7 +1,6 @@
 import { NextResponse } from "next/server";
 import { db } from "~/server/db/index";
-import {users, category, ChatHistory} from "~/server/db/schema";
-import { eq } from "drizzle-orm";
+import { ChatHistory } from "~/server/db/schema";
 
 type PostBody = {
     userId: string;
@@ -16,9 +15,7 @@ export async function POST(request: Request) {
     try {
         const { userId, question, documentId, documentTitle, response, pages } = (await request.json()) as PostBody;
 
-        // Insert new user
         await db.insert(ChatHistory).values({
-            // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
             UserId: userId,
             documentId: documentId,
             documentTitle: documentTitle,

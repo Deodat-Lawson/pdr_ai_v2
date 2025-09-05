@@ -1,6 +1,7 @@
 "use client"
 
 import React from 'react';
+import Image from 'next/image';
 import { Home, Github, Linkedin, Mail, Brain } from 'lucide-react';
 import styles from '../../styles/about.module.css';
 
@@ -27,7 +28,7 @@ const teamMembers = [
     }
 ];
 
-const AboutPage: React.FC = () => {
+export default function About() {
     return (
         <div className={styles.container}>
             <nav className={styles.navbar}>
@@ -58,10 +59,12 @@ const AboutPage: React.FC = () => {
                     {teamMembers.map(member => (
                         <div key={member.id} className={styles.memberCard}>
                             <div className={styles.memberImageContainer}>
-                                <img
+                                <Image
                                     src={member.image}
                                     alt={member.name}
                                     className={styles.memberImage}
+                                    width={400}
+                                    height={400}
                                 />
                             </div>
                             <div className={styles.memberInfo}>
@@ -106,13 +109,11 @@ const AboutPage: React.FC = () => {
                     <h2 className={styles.missionTitle}>Our Mission</h2>
                     <p className={styles.missionText}>
                         To revolutionize how professionals interact with documents through cutting-edge AI technology. 
-                        We're building the future of predictive document analysis and intelligent company management, 
+                        We&apos;re building the future of predictive document analysis and intelligent company management, 
                         making complex document workflows simple, efficient, and secure for enterprises worldwide.
                     </p>
                 </div>
             </main>
         </div>
     );
-};
-
-export default AboutPage;
+}

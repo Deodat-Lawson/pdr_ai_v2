@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { db } from "../../../server/db/index";
-import { company, document,users } from "../../../server/db/schema";
+import { company, users } from "../../../server/db/schema";
 import { eq } from "drizzle-orm";
 import * as console from "console";
 
@@ -16,14 +16,6 @@ type PostBody = {
 export async function POST(request: Request) {
     try {
         const { userId, name, employerPasskey, employeePasskey, numberOfEmployees  } = (await request.json()) as PostBody;
-
-        /*
-                    userId,
-                    name: companyName,
-                    employerPasskey,
-                    employeePasskey,
-                    numberOfEmployees: staffCount,
-         */
 
         const [userInfo] = await db
             .select()
