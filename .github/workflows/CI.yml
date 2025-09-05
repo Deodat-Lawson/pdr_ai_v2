@@ -50,7 +50,10 @@ jobs:
 
       - name: Build application
         run: pnpm build
-
+        env:
+          NODE_ENV: production
+          DATABASE_URL: "postgresql://mock:mock@localhost:5432/mock"
+          
       - name: Upload build artifacts (optional)
         if: success()
         uses: actions/upload-artifact@v4
