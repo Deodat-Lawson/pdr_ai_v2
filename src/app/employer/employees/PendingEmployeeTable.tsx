@@ -3,7 +3,7 @@
 import React from "react";
 import { CheckCircle, Trash2 } from "lucide-react";
 import styles from "~/styles/Employer/EmployeeManagement.module.css";
-import { Employee } from "./types";
+import { type Employee } from "./types";
 
 interface PendingEmployeeTableProps {
     employees: Employee[];

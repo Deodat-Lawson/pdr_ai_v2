@@ -8,9 +8,6 @@ import SignInForm from "~/app/signup/employer/SignInForm";
 import SignUpForm from "~/app/signup/employer/SignUpForm";
 import styles from "../../../styles/Employer/Signup.module.css";
 
-/** --------------- */
-/** TYPES          */
-/** --------------- */
 interface SignInFormData {
     companyName: string;
     managerPasscode: string;
@@ -37,22 +34,11 @@ interface SignUpFormErrors {
     staffCount?: string;
 }
 
-/** --------------- */
-/** MAIN COMPONENT */
-/** --------------- */
 const EmployerSignup: React.FC = () => {
     const router = useRouter();
     const { userId } = useAuth();
     const { user } = useUser();
-
-    // --------------------------------------------------
-    // Toggle: Sign In or Sign Up
-    // --------------------------------------------------
     const [isSignIn, setIsSignIn] = useState(false);
-
-    // --------------------------------------------------
-    // Sign In State & Handlers
-    // --------------------------------------------------
     const [signInFormData, setSignInFormData] = useState<SignInFormData>({
         companyName: "",
         managerPasscode: "",
@@ -82,24 +68,29 @@ const EmployerSignup: React.FC = () => {
     };
 
     const submitSignIn = async () => {
-        // Make sure user is logged in via Clerk
-        if (!userId || !user) return;
+        if (!userId) return;
+        if( !user ) return;
 
         const response = await fetch("/api/signup/employer", {
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({
-                userId: userId,
+                userId,
                 name: user?.fullName,
                 email: user?.emailAddresses[0]?.emailAddress,
                 companyName: signInFormData.companyName,
-                employerPasskey: signInFormData.managerPasscode,
+                employeePasskey: signInFormData.managerPasscode,
             }),
         });
 
         if (response.status === 400) {
-            const { error } = await response.json();
-            setSignInErrors((prev) => ({ ...prev, managerPasscode: error }));
+            const rawData: unknown = await response.json();
+            if (typeof rawData === "object" && rawData !== null && "error" in rawData) {
+                const errorData = rawData as { error: string };
+                setSignInErrors((prev) => ({ ...prev, managerPasscode: errorData.error }));
+            } else {
+                setSignInErrors((prev) => ({ ...prev, managerPasscode: "Registration failed" }));
+            }
             return;
         }
         router.push("/employer/home");
@@ -107,13 +98,12 @@ const EmployerSignup: React.FC = () => {
 
     const handleSignInSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
+        console.log("Sign in form data:", signInFormData);
         if (!validateSignInForm()) return;
+        console.log("Sign in form ready to submit");
         await submitSignIn();
     };
 
-    // --------------------------------------------------
-    // Sign Up State & Handlers
-    // --------------------------------------------------
     const [signUpFormData, setSignUpFormData] = useState<SignUpFormData>({
         companyName: "",
         managerPasscode: "",
@@ -124,7 +114,6 @@ const EmployerSignup: React.FC = () => {
     });
     const [signUpErrors, setSignUpErrors] = useState<SignUpFormErrors>({});
 
-    // Local states for showing/hiding password fields in SignUp
     const [showSignUpPasswords, setShowSignUpPasswords] = useState({
         manager: false,
         managerConfirm: false,
@@ -135,7 +124,6 @@ const EmployerSignup: React.FC = () => {
     const handleSignUpChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         const { name, value } = e.target;
         setSignUpFormData((prev) => ({ ...prev, [name]: value }));
-        // Clear error on user input
         if (signUpErrors[name as keyof SignUpFormErrors]) {
             setSignUpErrors((prev) => ({ ...prev, [name]: undefined }));
         }
@@ -168,29 +156,38 @@ const EmployerSignup: React.FC = () => {
     };
 
     const submitSignUp = async () => {
-        // Make sure user is logged in via Clerk
         if (!userId || !user) return;
 
-        const response = await fetch("/api/signup/employerCompany", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({
-                userId: userId,
-                name: user?.fullName,
-                email: user?.emailAddresses[0]?.emailAddress,
-                companyName: signUpFormData.companyName,
-                employerPasskey: signUpFormData.managerPasscode,
-                employeePasskey: signUpFormData.employeePasscode,
-                numberOfEmployees: signUpFormData.staffCount,
-            }),
-        });
+        try {
+            const response = await fetch("/api/signup/employerCompany", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({
+                    userId: userId,
+                    name: user?.fullName,
+                    email: user?.emailAddresses[0]?.emailAddress,
+                    companyName: signUpFormData.companyName,
+                    employerPasskey: signUpFormData.managerPasscode,
+                    employeePasskey: signUpFormData.employeePasscode,
+                    numberOfEmployees: signUpFormData.staffCount,
+                }),
+            });
 
-        if (response.status === 400) {
-            const { error } = await response.json();
-            setSignUpErrors((prev) => ({ ...prev, companyName: error }));
-            return;
+            if (response.status === 400) {
+                const rawData: unknown = await response.json();
+                if (typeof rawData === "object" && rawData !== null && "error" in rawData) {
+                    const errorData = rawData as { error: string };
+                    setSignUpErrors((prev) => ({ ...prev, companyName: errorData.error }));
+                } else {
+                    setSignUpErrors((prev) => ({ ...prev, companyName: "Registration failed" }));
+                }
+                return;
+            }
+            router.push("/employer/home");
+        } catch (error) {
+            console.error("Sign up error:", error);
+            setSignUpErrors((prev) => ({ ...prev, companyName: "Registration failed" }));
         }
-        router.push("/employer/home");
     };
 
     const handleSignUpSubmit = async (e: React.FormEvent) => {
@@ -209,15 +206,10 @@ const EmployerSignup: React.FC = () => {
         }));
     };
 
-    // --------------------------------------------------
-    // RENDER
-    // --------------------------------------------------
     return (
         <div className={styles.container}>
-            {/* Navbar */}
             <nav className={styles.navbar}>
                 <div className={styles.navContent}>
-                    {/* Logo */}
                     <div className={styles.logoContainer}>
                         <Brain className={styles.logoIcon} />
                         <span className={styles.logoText}>PDR AI</span>
@@ -225,10 +217,8 @@ const EmployerSignup: React.FC = () => {
                 </div>
             </nav>
 
-            {/* Main Content */}
             <main className={styles.main}>
                 <div className={styles.formContainer}>
-                    {/* Toggle Buttons */}
                     <div className={styles.authToggle}>
                         <button
                             type="button"

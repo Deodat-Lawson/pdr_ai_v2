@@ -1,6 +1,6 @@
 "use client";
 
-import React, { FC } from "react";
+import React, { type FC } from "react";
 import styles from "~/styles/Employer/Settings.module.css";
 
 interface SettingsFormProps {

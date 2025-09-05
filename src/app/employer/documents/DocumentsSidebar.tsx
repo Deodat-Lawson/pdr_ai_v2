@@ -16,9 +16,8 @@ import {
     ChevronLeft,
     Trash2,
 } from "lucide-react";
-import { useRouter } from "next/navigation";
 import styles from "~/styles/Employer/DocumentViewer.module.css";
-import { ViewMode } from "./types";
+import { type ViewMode } from "./types";    
 
 interface DocumentType {
     id: number;
@@ -86,7 +85,6 @@ export const DocumentsSidebar: React.FC<DocumentsSidebarProps> = ({
     toggleCategory,
     deleteDocument,
 }) => {
-    const router = useRouter();
     const [hoveredTooltip, setHoveredTooltip] = useState<string | null>(null);
     const [isCollapsed, setIsCollapsed] = useState(false);
     const [isSearchFocused, setIsSearchFocused] = useState(false);
@@ -126,7 +124,6 @@ export const DocumentsSidebar: React.FC<DocumentsSidebarProps> = ({
                     <span className={styles.logoText}>PDR AI</span>
                 </button>
 
-                {/* Search Bar */}
                 <div className={styles.searchContainer}>
                     <Search className={`${styles.searchIcon} ${isSearchFocused ? 'text-purple-600 scale-110' : ''}`} />
                     <input
@@ -223,7 +220,6 @@ export const DocumentsSidebar: React.FC<DocumentsSidebarProps> = ({
                 ))}
             </nav>
 
-            {/* Sidebar Footer - Home Button */}
             <div className={styles.sidebarFooter}>
                 <Link href="/employer/home">
                     <button className={styles.homeButton}>

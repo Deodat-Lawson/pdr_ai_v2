@@ -27,16 +27,11 @@ interface QAHistoryProps {
 
 const QAHistory: React.FC<QAHistoryProps> = ({
     history,
-    documentTitle,
     onQuestionSelect,
     setPdfPageNumber,
 }) => {
-
-    console.log("history", history);
     const [expandedItems, setExpandedItems] = React.useState<Set<string>>(new Set());
-
-
-
+    
     const toggleItem = (id: string) => {
         setExpandedItems((prev) => {
             const copy = new Set(prev);

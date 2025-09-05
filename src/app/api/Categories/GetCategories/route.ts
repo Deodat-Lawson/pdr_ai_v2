@@ -12,7 +12,6 @@ export async function POST(request: Request) {
     try {
         const { userId } = (await request.json()) as PostBody;
 
-        // 1) Look up the user in the 'users' table
         const [userInfo] = await db
             .select()
             .from(users)
@@ -25,16 +24,13 @@ export async function POST(request: Request) {
             );
         }
 
-        // 2) Retrieve the user's companyId from userInfo
         const companyId = userInfo.companyId;
 
-        // 3) Select all categories that have the same companyId
         const categories = await db
             .select()
             .from(category)
             .where(eq(category.companyId, companyId));
 
-        // Return as JSON
         return NextResponse.json(categories, { status: 200 });
     } catch (error: unknown) {
         console.error("Error fetching documents:", error);

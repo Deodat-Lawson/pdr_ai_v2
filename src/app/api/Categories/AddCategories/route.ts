@@ -12,11 +12,9 @@ export async function POST(request: Request) {
     try {
         const { userId, CategoryName } = (await request.json()) as PostBody;
 
-        // 1) Look up the user in the 'users' table
         const [userInfo] = await db
             .select()
             .from(users)
-            // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
             .where(eq(users.userId, userId));
 
         if (!userInfo) {
@@ -26,12 +24,9 @@ export async function POST(request: Request) {
             );
         }
 
-        // 2) Retrieve the user's companyId from userInfo
         const companyId = userInfo.companyId;
 
-        // Insert new user
         await db.insert(category).values({
-            // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
             name: CategoryName,
             companyId: companyId,
         });

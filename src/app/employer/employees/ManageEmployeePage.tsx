@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@clerk/nextjs";
 
@@ -8,7 +8,7 @@ import NavBar from "./NavBar";
 import EmployeeTable from "./CurrentEmployeeTable";
 import PendingEmployeeTable from "./PendingEmployeeTable";
 
-import { Employee } from "./types";
+import { type Employee } from "./types";
 import LoadingPage from "~/app/_components/loading";
 
 import styles from "~/styles/Employer/EmployeeManagement.module.css";
@@ -21,51 +21,56 @@ const ManageEmployeesPage: React.FC = () => {
     const [employees, setEmployees] = useState<Employee[]>([]);
     const [pendingEmployees, setPendingEmployees] = useState<Employee[]>([]);
 
-    useEffect(() => {
-        if (!isLoaded) return;
+    const loadEmployees = useCallback(async () => {
+        try {
+            const res = await fetch("/api/getAllEmployees", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ userId }),
+            });
 
-        // If no user, redirect home
-        if (!userId) {
-            window.alert("Authentication failed! No user found.");
-            router.push("/");
-            return;
+            const rawData: unknown = await res.json();
+            if (Array.isArray(rawData)) {
+                const data = rawData as Employee[];
+                
+                const approved = data.filter((emp) => emp.status === "verified");
+                const pending = data.filter((emp) => emp.status === "pending");
+
+                setEmployees(approved);
+                setPendingEmployees(pending);
+            } else {
+                console.error("Invalid employee data received");
+                setEmployees([]);
+                setPendingEmployees([]);
+            }
+        } catch (error) {
+            console.error("Error loading employees:", error);
         }
+    }, [userId]);
 
-        // Check if the user’s role is owner or employer
+    useEffect(() => {
+        if (!isLoaded || !userId) return;
+
         const checkRole = async () => {
             try {
-                const response = await fetch("/api/employerAuth", {
+                const response = await fetch("/api/fetchUserInfo", {
                     method: "POST",
                     headers: { "Content-Type": "application/json" },
                     body: JSON.stringify({ userId }),
                 });
 
-                // If the user is pending, redirect them to /employee/pending-approval
-                if (response.status === 300) {
-                    router.push("/employee/pending-approval");
-                    return;
-                }
-
-                // If not OK, the user is not owner/employer => redirect
                 if (!response.ok) {
-                    window.alert("Authentication failed! You are not an employer or owner.");
+                    window.alert("Authentication failed! No user found.");
                     router.push("/");
                     return;
                 }
 
-                // Parse the JSON, which should contain the user's role
-                const rawData:unknown = await response.json();
+                const rawData: unknown = await response.json();
+                const data = rawData as { role?: string };
+                const roleFromServer = data?.role;
 
-                const data = rawData as { role: string };
-                // e.g. data might look like { role: 'employer' } or { role: 'owner' }
-                const roleFromServer = data.role;
-                console.log(data)
-                console.log(data.role)
-
-                // Check if we actually get "owner" or "employer"
-                if (roleFromServer === "owner" || roleFromServer === "employer") {
+                if (roleFromServer === "employer" || roleFromServer === "owner") {
                     setUserRole(roleFromServer);
-                    // Load employees if authorized
                     await loadEmployees();
                 } else {
                     window.alert("Authentication failed! You are not an employer or owner.");
@@ -81,28 +86,7 @@ const ManageEmployeesPage: React.FC = () => {
         };
 
         checkRole().catch(console.error);
-    }, [isLoaded, userId, router]);
-
-    const loadEmployees = async () => {
-        try {
-            const res = await fetch("/api/getAllEmployees", {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ userId }),
-            });
-
-            const data: Employee[] = await res.json();
-
-            // Separate approved from pending
-            const approved = data.filter((emp) => emp.status === "verified");
-            const pending = data.filter((emp) => emp.status === "pending");
-
-            setEmployees(approved);
-            setPendingEmployees(pending);
-        } catch (error) {
-            console.error("Error loading employees:", error);
-        }
-    };
+    }, [isLoaded, userId, router, loadEmployees]);
 
     const handleRemoveEmployee = async (employeeId: string) => {
         try {
@@ -111,7 +95,7 @@ const ManageEmployeesPage: React.FC = () => {
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({ employeeId }),
             });
-            // Refresh the lists
+
             await loadEmployees();
         } catch (error) {
             console.error("Error removing employee:", error);
@@ -125,7 +109,7 @@ const ManageEmployeesPage: React.FC = () => {
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({ employeeId }),
             });
-            // Refresh the lists
+
             await loadEmployees();
         } catch (error) {
             console.error("Error approving employee:", error);
@@ -143,17 +127,15 @@ const ManageEmployeesPage: React.FC = () => {
             <main className={styles.main}>
                 <h1 className={styles.welcomeTitle}>Manage Employees</h1>
 
-                {/* Approved Employees */}
                 <section className={styles.employeeSection}>
                     <h2 className={styles.sectionTitle}>All Employees</h2>
                     <EmployeeTable
                         employees={employees}
                         onRemove={handleRemoveEmployee}
-                        currentUserRole={userRole} // pass down 'owner' or 'employer'
+                        currentUserRole={userRole} 
                     />
                 </section>
 
-                {/* Pending Employees */}
                 <section className={styles.employeeSection}>
                     <h2 className={styles.sectionTitle}>Pending Approvals</h2>
                     <PendingEmployeeTable

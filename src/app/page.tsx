@@ -1,6 +1,6 @@
 import Link from "next/link";
-import React, {FC, ReactNode} from 'react';
-import { FileText, Brain, Zap, ArrowRight, Check, Shield, Clock, Users, TrendingUp, Star, Award, Search, BarChart3, Building2, FileSearch } from 'lucide-react';
+import React, {type FC, type ReactNode} from 'react';
+import { Brain, Zap, ArrowRight, Shield, Clock, Users, TrendingUp, Star, Search, BarChart3, Building2, FileSearch } from 'lucide-react';
 import styles from '../styles/home.module.css';
 
 import {

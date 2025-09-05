@@ -88,29 +88,26 @@ const EmployeeSignIn: React.FC = () => {
         });
 
         if (response.status === 400) {
-            const { error } = await response.json();
-            setEmployeeSignInFormErrors((prev) => ({ ...prev, employeePasscode: error }));
+            const rawData: unknown = await response.json();
+            if (typeof rawData === "object" && rawData !== null && "error" in rawData) {
+                const errorData = rawData as { error: string };
+                setEmployeeSignInFormErrors((prev) => ({ ...prev, employeePasscode: errorData.error }));
+            } else {
+                setEmployeeSignInFormErrors((prev) => ({ ...prev, employeePasscode: "Registration failed" }));
+            }
             return;
         }
-        // Redirect to an appropriate route after successful sign-in
         router.push("/employee/documents");
     };
 
-    // -------------------------------
-    // Handle form submission
-    // -------------------------------
     const handleSignInSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
         if (!validateSignInForm()) return;
         await submitSignIn();
     };
 
-    // -------------------------------
-    // Component Render
-    // -------------------------------
     return (
         <div className={styles.container}>
-            {/* Navbar */}
             <nav className={styles.navbar}>
                 <div className={styles.navContent}>
                     <div className={styles.logoContainer}>
@@ -120,7 +117,6 @@ const EmployeeSignIn: React.FC = () => {
                 </div>
             </nav>
 
-            {/* Main Content */}
             <main className={styles.main}>
                 <div className={styles.formContainer}>
                     <h1 className={styles.title}>Employee Sign In</h1>
@@ -129,7 +125,6 @@ const EmployeeSignIn: React.FC = () => {
                     </p>
 
                     <form onSubmit={handleSignInSubmit} className={styles.form}>
-                        {/* Company Name */}
                         <div className={styles.formGroup}>
                             <label className={styles.label}>Company Name</label>
                             <div className={styles.inputWrapper}>
@@ -150,7 +145,6 @@ const EmployeeSignIn: React.FC = () => {
                             )}
                         </div>
 
-                        {/* Employee Passcode */}
                         <div className={styles.formGroup}>
                             <label className={styles.label}>Employee Passcode</label>
                             <div className={styles.inputWrapper}>

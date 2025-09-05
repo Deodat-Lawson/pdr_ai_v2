@@ -1,5 +1,5 @@
 "use client"
-import React, {FormEvent, useState} from 'react';
+import React, {type FormEvent, useState} from 'react';
 import { Brain, Mail, MessageSquare, ChevronDown, ChevronUp, Home } from 'lucide-react';
 import styles from '~/styles/SupportPage.module.css';
 import emailjs from '@emailjs/browser';
@@ -55,9 +55,8 @@ const SupportPage = () => {
         setIsSubmitting(true);
 
         try {
-
             emailjs
-                .send('service_q0kr5dd', 'template_vaka75k', formData, {
+                .send('service_q0kr5dd', 'template_vaka75k', formData as unknown as Record<string, unknown>, {
                     publicKey: 'DSuoTHVw3sJe7tFVJ',
                 })
                 .then(
@@ -72,6 +71,7 @@ const SupportPage = () => {
             setSubmitStatus('success');
             setFormData({ from_name: '', from_email: '', to_name: '', subject: '', message: '' });
         } catch (error) {
+            console.error('Error sending email:', error);
             setSubmitStatus('error');
         } finally {
             setIsSubmitting(false);

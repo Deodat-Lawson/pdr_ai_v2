@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { db } from "../../../server/db/index";
 import { eq, sql, and, gt, desc, ne } from "drizzle-orm";
 import { analyzeDocumentChunks } from "./agent";
+import type { PredictiveAnalysisResult } from "./agent";
 import { predictiveDocumentAnalysisResults, document, pdfChunks } from "~/server/db/schema";
 
 type PostBody = {
@@ -9,14 +10,7 @@ type PostBody = {
     analysisType?: 'contract' | 'financial' | 'technical' | 'compliance' | 'general';
     includeRelatedDocs?: boolean;
     timeoutMs?: number;
-    forceRefresh?: boolean; // Force recompute and store fresh analysis
-};
-
-type PdfChunkRow = Record<string, unknown> & {
-    id: number;
-    content: string;
-    page: number;
-    distance: number;
+    forceRefresh?: boolean;
 };
 
 type PdfChunk = {
@@ -31,9 +25,25 @@ type DocumentDetails = {
     companyId: string;
 };
 
+type PredictiveAnalysisOutput = {
+    documentId: number;
+    analysisType: string;
+    summary: {
+        totalMissingDocuments: number;
+        highPriorityItems: number;
+        totalRecommendations: number;
+        totalSuggestedRelated: number;
+        analysisTimestamp: string;
+    };
+    analysis: PredictiveAnalysisResult;
+    metadata: {
+        pagesAnalyzed: number;
+        existingDocumentsChecked: number;
+    };
+};
+
 const CACHE_TTL_HOURS = 24;
 
-// Helper: Query for cached analysis
 async function getCachedAnalysis(documentId: number, analysisType: string, includeRelatedDocs: boolean) {
     const result = await db.select({ resultJson: predictiveDocumentAnalysisResults.resultJson })
         .from(predictiveDocumentAnalysisResults)
@@ -51,10 +61,10 @@ async function getCachedAnalysis(documentId: number, analysisType: string, inclu
         .orderBy(desc(predictiveDocumentAnalysisResults.createdAt))
         .limit(1);
 
-    return result[0]?.resultJson as any | null;
+    return result[0]?.resultJson ?? null;
 }
 
-async function storeAnalysisResult(documentId: number, analysisType: string, includeRelatedDocs: boolean, resultJson: any) {
+async function storeAnalysisResult(documentId: number, analysisType: string, includeRelatedDocs: boolean, resultJson: PredictiveAnalysisOutput) {
     const result = await db.insert(predictiveDocumentAnalysisResults).values({
         documentId,
         analysisType,
@@ -89,11 +99,10 @@ export async function POST(request: Request) {
             return NextResponse.json({ success: false, message: "Invalid documentId." }, { status: 400 });
         }
 
-        // Check cache unless forceRefresh
         if (!forceRefresh) {
             const cachedResult = await getCachedAnalysis(documentId, analysisType, includeRelatedDocs);
+
             if (cachedResult) {
-                console.log(`Returning cached analysis for documentId ${documentId}`);
                 return NextResponse.json({
                     success: true,
                     ...cachedResult,
@@ -102,13 +111,11 @@ export async function POST(request: Request) {
             }
         }
 
-        // Fetch document details for search context
         const docDetails = await getDocumentDetails(documentId);
         if (!docDetails) {
             return NextResponse.json({ success: false, message: "Document not found." }, { status: 404 });
         }
 
-        // Fetch chunks using Drizzle
         const chunksResults = await db
             .select({
                 id: pdfChunks.id,
@@ -130,7 +137,6 @@ export async function POST(request: Request) {
 
         let existingDocuments: string[] = [];
         if (includeRelatedDocs) {
-            // get the documentid from the current document
             const currentDoc = await db.select({ companyId: document.companyId })
                 .from(document)
                 .where(eq(document.id, documentId))
@@ -138,7 +144,6 @@ export async function POST(request: Request) {
 
             const currentCompanyId = currentDoc[0]?.companyId;
 
-            // getting all documents with the same companyId but not the current document
             if (currentCompanyId) {
                 const existingDocs = await db
                     .selectDistinct({ title: document.title, url: document.url }) //getting title and document url
@@ -154,7 +159,6 @@ export async function POST(request: Request) {
             }
         }
 
-        // Create analysis specification
         const specification = {
             type: analysisType,
             includeRelatedDocs,
@@ -163,7 +167,6 @@ export async function POST(request: Request) {
             category: docDetails.category
         };
 
-        // Call AI analysis through engine with timeout
         const analysisResult = await analyzeDocumentChunks(
             chunks,
             {
@@ -171,11 +174,10 @@ export async function POST(request: Request) {
                 companyId: Number(docDetails.companyId),
                 documentId
             },
-            20, // smaller batch size for faster processing
+            20,
             timeoutMs
         );
 
-        // Store analysis result
         const fullResult = {
             documentId,
             analysisType,
@@ -183,7 +185,7 @@ export async function POST(request: Request) {
                 totalMissingDocuments: analysisResult.missingDocuments.length,
                 highPriorityItems: analysisResult.missingDocuments.filter(doc => doc.priority === 'high').length,
                 totalRecommendations: analysisResult.recommendations.length,
-                totalSuggestedRelated: analysisResult.suggestedRelatedDocuments?.length || 0,
+                totalSuggestedRelated: analysisResult.suggestedRelatedDocuments?.length ?? 0,
                 analysisTimestamp: new Date().toISOString()
             },
             analysis: analysisResult,
@@ -191,7 +193,7 @@ export async function POST(request: Request) {
                 pagesAnalyzed: chunks.length,
                 existingDocumentsChecked: existingDocuments.length
             }
-        }
+        } as PredictiveAnalysisOutput;
 
         await storeAnalysisResult(documentId, analysisType, includeRelatedDocs, fullResult);
 

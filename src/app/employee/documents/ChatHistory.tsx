@@ -25,7 +25,6 @@ interface QAHistoryProps {
 
 const QAHistory: React.FC<QAHistoryProps> = ({
     history,
-    documentTitle,
     onQuestionSelect,
     setPdfPageNumber,
 }) => {

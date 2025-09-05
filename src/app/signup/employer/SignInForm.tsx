@@ -1,10 +1,9 @@
 "use client";
 
-import React, { FC } from "react";
+import React, { type FC } from "react";
 import { Eye, EyeOff, Building, Lock } from "lucide-react";
 import styles from "~/styles/Employer/Signup.module.css";
 
-// Types for form data & errors
 interface SignInFormData {
     companyName: string;
     managerPasscode: string;
@@ -34,7 +33,6 @@ const SignInForm: FC<SignInFormProps> = ({
                                          }) => {
     return (
         <form onSubmit={onSubmit} className={styles.form}>
-            {/* Company Name */}
             <div className={styles.formGroup}>
                 <label className={styles.label}>Company Name</label>
                 <div className={styles.inputWrapper}>
@@ -53,7 +51,6 @@ const SignInForm: FC<SignInFormProps> = ({
                 )}
             </div>
 
-            {/* Manager Passcode */}
             <div className={styles.formGroup}>
                 <label className={styles.label}>Manager Passcode</label>
                 <div className={styles.inputWrapper}>

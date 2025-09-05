@@ -87,10 +87,10 @@ function createAnalysisPrompt(
 `;
 }
 
-async function performWebSearch(query: string, maxResults: number = 5): Promise<SearchResult[]> {
+async function performWebSearch(query: string, maxResults = 5): Promise<SearchResult[]> {
     try {
         const searchTool = new DuckDuckGoSearch({ maxResults });
-        const result = await searchTool.invoke(query);
+        const result = await searchTool.invoke(query) as string;
         const parsed = JSON.parse(result) as SearchResult[];
         return parsed;
     } catch (error) {
@@ -102,15 +102,15 @@ async function performWebSearch(query: string, maxResults: number = 5): Promise<
 export async function callAIAnalysis(
     chunks: PdfChunk[],
     specification: AnalysisSpecification,
-    timeoutMs: number = 30000
+    timeoutMs = 30000
 ): Promise<PredictiveAnalysisResult> {
     const content = groupContentFromChunks(chunks);
     const prompt = createAnalysisPrompt(content, specification);
 
     const chat = new ChatOpenAI({
         openAIApiKey: process.env.OPENAI_API_KEY,
-        modelName: "gpt-4o",
-        temperature: 0.1,
+        modelName: "gpt-4.1",
+        temperature: 0.3,
     });
 
     const structuredModel = chat.withStructuredOutput(AnalysisResultSchema, {
@@ -145,8 +145,8 @@ export async function callAIAnalysis(
 export async function analyzeDocumentChunks(
     allChunks: PdfChunk[],
     specification: AnalysisSpecification,
-    batchSize: number = 25,
-    timeoutMs: number = 30000
+    batchSize = 25,
+    timeoutMs = 30000
 ): Promise<PredictiveAnalysisResult> {
     console.log(`🚀 Starting document analysis for ${allChunks.length} chunks`);
     

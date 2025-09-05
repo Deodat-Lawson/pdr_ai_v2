@@ -1,27 +1,26 @@
 "use client"
 
-import React, { useEffect, useState } from 'react';
-import { Brain, Clock, Building, Mail } from 'lucide-react';
+import React, { useEffect, useState, useCallback } from 'react';
+import { Clock, Building, Mail } from 'lucide-react';
 import { useRouter } from "next/navigation"
 import { useAuth } from "@clerk/nextjs";
 import styles from '~/styles/Employee/PendingApproval.module.css';
 import NavBar from "~/app/employer/employees/NavBar";
 
-interface PendingApprovalProps {
+interface EmployeeData {
     name?: string;
     email?: string;
     company?: string;
     submissionDate?: string;
 }
 
-const PendingApproval: React.FC<PendingApprovalProps> = () => {
+const PendingApproval: React.FC = () => {
     const router = useRouter();
     const { userId } = useAuth();
 
-    const [currentEmployeeData, setCurrentEmployeeData] = useState<PendingApprovalProps>();
+    const [currentEmployeeData, setCurrentEmployeeData] = useState<EmployeeData>();
 
-    // Fetch user data and populate state
-    const checkEmployerRole = async () => {
+    const checkEmployerRole = useCallback(async () => {
         try {
             const response = await fetch("/api/fetchUserInfo", {
                 method: "POST",
@@ -29,12 +28,8 @@ const PendingApproval: React.FC<PendingApprovalProps> = () => {
                 body: JSON.stringify({ userId }),
             });
 
-            // Parse the returned data and set it to state
             const rawData: unknown = await response.json();
-            console.log("Raw data:", rawData);
-            const data = rawData as PendingApprovalProps
-            console.log("Employee data:", data);
-
+            const data = rawData as EmployeeData;
 
             setCurrentEmployeeData({
                 name: data?.name,
@@ -47,35 +42,29 @@ const PendingApproval: React.FC<PendingApprovalProps> = () => {
             window.alert("Authentication failed! You are not an employee.");
             router.push("/");
         }
-    };
+    }, [userId, router]);
 
-    // Run the check on mount
     useEffect(() => {
         if (userId) {
             checkEmployerRole().catch(console.error);
         }
-    }, [userId]);
-
+    }, [userId, checkEmployerRole]);
 
     return (
         <div className={styles.container}>
-            {/* Navigation */}
             <NavBar />
 
             <main className={styles.main}>
                 <div className={styles.statusCard}>
-                    {/* Status Icon */}
                     <div className={styles.statusIconContainer}>
                         <Clock className={styles.statusIcon} />
                     </div>
 
-                    {/* Status Message */}
                     <h1 className={styles.title}>Pending Approval</h1>
                     <p className={styles.subtitle}>
                         Your account is currently awaiting approval from your employer
                     </p>
 
-                    {/* Application Details */}
                     <div className={styles.detailsContainer}>
                         <h2 className={styles.detailsTitle}>Application Details</h2>
 
@@ -106,16 +95,6 @@ const PendingApproval: React.FC<PendingApprovalProps> = () => {
                         </div>
                     </div>
 
-                    {/* Notice */}
-                    {/*<div className={styles.notice}>*/}
-                    {/*    <AlertCircle className={styles.noticeIcon} />*/}
-                    {/*    <p className={styles.noticeText}>*/}
-                    {/*        You will receive an email notification once your account has been approved.*/}
-                    {/*        This process typically takes 1-2 business days.*/}
-                    {/*    </p>*/}
-                    {/*</div>*/}
-
-                    {/* Support Section */}
                     <div className={styles.supportSection}>
                         <p className={styles.supportText}>
                             Need assistance? Contact support at{' '}

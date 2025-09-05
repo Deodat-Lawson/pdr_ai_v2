@@ -10,7 +10,7 @@ export function cleanText(text: string): string {
     return text.toLowerCase().replace(/[^a-z0-9\s]/g, '').trim();
 }
 
-export function extractKeywords(text: string, minLength: number = 2): string[] {
+export function extractKeywords(text: string, minLength = 2): string[] {
     const commonWords = new Set(['the', 'and', 'or', 'but', 'in', 'on', 'at', 'to', 'for', 'of', 'with', 'by', 'a', 'an']);
     
     return text.toLowerCase()
@@ -54,7 +54,7 @@ export function calculateTextSimilarity(text1: string, text2: string): number {
     return intersection.size / union.size;
 }
 
-export function truncateText(text: string, maxLength: number = 200): string {
+export function truncateText(text: string, maxLength = 200): string {
     if (text.length <= maxLength) return text;
     return text.slice(0, maxLength - 3) + '...';
 }

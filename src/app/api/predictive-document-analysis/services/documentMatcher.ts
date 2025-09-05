@@ -8,7 +8,7 @@ import type {
     ValidationResult 
 } from "../types";
 import { getEmbeddings } from "../utils/embeddings";
-import { cleanText, hasReferencePattern, truncateText } from "../utils/content";
+import { cleanText, truncateText } from "../utils/content";
 import ANNOptimizer from "./annOptimizer";
 
 type MatchCandidate = {
@@ -49,7 +49,7 @@ export async function findSuggestedCompanyDocuments(
         const matchCandidates = new Map<number, MatchCandidate>();
 
         // Strategy 1: Exact reference matching (highest priority) - no ANN needed
-        const exactMatches = await findExactReferenceMatches(missingDoc, otherDocIds, docTitleMap);
+        const exactMatches = await findExactReferenceMatches(missingDoc, otherDocIds);
         for (const match of exactMatches) {
             matchCandidates.set(match.documentId, {
                 ...match,
@@ -91,8 +91,8 @@ export async function findSuggestedCompanyDocuments(
                             page: match.page,
                             snippet: validatedMatch.snippet,
                             reasons: validatedMatch.reasons,
-                            matchTypes: existing ? [...(existing.matchTypes || []), 'contextual-ann'] : ['contextual-ann'],
-                            finalScore: validatedMatch.confidence * 0.9 // Slightly lower weight for contextual
+                            matchTypes: existing ? [...(existing.matchTypes ?? []), 'contextual-ann'] : ['contextual-ann'],
+                            finalScore: validatedMatch.confidence * 0.9
                         });
                     }
                 }
@@ -107,7 +107,7 @@ export async function findSuggestedCompanyDocuments(
                 
                 return {
                     documentId: candidate.documentId,
-                    documentTitle: docTitleMap.get(candidate.documentId) || `Document ${candidate.documentId}`,
+                    documentTitle: docTitleMap.get(candidate.documentId) ?? `Document ${candidate.documentId}`,
                     similarity: Math.round(adjustedScore * 100) / 100,
                     page: candidate.page,
                     snippet: `${candidate.snippet} (${candidate.reasons.join(', ')})`
@@ -129,51 +129,15 @@ export async function findSuggestedCompanyDocuments(
     }
 }
 
-async function validateContentMatch(
-    missingDoc: MissingDocumentPrediction,
-    match: DocumentMatch
-): Promise<ValidationResult> {
-    const content = match.content?.toLowerCase() || match.snippet.toLowerCase();
-    const docName = missingDoc.documentName.toLowerCase();
-    const docType = missingDoc.documentType.toLowerCase();
-    
-    const reasons: string[] = [];
-    let confidence = match.similarity;
-    
-    if (content.includes(docName)) {
-        confidence += 0.3;
-        reasons.push(`Direct mention of "${missingDoc.documentName}"`);
-    }
-    
-    if (hasReferencePattern(content, docName)) {
-        confidence += 0.2;
-        reasons.push(`Reference pattern found`);
-    }
-    
-    if (content.includes(docType)) {
-        confidence += 0.1;
-        reasons.push(`Document type match`);
-    }
-    
-    const isValid = reasons.length > 0 && confidence > 0.3;
-    
-    return {
-        isValid,
-        confidence: Math.min(confidence, 0.95),
-        reasons
-    };
-}
-
 async function findExactReferenceMatches(
     missingDoc: MissingDocumentPrediction,
     docIds: number[],
-    docTitleMap: Map<number, string>
 ): Promise<MatchCandidate[]> {
     const matches: MatchCandidate[] = [];
     const searchTerms = [
         missingDoc.documentName.toLowerCase(),
         `"${missingDoc.documentName.toLowerCase()}"`,
-        `${missingDoc.documentType.toLowerCase()} ${missingDoc.documentName.split(' ').pop()?.toLowerCase() || ''}`
+        `${missingDoc.documentType.toLowerCase()} ${missingDoc.documentName.split(' ').pop()?.toLowerCase() ?? ''}`
     ];
 
     for (const term of searchTerms) {
@@ -222,8 +186,7 @@ async function findSmartTitleMatches(
     const cleanDocName = cleanText(missingDoc.documentName);
     const cleanDocType = cleanText(missingDoc.documentType);
     
-    // Extract key identifiers (letters/numbers after document type)
-    const identifierMatch = missingDoc.documentName.match(/\b([a-z]\d*|\d+[a-z]*)\b/i);
+    const identifierMatch = /\b([a-z]\d*|\d+[a-z]*)\b/i.exec(missingDoc.documentName);
     const identifier = identifierMatch ? identifierMatch[1]?.toLowerCase() : null;
     
     for (const doc of allDocs) {
@@ -231,22 +194,18 @@ async function findSmartTitleMatches(
         let confidence = 0;
         const reasons: string[] = [];
         
-        // Perfect identifier match (e.g., "Exhibit A" matches "Contract Exhibit A")
         if (identifier && cleanTitle.includes(identifier) && cleanTitle.includes(cleanDocType)) {
             confidence = 0.92;
             reasons.push(`Perfect identifier match: "${identifier}" + type`);
         }
-        // Exact document name in title
         else if (cleanTitle.includes(cleanDocName)) {
             confidence = 0.88;
             reasons.push(`Document name in title`);
         }
-        // Document type + partial identifier
         else if (cleanTitle.includes(cleanDocType) && identifier && cleanTitle.includes(identifier)) {
             confidence = 0.75;
             reasons.push(`Type + identifier match`);
         }
-        // Just document type (lower confidence)
         else if (cleanTitle.includes(cleanDocType)) {
             confidence = 0.45;
             reasons.push(`Document type match only`);
@@ -272,8 +231,6 @@ async function findOptimizedContextualMatches(
     missingDoc: MissingDocumentPrediction,
     docIds: number[]
 ): Promise<DocumentMatch[]> {
-    const startTime = Date.now();
-    
     const contextQueries = [
         `${missingDoc.documentType} containing ${missingDoc.documentName.split(' ').pop()}`,
         `document attachment ${missingDoc.documentName}`,
@@ -320,15 +277,9 @@ async function findOptimizedContextualMatches(
         }
     }
     
-    const searchTime = Date.now() - startTime;
-    console.log(`🚀 [ANN] Contextual search completed in ${searchTime}ms for ${docIds.length} documents`);
-    
     return Array.from(bestMatches.values());
 }
 
-/**
- * Fallback traditional search method
- */
 async function findTraditionalContextualMatches(
     query: string,
     queryEmbedding: number[],
@@ -347,7 +298,7 @@ async function findTraditionalContextualMatches(
     )).orderBy(distanceSql).limit(5);
 
     return results.map(result => {
-        const distance = Number(result.distance) || 1;
+        const distance = Number(result.distance) ?? 1;
         const similarity = Math.max(0, (1 - distance) * 0.7);
         
         return {
@@ -364,14 +315,13 @@ async function validateContextualMatch(
     missingDoc: MissingDocumentPrediction,
     match: DocumentMatch
 ): Promise<ValidationResult & { snippet: string }> {
-    const content = match.content?.toLowerCase() || match.snippet.toLowerCase();
+    const content = match.content?.toLowerCase() ?? match.snippet.toLowerCase();
     const docName = missingDoc.documentName.toLowerCase();
     const docType = missingDoc.documentType.toLowerCase();
     
     const reasons: string[] = [];
     let confidence = match.similarity;
     
-    // Must have either the document name or strong contextual indicators
     const hasDocName = content.includes(docName);
     const hasDocType = content.includes(docType);
     const hasReferenceWords = /\b(exhibit|schedule|attachment|addendum|appendix|refer|see|per)\b/.test(content);
@@ -386,7 +336,6 @@ async function validateContextualMatch(
         reasons.push(`Document type with reference context`);
     }
     
-    // Penalty for generic content
     if (content.length > 500 && !hasDocName) {
         confidence -= 0.1;
     }
@@ -395,18 +344,16 @@ async function validateContextualMatch(
     
     return {
         isValid,
-        confidence: Math.min(confidence, 0.85), // Cap contextual matches lower
+        confidence: Math.min(confidence, 0.85),
         reasons,
         snippet: truncateText(match.snippet, 100)
     };
 }
 
-// Export function to clear ANN cache for memory management
 export function clearANNCache(): void {
     ANNOptimizer.clearCache();
 }
 
-// Export function to get cache statistics
 export function getANNCacheStats() {
     return ANNOptimizer.getCacheStats();
 } 

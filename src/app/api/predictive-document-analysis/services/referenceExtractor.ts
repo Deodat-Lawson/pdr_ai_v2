@@ -38,7 +38,7 @@ function createReferenceExtractionPrompt(content: string): string {
 
 export async function extractReferences(
     chunks: PdfChunk[], 
-    timeoutMs: number = 30000
+    timeoutMs = 30000
 ): Promise<DocumentReference[]> {
     const content = groupContentFromChunks(chunks);
     const prompt = createReferenceExtractionPrompt(content);

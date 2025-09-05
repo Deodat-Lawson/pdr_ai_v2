@@ -3,10 +3,9 @@
 import React, { useState } from "react";
 import { Brain, Clock, FileSearch, AlertTriangle, CheckCircle, AlertCircle, RefreshCw, Check } from "lucide-react";
 import styles from "~/styles/Employee/DocumentViewer.module.css";
-import { ViewMode } from "./types";
-import { SYSTEM_PROMPTS } from "./page";
+import { type ViewMode } from "./types";
 
-import QAHistory, { QAHistoryEntry } from "./ChatHistory";
+import QAHistory, { type QAHistoryEntry } from "./ChatHistory";
 
 interface DocumentType {
   id: number;
@@ -89,9 +88,9 @@ interface DocumentContentProps {
   pdfPageNumber: number;
   setPdfPageNumber: React.Dispatch<React.SetStateAction<number>>;
   qaHistory: QAHistoryEntry[];
-  aiStyle: keyof typeof SYSTEM_PROMPTS;
-  setAiStyle: React.Dispatch<React.SetStateAction<keyof typeof SYSTEM_PROMPTS>>;
-  styleOptions: typeof SYSTEM_PROMPTS;
+  aiStyle: string;
+  setAiStyle: React.Dispatch<React.SetStateAction<string>>;
+  styleOptions: Record<string, string>;
   predictiveAnalysis: PredictiveAnalysisResponse | null;
   predictiveLoading: boolean;
   predictiveError: string;
@@ -155,10 +154,10 @@ export const DocumentContent: React.FC<DocumentContentProps> = ({
         {doc.documentName}
         {doc.resolvedIn && (
           <button
-            onClick={() => onSelectDocument && onSelectDocument(doc.resolvedIn!.documentId, doc.resolvedIn!.page)}
+            onClick={() => onSelectDocument?.(doc.resolvedIn!.documentId, doc.resolvedIn!.page)}
             className="text-xs bg-green-100 text-green-700 px-2 py-1 rounded hover:bg-green-200 ml-2"
           >
-            View in {doc.resolvedIn.documentTitle || `Document ${doc.resolvedIn.documentId}`}
+            View in {doc.resolvedIn.documentTitle ?? `Document ${doc.resolvedIn.documentId}`}
           </button>
         )}
       </div>
@@ -180,7 +179,7 @@ export const DocumentContent: React.FC<DocumentContentProps> = ({
               <div key={companyIndex} className="bg-blue-50 border border-blue-200 rounded p-2">
                 <div className="flex items-center justify-between">
                   <button
-                    onClick={() => onSelectDocument && onSelectDocument(companyDoc.documentId, companyDoc.page)}
+                    onClick={() => onSelectDocument?.(companyDoc.documentId, companyDoc.page)}
                     className="text-xs font-medium text-blue-700 hover:underline"
                   >
                     {companyDoc.documentTitle}
@@ -221,10 +220,10 @@ export const DocumentContent: React.FC<DocumentContentProps> = ({
       <div className="font-medium text-gray-900 flex items-center justify-between">
         {doc.documentName}
         <button
-          onClick={() => onSelectDocument && onSelectDocument(doc.resolvedDocumentId, doc.resolvedPage)}
+          onClick={() => onSelectDocument?.(doc.resolvedDocumentId, doc.resolvedPage)}
           className="text-xs bg-green-100 text-green-700 px-2 py-1 rounded hover:bg-green-200 ml-2"
         >
-          View in {doc.resolvedDocumentTitle || `Document ${doc.resolvedDocumentId}`} (Page {doc.resolvedPage})
+          View in {doc.resolvedDocumentTitle ?? `Document ${doc.resolvedDocumentId}`} (Page {doc.resolvedPage})
         </button>
       </div>
       <div className="text-sm text-gray-600 mt-1">{doc.reason}</div>
@@ -264,7 +263,7 @@ export const DocumentContent: React.FC<DocumentContentProps> = ({
               <label className="text-sm font-medium text-gray-700">Response Style:</label>
               <select
                 value={aiStyle}
-                onChange={(e) => setAiStyle(e.target.value as keyof typeof SYSTEM_PROMPTS)}
+                onChange={(e) => setAiStyle(e.target.value)}
                 className="border border-gray-300 rounded p-2 w-full focus:ring-2 focus:ring-purple-500 focus:border-purple-500"
               >
                 {Object.entries(styleOptions).map(([key, label]) => (
@@ -508,7 +507,7 @@ export const DocumentContent: React.FC<DocumentContentProps> = ({
         </Modal>
       )}
 
-      {showResolvedModal && predictiveAnalysis && predictiveAnalysis.analysis.resolvedDocuments && (
+      {showResolvedModal && predictiveAnalysis?.analysis.resolvedDocuments && (
         <Modal title="All Resolved References" onClose={() => setShowResolvedModal(false)}>
           <div className="space-y-3">
             {predictiveAnalysis.analysis.resolvedDocuments.map(renderResolvedItem)}

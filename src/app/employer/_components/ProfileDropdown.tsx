@@ -1,7 +1,5 @@
 "use client";
-import React, { useState, useRef, useEffect } from "react";
-import { useUser, useClerk } from "@clerk/nextjs";
-import { useRouter } from "next/navigation";
+import React, { useRef, useEffect } from "react";
 import styles from "~/styles/Employer/ProfileDropdown.module.css";
 import {
     UserButton
@@ -9,19 +7,15 @@ import {
 
 
 const ProfileDropdown: React.FC = () => {
-    const [isOpen, setIsOpen] = useState(false);
     const dropdownRef = useRef<HTMLDivElement>(null);
-    const { signOut } = useClerk();      // Clerk sign-out method
-    const router = useRouter();
 
-    // Close the dropdown when clicking outside
     useEffect(() => {
         function handleClickOutside(event: MouseEvent) {
             if (
                 dropdownRef.current &&
                 !dropdownRef.current.contains(event.target as Node)
             ) {
-                setIsOpen(false);
+                return;
             }
         }
         document.addEventListener("mousedown", handleClickOutside);
@@ -29,20 +23,6 @@ const ProfileDropdown: React.FC = () => {
             document.removeEventListener("mousedown", handleClickOutside);
         };
     }, []);
-
-    const handleToggleDropdown = () => {
-        setIsOpen(!isOpen);
-    };
-
-    const handleSettings = () => {
-        router.push("/employer/settings");
-        setIsOpen(false);
-    };
-
-    const handleLogout = async () => {
-        await signOut();
-        router.push("/");
-    };
 
     return (
         <div className={styles.dropdownContainer} ref={dropdownRef}>
