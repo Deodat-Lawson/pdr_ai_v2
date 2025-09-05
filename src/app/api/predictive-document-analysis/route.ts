@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { db } from "../../../server/db/index";
 import { eq, sql, and, gt, desc, ne } from "drizzle-orm";
-import { analyzeDocumentChunks, PredictiveAnalysisResult } from "./agent";
+import { analyzeDocumentChunks, type PredictiveAnalysisResult } from "./agent";
 import { predictiveDocumentAnalysisResults, document, pdfChunks } from "~/server/db/schema";
 
 type PostBody = {

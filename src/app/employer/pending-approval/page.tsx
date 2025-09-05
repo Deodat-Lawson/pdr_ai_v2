@@ -1,6 +1,6 @@
 "use client"
 
-import React, { useEffect, useState} from 'react';
+import React, { useCallback, useEffect, useState} from 'react';
 import { Clock, Building, Mail } from 'lucide-react';
 import { useRouter } from "next/navigation"
 import { useAuth } from "@clerk/nextjs";
@@ -20,7 +20,7 @@ const PendingApproval: React.FC = () => {
 
     const [currentEmployeeData, setCurrentEmployeeData] = useState<EmployerData>();
 
-    const checkEmployerRole = async () => {
+    const checkEmployerRole = useCallback(async () => {
         try {
             const response = await fetch("/api/fetchUserInfo", {
                 method: "POST",
@@ -44,7 +44,7 @@ const PendingApproval: React.FC = () => {
             window.alert("Authentication failed! You are not an employee.");
             router.push("/");
         }
-    };
+    }, [userId, router]);
 
     useEffect(() => {
         if (userId) {

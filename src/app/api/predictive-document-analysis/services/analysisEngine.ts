@@ -90,7 +90,7 @@ function createAnalysisPrompt(
 async function performWebSearch(query: string, maxResults = 5): Promise<SearchResult[]> {
     try {
         const searchTool = new DuckDuckGoSearch({ maxResults });
-        const result = await searchTool.invoke(query);
+        const result = await searchTool.invoke(query) as string;
         const parsed = JSON.parse(result) as SearchResult[];
         return parsed;
     } catch (error) {

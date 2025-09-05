@@ -267,9 +267,9 @@ export const DocumentContent: React.FC<DocumentContentProps> = ({
                 onChange={(e) => setAiStyle(e.target.value as keyof typeof SYSTEM_PROMPTS)}
                 className="border border-gray-300 rounded p-2 w-full focus:ring-2 focus:ring-purple-500 focus:border-purple-500"
               >
-                {Object.entries(styleOptions).map(([key, label]) => (
+                {Object.entries(styleOptions as Record<string, string>).map(([key, label]) => (
                   <option key={key} value={key}>
-                    {label as string}
+                    {label}
                   </option>
                 ))}
               </select>

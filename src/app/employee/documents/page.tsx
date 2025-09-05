@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useEffect, useState } from "react";
+import React, { useCallback, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@clerk/nextjs";
 
@@ -269,7 +269,7 @@ const DocumentViewer: React.FC = () => {
                 doc.aiSummary?.toLowerCase().includes(searchTerm.toLowerCase()) ?? false;
 
             if (!inTitle && !inSummary) return acc;   
-                     
+
             acc[doc.category] ??= {
                 name: doc.category,
                 isOpen: openCategories.has(doc.category),
@@ -324,7 +324,7 @@ const DocumentViewer: React.FC = () => {
         }
     };
 
-    const fetchPredictiveAnalysis = async (documentId: number, forceRefresh = false) => {
+    const fetchPredictiveAnalysis = useCallback(async (documentId: number, forceRefresh = false) => {
         setPredictiveError("");
         setPredictiveAnalysis(null);
         setIsPredictiveLoading(true);
@@ -372,7 +372,7 @@ const DocumentViewer: React.FC = () => {
         } finally {
             setIsPredictiveLoading(false);
         }
-    };
+    }, [documents]);
 
     const handleSelectDocument = (docId: number, page: number) => {
         const targetDoc = documents.find(d => d.id === docId);
@@ -421,8 +421,7 @@ const DocumentViewer: React.FC = () => {
 
     useEffect(() => {
         if (viewMode !== "predictive-analysis" || !selectedDoc?.id) return;
-
-        fetchPredictiveAnalysis(selectedDoc.id, false);
+        fetchPredictiveAnalysis(selectedDoc.id, false).catch(console.error);
     }, [viewMode, selectedDoc, fetchPredictiveAnalysis]);
 
     if (roleLoading) {

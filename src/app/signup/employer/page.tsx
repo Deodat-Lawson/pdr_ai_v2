@@ -67,6 +67,35 @@ const EmployerSignup: React.FC = () => {
         return Object.keys(errors).length === 0;
     };
 
+    const submitSignIn = async () => {
+        if (!userId) return;
+        if( !user ) return;
+
+        const response = await fetch("/api/signup/employer", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+                userId,
+                name: user?.fullName,
+                email: user?.emailAddresses[0]?.emailAddress,
+                companyName: signInFormData.companyName,
+                employeePasskey: signInFormData.managerPasscode,
+            }),
+        });
+
+        if (response.status === 400) {
+            const rawData: unknown = await response.json();
+            if (typeof rawData === "object" && rawData !== null && "error" in rawData) {
+                const errorData = rawData as { error: string };
+                setSignInErrors((prev) => ({ ...prev, managerPasscode: errorData.error }));
+            } else {
+                setSignInErrors((prev) => ({ ...prev, managerPasscode: "Registration failed" }));
+            }
+            return;
+        }
+        router.push("/employer/home");
+    };
+
     const handleSignInSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
         console.log("Sign in form data:", signInFormData);

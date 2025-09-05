@@ -55,7 +55,6 @@ const SupportPage = () => {
         setIsSubmitting(true);
 
         try {
-
             emailjs
                 .send('service_q0kr5dd', 'template_vaka75k', formData, {
                     publicKey: 'DSuoTHVw3sJe7tFVJ',
@@ -72,6 +71,7 @@ const SupportPage = () => {
             setSubmitStatus('success');
             setFormData({ from_name: '', from_email: '', to_name: '', subject: '', message: '' });
         } catch (error) {
+            console.error('Error sending email:', error);
             setSubmitStatus('error');
         } finally {
             setIsSubmitting(false);
