@@ -12,22 +12,13 @@ export async function DELETE(request: Request) {
         const { docId } = (await request.json()) as PostBody;
         const documentId = Number(docId);
 
-        // Delete related records sequentially (no transaction support in neon-http driver)
-        
-        // 1. Delete chat history records for this document
-        // Note: ChatHistory uses varchar for documentId, so we need to delete manually
-        const chatHistoryResult = await db.delete(ChatHistory).where(eq(ChatHistory.documentId, docId));
-
-        // 2. Delete document reference resolutions that point to this document
-        const referenceResult = await db.delete(documentReferenceResolution).where(
+        await db.delete(ChatHistory).where(eq(ChatHistory.documentId, docId));
+        await db.delete(documentReferenceResolution).where(
             eq(documentReferenceResolution.resolvedInDocumentId, documentId)
         );
-
-        // 3. Delete the document itself
-        // This will automatically cascade to:
-        // - pdfChunks (has onDelete: "cascade" foreign key)
-        // - predictiveDocumentAnalysisResults (has onDelete: "cascade" foreign key)
-        const documentResult = await db.delete(document).where(eq(document.id, documentId));
+        
+        //TODO: Delete pdfChunks of the document
+        await db.delete(document).where(eq(document.id, documentId));
 
         return NextResponse.json({ 
             success: true, 

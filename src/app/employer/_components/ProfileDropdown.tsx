@@ -11,10 +11,9 @@ import {
 const ProfileDropdown: React.FC = () => {
     const [isOpen, setIsOpen] = useState(false);
     const dropdownRef = useRef<HTMLDivElement>(null);
-    const { signOut } = useClerk();      // Clerk sign-out method
+    const { signOut } = useClerk();
     const router = useRouter();
 
-    // Close the dropdown when clicking outside
     useEffect(() => {
         function handleClickOutside(event: MouseEvent) {
             if (

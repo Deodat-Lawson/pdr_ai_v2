@@ -8,20 +8,19 @@ import styles from '~/styles/Employer/PendingApproval.module.css';
 import ProfileDropdown from "~/app/employer/_components/ProfileDropdown";
 import NavBar from "~/app/employer/pending-approval/Navbar";
 
-interface PendingApprovalProps {
+interface EmployerData {
     name?: string;
     email?: string;
     company?: string;
     submissionDate?: string;
 }
 
-const PendingApproval: React.FC<PendingApprovalProps> = () => {
+const PendingApproval: React.FC = () => {
     const router = useRouter();
     const {userId} = useAuth();
 
-    const [currentEmployeeData, setCurrentEmployeeData] = useState<PendingApprovalProps>();
+    const [currentEmployeeData, setCurrentEmployeeData] = useState<EmployerData>();
 
-    // Fetch user data and populate state
     const checkEmployerRole = async () => {
         try {
             const response = await fetch("/api/fetchUserInfo", {
@@ -30,12 +29,10 @@ const PendingApproval: React.FC<PendingApprovalProps> = () => {
                 body: JSON.stringify({ userId }),
             });
 
-            // Parse the returned data and set it to state
             const rawData:unknown = await response.json();
             console.log("Raw data:", rawData);
-            const data = rawData as PendingApprovalProps
+            const data = rawData as EmployerData
             console.log("Employee data:", data);
-
 
             setCurrentEmployeeData({
                 name: data?.name,
@@ -50,33 +47,27 @@ const PendingApproval: React.FC<PendingApprovalProps> = () => {
         }
     };
 
-    // Run the check on mount
     useEffect(() => {
         if (userId) {
             checkEmployerRole().catch(console.error);
         }
     }, [userId]);
 
-
     return (
         <div className={styles.container}>
-            {/* Navigation */}
             <NavBar />
 
             <main className={styles.main}>
                 <div className={styles.statusCard}>
-                    {/* Status Icon */}
                     <div className={styles.statusIconContainer}>
                         <Clock className={styles.statusIcon} />
                     </div>
 
-                    {/* Status Message */}
                     <h1 className={styles.title}>Pending Approval</h1>
                     <p className={styles.subtitle}>
                         Your account is currently awaiting approval from your employer
                     </p>
 
-                    {/* Application Details */}
                     <div className={styles.detailsContainer}>
                         <h2 className={styles.detailsTitle}>Application Details</h2>
 
@@ -107,16 +98,6 @@ const PendingApproval: React.FC<PendingApprovalProps> = () => {
                         </div>
                     </div>
 
-                    {/* Notice */}
-                    {/*<div className={styles.notice}>*/}
-                    {/*    <AlertCircle className={styles.noticeIcon} />*/}
-                    {/*    <p className={styles.noticeText}>*/}
-                    {/*        You will receive an email notification once your account has been approved.*/}
-                    {/*        This process typically takes 1-2 business days.*/}
-                    {/*    </p>*/}
-                    {/*</div>*/}
-
-                    {/* Support Section */}
                     <div className={styles.supportSection}>
                         <p className={styles.supportText}>
                             Need assistance? Contact support at{' '}

@@ -16,7 +16,7 @@ import { DocumentContent } from "./DocumentContent";
 import { QAHistoryEntry } from "~/app/employer/documents/ChatHistory";
 import { ViewMode } from "~/app/employee/documents/types";
 
-export const SYSTEM_PROMPTS = {
+const SYSTEM_PROMPTS = {
     concise: "Concise & Direct",
     detailed: "Detailed & Comprehensive",
     academic: "Academic & Analytical",

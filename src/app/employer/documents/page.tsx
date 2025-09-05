@@ -12,13 +12,10 @@ import LoadingPage from "~/app/_components/loading";
 import { fetchWithRetries } from "./fetchWithRetries";
 import { DocumentsSidebar } from "./DocumentsSidebar";
 import { DocumentContent } from "./DocumentContent";
-
 import { ViewMode } from "~/app/employer/documents/types";
-
-// Import the same QAHistoryEntry interface (or define it here if you like)
 import { QAHistoryEntry } from "./ChatHistory";
 
-export const SYSTEM_PROMPTS = {
+const SYSTEM_PROMPTS = {
   concise: "Concise & Direct",
   detailed: "Detailed & Comprehensive",
   academic: "Academic & Analytical",
@@ -114,44 +111,25 @@ interface PredictiveAnalysisResponse {
 const DocumentViewer: React.FC = () => {
   const router = useRouter();
   const { isLoaded, userId } = useAuth();
-
-  // State for documents and selection
   const [documents, setDocuments] = useState<DocumentType[]>([]);
   const [selectedDoc, setSelectedDoc] = useState<DocumentType | null>(null);
-
-  // Searching/filtering
   const [searchTerm, setSearchTerm] = useState("");
-
-  // Category open/closed state
   const [openCategories, setOpenCategories] = useState<Set<string>>(new Set());
-
-  // Loading states
   const [isLoading, setIsLoading] = useState(true);
   const [isRoleLoading, setIsRoleLoading] = useState(true);
-
-  // View mode state
   const [viewMode, setViewMode] = useState<ViewMode>("document-only");
-
-  // AI Q&A states
   const [aiQuestion, setAiQuestion] = useState("");
   const [aiAnswer, setAiAnswer] = useState("");
   const [aiError, setAiError] = useState("");
   const [isAiLoading, setIsAiLoading] = useState(false);
   const [referencePages, setReferencePages] = useState<number[]>([]);
   const [aiStyle, setAiStyle] = useState<keyof typeof SYSTEM_PROMPTS>("concise");
-
-  // PDF page state
   const [pdfPageNumber, setPdfPageNumber] = useState<number>(1);
-
-  // Q&A History
   const [qaHistory, setQaHistory] = useState<QAHistoryEntry[]>([]);
-
-  // Predictive Analysis state
   const [predictiveAnalysis, setPredictiveAnalysis] = useState<PredictiveAnalysisResponse | null>(null);
   const [isPredictiveLoading, setIsPredictiveLoading] = useState(false);
   const [predictiveError, setPredictiveError] = useState("");
 
-  // Utility to save Q&A to database
   const saveToDatabase = async (entry: QAHistoryEntry) => {
     try {
       const response = await fetch("/api/Questions/add", {
@@ -175,7 +153,6 @@ const DocumentViewer: React.FC = () => {
     }
   };
 
-  // Utility to save Q&A to local history and database
   const saveToHistory = async (question: string, response: string, pages: number[]) => {
     if (!selectedDoc) return;
 
@@ -193,7 +170,6 @@ const DocumentViewer: React.FC = () => {
     setQaHistory((prev) => [...prev, newEntry]);
   };
 
-  // Effect: Check authentication and role
   useEffect(() => {
     if (!isLoaded) return;
 
@@ -263,7 +239,6 @@ const DocumentViewer: React.FC = () => {
     fetchDocuments();
   }, [userId, isRoleLoading]);
 
-  // Effect: Fetch Q&A history when document changes
   useEffect(() => {
     if (!userId || !selectedDoc?.id) return;
 
@@ -289,7 +264,6 @@ const DocumentViewer: React.FC = () => {
     fetchHistory();
   }, [userId, selectedDoc]);
 
-  // Toggle category open/closed state
   const toggleCategory = (categoryName: string) => {
     setOpenCategories(prev => {
       const newSet = new Set(prev);
@@ -302,14 +276,12 @@ const DocumentViewer: React.FC = () => {
     });
   };
 
-  // Effect: Fetch predictive analysis when mode is active
   useEffect(() => {
     if (viewMode !== "predictive-analysis" || !selectedDoc?.id) return;
 
     fetchPredictiveAnalysis(selectedDoc.id, false);
   }, [viewMode, selectedDoc]);
 
-  // Handler: AI search
   const handleAiSearch = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!aiQuestion.trim() || !selectedDoc) return;
@@ -348,7 +320,6 @@ const DocumentViewer: React.FC = () => {
     }
   };
 
-  // Handler: Fetch predictive analysis (with optional forceRefresh)
   const fetchPredictiveAnalysis = async (documentId: number, forceRefresh: boolean = false) => {
     setPredictiveError("");
     setPredictiveAnalysis(null);
@@ -375,7 +346,6 @@ const DocumentViewer: React.FC = () => {
         throw new Error("Analysis failed on server side");
       }
 
-      // Enrich with document titles if not provided (lookup from documents)
       if (data.analysis.resolvedDocuments) {
         data.analysis.resolvedDocuments = data.analysis.resolvedDocuments.map(res => ({
           ...res,
@@ -400,7 +370,6 @@ const DocumentViewer: React.FC = () => {
     }
   };
 
-  // Handler: Select document and set page
   const handleSelectDocument = (docId: number, page: number) => {
     const doc = documents.find(d => d.id === docId);
     if (doc) {
@@ -409,7 +378,6 @@ const DocumentViewer: React.FC = () => {
     }
   };
 
-  // Handler: Delete document
   const deleteDocument = async (docId: number) => {
     if (!window.confirm('Are you sure you want to delete this document? This will permanently remove the document and all related data including chat history, analysis results, and references. This action cannot be undone.')) {
       return;
@@ -428,10 +396,8 @@ const DocumentViewer: React.FC = () => {
         throw new Error(result.details || result.error || 'Failed to delete document');
       }
 
-      // Update local state - remove the document
       setDocuments(prev => prev.filter(doc => doc.id !== docId));
       
-      // Clear selected document if it was the one deleted
       if (selectedDoc && selectedDoc.id === docId) {
         setSelectedDoc(null);
         setAiAnswer("");
@@ -440,7 +406,6 @@ const DocumentViewer: React.FC = () => {
         setQaHistory([]);
       }
 
-      // Show success message
       alert(result.message || 'Document and all related data deleted successfully');
     } catch (error) {
       console.error('Error deleting document:', error);
@@ -469,13 +434,11 @@ const DocumentViewer: React.FC = () => {
     }, {})
   );
 
-  // Loading states
   if (isRoleLoading) return <LoadingPage />;
   if (isLoading) return <LoadingDoc />;
 
   return (
     <div className={styles.container}>
-      {/* Sidebar */}
       <DocumentsSidebar
         categories={categories}
         searchTerm={searchTerm}
@@ -493,7 +456,6 @@ const DocumentViewer: React.FC = () => {
         deleteDocument={deleteDocument}
       />
 
-      {/* Main Content */}
       <main className={styles.mainContent}>
         <DocumentContent
           selectedDoc={selectedDoc}

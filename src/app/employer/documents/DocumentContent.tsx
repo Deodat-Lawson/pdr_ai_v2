@@ -90,15 +90,15 @@ interface DocumentContentProps {
   referencePages: number[];
   pdfPageNumber: number;
   setPdfPageNumber: React.Dispatch<React.SetStateAction<number>>;
-  qaHistory: QAHistoryEntry[]; // <-- Provide the Q&A history
+  qaHistory: QAHistoryEntry[];
   aiStyle: keyof typeof SYSTEM_PROMPTS;
-  setAiStyle: React.Dispatch<React.SetStateAction<keyof typeof SYSTEM_PROMPTS>>;
+  setAiStyle: React.Dispatch<React.SetStateAction<string>>;
   styleOptions: typeof SYSTEM_PROMPTS;
   predictiveAnalysis: PredictiveAnalysisResponse | null;
   predictiveLoading: boolean;
   predictiveError: string;
-  onRefreshAnalysis: () => void; // New: Callback to refresh analysis
-  onSelectDocument?: (docId: number, page: number) => void; // New: For navigating to other documents
+  onRefreshAnalysis: () => void;
+  onSelectDocument?: (docId: number, page: number) => void;
 }
 
 export const DocumentContent: React.FC<DocumentContentProps> = ({

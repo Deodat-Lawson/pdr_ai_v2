@@ -222,7 +222,6 @@ async function findSmartTitleMatches(
     const cleanDocName = cleanText(missingDoc.documentName);
     const cleanDocType = cleanText(missingDoc.documentType);
     
-    // Extract key identifiers (letters/numbers after document type)
     const identifierMatch = missingDoc.documentName.match(/\b([a-z]\d*|\d+[a-z]*)\b/i);
     const identifier = identifierMatch ? identifierMatch[1]?.toLowerCase() : null;
     
@@ -231,22 +230,18 @@ async function findSmartTitleMatches(
         let confidence = 0;
         const reasons: string[] = [];
         
-        // Perfect identifier match (e.g., "Exhibit A" matches "Contract Exhibit A")
         if (identifier && cleanTitle.includes(identifier) && cleanTitle.includes(cleanDocType)) {
             confidence = 0.92;
             reasons.push(`Perfect identifier match: "${identifier}" + type`);
         }
-        // Exact document name in title
         else if (cleanTitle.includes(cleanDocName)) {
             confidence = 0.88;
             reasons.push(`Document name in title`);
         }
-        // Document type + partial identifier
         else if (cleanTitle.includes(cleanDocType) && identifier && cleanTitle.includes(identifier)) {
             confidence = 0.75;
             reasons.push(`Type + identifier match`);
         }
-        // Just document type (lower confidence)
         else if (cleanTitle.includes(cleanDocType)) {
             confidence = 0.45;
             reasons.push(`Document type match only`);
