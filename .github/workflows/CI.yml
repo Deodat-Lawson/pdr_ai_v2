@@ -1,0 +1,119 @@
+name: CI Pipeline
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+env:
+  NODE_VERSION: '18'
+  PNPM_VERSION: '8'
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+
+    env:
+      LANGCHAIN_TRACING_V2: ${{ secrets.LANGCHAIN_TRACING_V2 }}
+      LANGCHAIN_API_KEY: ${{ secrets.LANGCHAIN_API_KEY }}
+      OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+      TAVILY_API_KEY: ${{ secrets.TAVILY_API_KEY }}
+      NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY: ${{ secrets.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY }}
+      CLERK_SECRET_KEY: ${{ secrets.CLERK_SECRET_KEY}}
+      NEXT_PUBLIC_CLERK_SIGN_OUT_FORCE_REDIRECT_URL: ${{ secrets.NEXT_PUBLIC_CLERK_SIGN_OUT_FORCE_REDIRECT_URL }}
+      UPLOADTHING_TOKEN: ${{ secrets.UPLOADTHING_TOKEN }}
+      NEXT_PUBLIC_CLERK_SIGN_UP_FORCE_REDIRECT_URL: ${{ secrets.NEXT_PUBLIC_CLERK_SIGN_UP_FORCE_REDIRECT_URL }}
+      NEXT_PUBLIC_CLERK_SIGN_IN_FORCE_REDIRECT_URL: ${{ secrets.NEXT_PUBLIC_CLERK_SIGN_IN_FORCE_REDIRECT_URL }}
+      POSTGRES_HOST: ${{ secrets.POSTGRES_HOST }}
+      POSTGRES_URL_NO_SSL: ${{ secrets.POSTGRES_URL_NO_SSL }}
+      PGUSER: ${{ secrets.PGUSER }}
+      PGHOST_UNPOOLED: ${{ secrets.PGHOST_UNPOOLED }}
+      PGDATABASE: ${{ secrets.PGDATABASE }}
+      PGPASSWORD: ${{ secrets.PGPASSWORD }}
+      DATABASE_URL: ${{ secrets.DATABASE_URL }}
+      PGHOST: ${{ secrets.PGHOST }}
+      POSTGRES_USER: ${{ secrets.POSTGRES_USER }}
+      POSTGRES_URL_NON_POOLING: ${{ secrets.POSTGRES_URL_NON_POOLING }}
+      DATABASE_URL_UNPOOLED: ${{ secrets.DATABASE_URL_UNPOOLED }}
+      POSTGRES_PRISMA_URL: ${{ secrets.POSTGRES_PRISMA_URL}}
+      POSTGRES_URL: ${{ secrets.POSTGRES_URL }} 
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+
+      - name: Setup pnpm 
+        uses: pnpm/action-setup@v2
+        with:
+          node-version: ${{ env.PNPM_VERSOPM }}
+
+      - name: pnpm install
+        run: pnpm install --frozen-lockfile
+
+      - name: Generate Drizzle client
+        run: pnpm db:generate
+
+      - name: Push database schema
+        run: pnpm db:push
+
+      - name: Checking lint
+        run: pnpm lint
+
+  build:
+    runs-on: ubuntu-latest
+
+    env:
+      LANGCHAIN_TRACING_V2: ${{ secrets.LANGCHAIN_TRACING_V2 }}
+      LANGCHAIN_API_KEY: ${{ secrets.LANGCHAIN_API_KEY }}
+      OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+      TAVILY_API_KEY: ${{ secrets.TAVILY_API_KEY }}
+      NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY: ${{ secrets.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY }}
+      CLERK_SECRET_KEY: ${{ secrets.CLERK_SECRET_KEY}}
+      NEXT_PUBLIC_CLERK_SIGN_OUT_FORCE_REDIRECT_URL: ${{ secrets.NEXT_PUBLIC_CLERK_SIGN_OUT_FORCE_REDIRECT_URL }}
+      UPLOADTHING_TOKEN: ${{ secrets.UPLOADTHING_TOKEN }}
+      NEXT_PUBLIC_CLERK_SIGN_UP_FORCE_REDIRECT_URL: ${{ secrets.NEXT_PUBLIC_CLERK_SIGN_UP_FORCE_REDIRECT_URL }}
+      NEXT_PUBLIC_CLERK_SIGN_IN_FORCE_REDIRECT_URL: ${{ secrets.NEXT_PUBLIC_CLERK_SIGN_IN_FORCE_REDIRECT_URL }}
+      POSTGRES_HOST: ${{ secrets.POSTGRES_HOST }}
+      POSTGRES_URL_NO_SSL: ${{ secrets.POSTGRES_URL_NO_SSL }}
+      PGUSER: ${{ secrets.PGUSER }}
+      PGHOST_UNPOOLED: ${{ secrets.PGHOST_UNPOOLED }}
+      PGDATABASE: ${{ secrets.PGDATABASE }}
+      PGPASSWORD: ${{ secrets.PGPASSWORD }}
+      DATABASE_URL: ${{ secrets.DATABASE_URL }}
+      PGHOST: ${{ secrets.PGHOST }}
+      POSTGRES_USER: ${{ secrets.POSTGRES_USER }}
+      POSTGRES_URL_NON_POOLING: ${{ secrets.POSTGRES_URL_NON_POOLING }}
+      DATABASE_URL_UNPOOLED: ${{ secrets.DATABASE_URL_UNPOOLED }}
+      POSTGRES_PRISMA_URL: ${{ secrets.POSTGRES_PRISMA_URL}}
+      POSTGRES_URL: ${{ secrets.POSTGRES_URL }} 
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+
+      - name: Setup pnpm 
+        uses: pnpm/action-setup@v2
+        with:
+          node-version: ${{ env.PNPM_VERSOPM }}
+
+      - name: pnpm install
+        run: pnpm install --frozen-lockfile
+
+      - name: Generate Drizzle client
+        run: pnpm db:generate
+
+      - name: Build application
+        run: pnpm build
+        
+
+    
