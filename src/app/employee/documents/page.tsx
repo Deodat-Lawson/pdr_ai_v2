@@ -295,7 +295,7 @@ const DocumentViewer: React.FC = () => {
 
             // Use our fetchWithRetries
             const data = (await fetchWithRetries(
-                "/api/LangChain",
+                "/api/AIAssistant",
                 {
                     method: "POST",
                     headers: { "Content-Type": "application/json" },

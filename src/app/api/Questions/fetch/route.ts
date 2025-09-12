@@ -13,16 +13,11 @@ export async function POST(request: Request) {
         // Parse the request body for userId
         const { userId, documentId } = (await request.json()) as PostBody;
 
-        console.log("userId", userId);
-        console.log("documentId", documentId);
-
         // Retrieve all chat history records for the specified user
         const userChatHistory = await db
             .select()
             .from(ChatHistory)
             .where(and(eq(ChatHistory.UserId, userId), eq(ChatHistory.documentId, documentId)));
-
-        console.log("user chat history", userChatHistory);
 
         // Return the results
         return NextResponse.json({

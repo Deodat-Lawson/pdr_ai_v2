@@ -72,7 +72,6 @@ export async function extractReferences(
             hasSpecificIdentifier(ref.documentName)
         );
         
-        console.log(`📋 Extracted ${references.length} raw references, ${filteredReferences.length} after filtering`);
         return filteredReferences;
     } catch (error) {
         console.error("Reference extraction error:", error);
