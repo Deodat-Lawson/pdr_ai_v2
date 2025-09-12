@@ -210,13 +210,12 @@ const DocumentViewer: React.FC = () => {
         const rawData: unknown = await response.json();
         const data = rawData as { role?: string };
         
-        if (data?.role !== "employer") {
-          window.alert("Authentication failed! You are not an employee.");
+        if (data?.role !== "employer" && data?.role !== "owner") {
+          window.alert("Authentication failed! You are not an employer or owner.");
           router.push("/");
         }
       } catch (error) {
-        console.error("Error checking employee role:", error);
-        window.alert("Authentication failed! You are not an employee.");
+        console.error("Error checking employer role:", error);
         router.push("/");
       } finally {
         setIsRoleLoading(false);
@@ -280,7 +279,7 @@ const DocumentViewer: React.FC = () => {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           documentId,
-          analysisType: "missing_documents",
+          analysisType: "general",
           includeRelatedDocs: true,
           forceRefresh
         }),

@@ -13,6 +13,33 @@ import { ANALYSIS_TYPES } from "../types";
 import { groupContentFromChunks } from "../utils/content";
 import { extractReferences, deduplicateReferences } from "./referenceExtractor";
 import { findSuggestedCompanyDocuments } from "./documentMatcher";
+import pLimit from "p-limit";
+const { db } = await import("../../../../server/db/index");
+const { document } = await import("~/server/db/schema");
+const { and, eq, ne } = await import("drizzle-orm");
+
+async function withRetry<T>(
+    operation: () => Promise<T>,
+    maxRetries = 3,
+    delayMs = 1000
+): Promise<T> {
+    let lastError: Error;
+    
+    for (let attempt = 1; attempt <= maxRetries; attempt++) {
+        try {
+            return await operation();
+        } catch (error) {
+            lastError = error instanceof Error ? error : new Error(String(error));
+            
+            if (attempt < maxRetries) {
+                console.warn(`Attempt ${attempt} failed, retrying in ${delayMs}ms...`, lastError.message);
+                await new Promise(resolve => setTimeout(resolve, delayMs));
+                delayMs *= 2;
+            }
+        }
+    }
+    throw lastError!;
+}
 
 const MissingDocumentSchema = z.object({
     documentName: z.string().describe('The name of the missing document'),
@@ -142,47 +169,29 @@ export async function callAIAnalysis(
     }
 }
 
+
 export async function analyzeDocumentChunks(
     allChunks: PdfChunk[],
     specification: AnalysisSpecification,
-    batchSize = 25,
-    timeoutMs = 30000
+    timeoutMs = 30000,
+    maxConcurrency = 20
 ): Promise<PredictiveAnalysisResult> {
-    console.log(`🚀 Starting document analysis for ${allChunks.length} chunks`);
-    
-    // Split chunks into batches
-    const batches: PdfChunk[][] = [];
-    for (let i = 0; i < allChunks.length; i += batchSize) {
-        batches.push(allChunks.slice(i, i + batchSize));
-    }
+    const limit = pLimit(maxConcurrency);
 
-    // Process batches in parallel
-    const batchPromises = batches.map(batch =>
-        callAIAnalysis(batch, specification, timeoutMs)
+    const chunkPromises = allChunks.map(chunk =>
+        limit(() => callAIAnalysis([chunk], specification, timeoutMs))
     );
 
     try {
-        const batchResults = await Promise.all(batchPromises);
+        const chunkResults = await Promise.all(chunkPromises);
 
         const combinedResult: PredictiveAnalysisResult = {
-            missingDocuments: [],
-            recommendations: [],
-            resolvedDocuments: []
+            missingDocuments: chunkResults.flatMap(result => result.missingDocuments || []),
+            recommendations: Array.from(new Set(chunkResults.flatMap(result => result.recommendations || []))),
         };
 
-        // Combine results from all batches
-        batchResults.forEach(result => {
-            combinedResult.missingDocuments.push(...result.missingDocuments);
-            combinedResult.recommendations.push(...result.recommendations);
-        });
-
-        // Deduplicate results
         combinedResult.missingDocuments = deduplicateMissingDocuments(combinedResult.missingDocuments);
-        combinedResult.recommendations = [...new Set(combinedResult.recommendations)];
 
-        console.log(`📊 Initial analysis found ${combinedResult.missingDocuments.length} potential missing documents`);
-
-        // Enhanced processing if includeRelatedDocs is enabled
         if (specification.includeRelatedDocs && combinedResult.missingDocuments.length > 0) {
             await enhanceWithCompanyDocuments(combinedResult, allChunks, specification, timeoutMs);
             await enhanceWithWebSearch(combinedResult, specification);
@@ -201,30 +210,20 @@ async function enhanceWithCompanyDocuments(
     specification: AnalysisSpecification,
     timeoutMs: number
 ): Promise<void> {
-    console.log(`🔗 Enhancing analysis with company document matching`);
-    
-    // Extract references from the document
+
     const references = await extractReferences(allChunks, timeoutMs);
     const filteredReferences = deduplicateReferences(references);
-    
-    console.log(`📋 Processing ${filteredReferences.length} document references`);
 
-    // Get document title mapping
-    const { db } = await import("../../../../server/db/index");
-    const { document } = await import("~/server/db/schema");
-    const { and, eq, ne } = await import("drizzle-orm");
-    
-    const otherDocsQuery = await db.select({ 
+    const otherDocsQuery = await withRetry(() => db.select({ 
         id: document.id, 
         title: document.title 
     }).from(document).where(and(
         eq(document.companyId, specification.companyId.toString()),
         ne(document.id, specification.documentId)
-    ));
+    )));
     
     const docTitleMap = new Map(otherDocsQuery.map(doc => [doc.id, doc.title]));
 
-    // Find suggested company documents for each missing document
     for (const missing of result.missingDocuments) {
         try {
             const suggestions = await findSuggestedCompanyDocuments(
@@ -236,7 +235,6 @@ async function enhanceWithCompanyDocuments(
             
             if (suggestions.length > 0) {
                 missing.suggestedCompanyDocuments = suggestions;
-                console.log(`✅ Found ${suggestions.length} company document suggestions for "${missing.documentName}"`);
             }
         } catch (error) {
             console.error(`Error finding suggestions for ${missing.documentName}:`, error);
@@ -248,21 +246,21 @@ async function enhanceWithWebSearch(
     result: PredictiveAnalysisResult,
     specification: AnalysisSpecification
 ): Promise<void> {
-    console.log(`🌐 Enhancing analysis with web search`);
-    
-    // General related documents search
     const relatedQuery = `standard related documents for ${specification.type} ${specification.category} titled ${specification.title}`;
-    result.suggestedRelatedDocuments = await performWebSearch(relatedQuery, 5);
+    result.suggestedRelatedDocuments = await withRetry(() => performWebSearch(relatedQuery, 5));
 
-    // Specific searches for high-priority missing documents
     const highPriorityMissing = result.missingDocuments.filter(doc => doc.priority === 'high');
     
-    for (const missing of highPriorityMissing) {
-        const missingQuery = `${missing.documentName} ${missing.documentType} template example site:gov OR site:edu OR site:org`;
-        missing.suggestedLinks = await performWebSearch(missingQuery, 3);
-    }
+    const limit = pLimit(3);
+    await Promise.all(
+        highPriorityMissing.map(missing =>
+        limit(async () => {
+            const missingQuery = `"${missing.documentName}" "${missing.documentType}" (template OR sample OR example) filetype:pdf "free download" site:gov OR site:edu OR site:org`;
+            missing.suggestedLinks = await performWebSearch(missingQuery, 3);
+        })
+        )
+    );
     
-    console.log(`🔗 Added web search suggestions for ${highPriorityMissing.length} high-priority missing documents`);
 }
 
 function deduplicateMissingDocuments(docs: MissingDocumentPrediction[]): MissingDocumentPrediction[] {

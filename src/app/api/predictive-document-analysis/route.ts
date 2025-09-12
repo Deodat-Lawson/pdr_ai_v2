@@ -95,6 +95,8 @@ export async function POST(request: Request) {
             forceRefresh = false
         } = body;
 
+        console.log("Analysis Type:", analysisType);
+
         if (typeof documentId !== 'number' || documentId <= 0) {
             return NextResponse.json({ success: false, message: "Invalid documentId." }, { status: 400 });
         }
@@ -174,8 +176,8 @@ export async function POST(request: Request) {
                 companyId: Number(docDetails.companyId),
                 documentId
             },
-            20,
-            timeoutMs
+            timeoutMs,
+            20
         );
 
         const fullResult = {

@@ -78,7 +78,7 @@ const HomeScreen = () => {
             icon: <Users className={styles.menuIcon} />,
             title: "Manage Employees",
             description: "View and manage employees in your organization",
-            path: "/employer/employees", // <-- your new route
+            path: "/employer/employees", 
         },
         {
             icon: <Settings className={styles.menuIcon} />,
@@ -98,7 +98,6 @@ const HomeScreen = () => {
 
     return (
         <div className={styles.container}>
-            {/* Navigation Bar */}
             <nav className={styles.navbar}>
                 <div className={styles.navContent}>
                     <div className={styles.logoContainer}>
@@ -108,8 +107,6 @@ const HomeScreen = () => {
                     <ProfileDropdown />
                 </div>
             </nav>
-
-            {/* Welcome Section */}
             <main className={styles.main}>
                 <div className={styles.welcomeSection}>
                     <h1 className={styles.welcomeTitle}>Welcome to PDR AI</h1>
@@ -119,7 +116,6 @@ const HomeScreen = () => {
                     </p>
                 </div>
 
-                {/* Menu Options */}
                 <div className={styles.menuGrid}>
                     {menuOptions.map((option, index) => (
                         <div
