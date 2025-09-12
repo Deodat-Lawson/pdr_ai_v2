@@ -9,7 +9,7 @@ env:
   NODE_VERSION: '18'
   PNPM_VERSION: '8'
 
-job:
+jobs:
   test:
     runs-on: ubuntu-latest
 
