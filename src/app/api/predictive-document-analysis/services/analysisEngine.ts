@@ -17,6 +17,7 @@ import pLimit from "p-limit";
 const { db } = await import("../../../../server/db/index");
 const { document } = await import("~/server/db/schema");
 const { and, eq, ne } = await import("drizzle-orm");
+import stringSimilarity from 'string-similarity-js';
 
 async function withRetry<T>(
     operation: () => Promise<T>,
@@ -187,10 +188,11 @@ export async function analyzeDocumentChunks(
 
         const combinedResult: PredictiveAnalysisResult = {
             missingDocuments: chunkResults.flatMap(result => result.missingDocuments || []),
-            recommendations: Array.from(new Set(chunkResults.flatMap(result => result.recommendations || []))),
+            recommendations: chunkResults.flatMap(result => result.recommendations || []),
         };
 
         combinedResult.missingDocuments = deduplicateMissingDocuments(combinedResult.missingDocuments);
+        combinedResult.recommendations = deduplicateRecommendations(combinedResult.recommendations);
 
         if (specification.includeRelatedDocs && combinedResult.missingDocuments.length > 0) {
             await enhanceWithCompanyDocuments(combinedResult, allChunks, specification, timeoutMs);
@@ -274,3 +276,21 @@ function deduplicateMissingDocuments(docs: MissingDocumentPrediction[]): Missing
         return true;
     });
 } 
+
+function deduplicateRecommendations(recommendations: string[], threshold = 0.8): string[] {
+    const unique = [];
+  
+    for (const rec of recommendations) {
+      let isDuplicate = false;
+      for (const existing of unique) {
+        if (stringSimilarity(rec.toLowerCase(), existing.toLowerCase()) > threshold) {
+          isDuplicate = true;
+          break;
+        }
+      }
+      if (!isDuplicate) {
+        unique.push(rec);
+      }
+    }
+    return unique;
+}
