@@ -39,6 +39,7 @@
     "next": "^15.5.2",
     "node-fetch": "^3.3.2",
     "openai": "^4.62.1",
+    "p-limit": "^7.1.1",
     "pdf-parse": "^1.1.1",
     "postgres": "^3.4.7",
     "react": "^19.1.1",
