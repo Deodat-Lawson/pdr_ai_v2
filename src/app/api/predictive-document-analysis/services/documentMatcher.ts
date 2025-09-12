@@ -77,7 +77,6 @@ export async function findSuggestedCompanyDocuments(
 
         const highConfidenceMatches = Array.from(matchCandidates.values()).filter(m => m.confidence > 0.7);
         if (highConfidenceMatches.length < 2) {
-            console.log(`🚀 [ANN] Using optimized contextual search for ${otherDocIds.length} documents`);
             const contextMatches = await findOptimizedContextualMatches(missingDoc, otherDocIds);
             
             for (const match of contextMatches) {
@@ -117,11 +116,6 @@ export async function findSuggestedCompanyDocuments(
             .sort((a, b) => b.similarity - a.similarity)
             .slice(0, 2); // Fewer but more accurate suggestions
 
-        console.log(`✅ [ANN] Found ${finalSuggestions.length} high-quality suggestions for ${missingDoc.documentName}`);
-        finalSuggestions.forEach(s => 
-            console.log(`  - ${s.documentTitle}: ${Math.round(s.similarity * 100)}% confidence`)
-        );
-        
         return finalSuggestions;
     } catch (error) {
         console.error("Error finding suggested company documents:", error);

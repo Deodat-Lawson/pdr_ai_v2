@@ -12,7 +12,6 @@ export async function POST(request: Request) {
     try {
         const { employeeId } = (await request.json()) as PostBody;
 
-        console.log(employeeId);
         await db.delete(users).where(eq(users.id, Number(employeeId)));
 
         return NextResponse.json( { status: 200 });

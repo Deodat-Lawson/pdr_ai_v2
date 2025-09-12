@@ -20,14 +20,6 @@ export async function POST(request: Request) {
     try {
         const {userId, name, email, companyName, employerPasskey, employeePasskey, numberOfEmployees} = (await request.json()) as PostBody;
 
-        console.log('userId: ' + userId);
-        console.log('name: ' + name);
-        console.log('email: ' + email);
-        console.log('companyName: ' + companyName);
-        console.log('employerPasskey: ' + employerPasskey);
-        console.log('employeePasskey: ' + employeePasskey);
-        console.log('numberOfEmployees: ' + numberOfEmployees);
-
         // Check if company already exists
         const [existingCompany] = await db
             .select()

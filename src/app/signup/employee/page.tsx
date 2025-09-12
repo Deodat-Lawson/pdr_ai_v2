@@ -67,13 +67,10 @@ const EmployeeSignIn: React.FC = () => {
         return Object.keys(newErrors).length === 0;
     };
 
-    // -------------------------------
-    // Submit the sign-in to the backend
-    // -------------------------------
+
     const submitSignIn = async () => {
         if (!userId) return;
         if( !user ) return;
-
 
         const response = await fetch("/api/signup/employee", {
             method: "POST",
