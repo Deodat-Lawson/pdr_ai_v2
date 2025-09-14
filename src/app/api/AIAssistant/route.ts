@@ -5,12 +5,25 @@ import { OpenAIEmbeddings } from "@langchain/openai";
 import { db } from "~/server/db/index";
 import { sql } from "drizzle-orm";
 import ANNOptimizer from "../predictive-document-analysis/services/annOptimizer";
+import { ensembleSearch, type EnsembleOptions } from "./services/hybrid-bm25-ann";
 
 type PostBody = {
     documentId: number;
     question: string;
     style?: "concise" | "detailed" | "academic" | "bullet-points";
 };
+
+interface DocumentResult {
+    pageContent: string;
+    metadata: {
+        chunkId?: number;
+        page?: number;
+        distance?: number;
+        source?: string;
+        retrievalMethod?: string;
+        timestamp?: string;
+    };
+}
 
 type PdfChunkRow = Record<string, unknown> & {
     id: number;
@@ -60,9 +73,8 @@ Guidelines:
 - Always include page references in parentheses`
 };
 
-// Initialize ANN optimizer specifically for Q&A retrieval
 const qaAnnOptimizer = new ANNOptimizer({ 
-    strategy: 'hnsw', // HNSW works best for Q&A with precise relevance
+    strategy: 'hnsw',
     efSearch: 200
 });
 
@@ -76,59 +88,92 @@ export async function POST(request: Request) {
             model: "text-embedding-ada-002",
             openAIApiKey: process.env.OPENAI_API_KEY,
         });
-        const questionEmbedding = await embeddings.embedQuery(question);
 
-        let rows: PdfChunkRow[] = [];
+        const ensembleOptions: EnsembleOptions = {
+            weights: [0.4, 0.6], 
+            topK: 5
+        };
+
+        let documents: DocumentResult[] = [];
+        let retrievalMethod = 'ensemble_rrf';
 
         try {
-            const annResults = await qaAnnOptimizer.searchSimilarChunks(
-                questionEmbedding,
-                [documentId],
-                5,
-                0.8
-            );
-
-            rows = annResults.map(result => ({
-                 id: result.id,
-                 content: result.content,
-                 page: result.page,
-                 distance: 1 - result.confidence, // Convert confidence back to distance
-                 documentId: result.documentId
-             })) as PdfChunkRow[];
-
-        } catch (annError) {
-            console.warn(`⚠️ [Q&A-ANN] ANN search failed, falling back to traditional search:`, annError);
+            documents = await ensembleSearch(documentId, question, embeddings, ensembleOptions);
             
-            const bracketedEmbedding = `[${questionEmbedding.join(",")}]`;
+            if (documents.length === 0) {
+                console.warn("Ensemble search returned no results, trying fallback methods");
+                throw new Error("No ensemble results");
+            }
 
-            const query = sql`
-              SELECT
-                id,
-                content,
-                page,
-                embedding <-> ${bracketedEmbedding}::vector(1536) AS distance
-              FROM pdr_ai_v2_pdf_chunks
-              WHERE document_id = ${documentId}
-              ORDER BY embedding <-> ${bracketedEmbedding}::vector(1536)
-              LIMIT 3
-            `;
-
-            const result = await db.execute<PdfChunkRow>(query);
-            rows = result.rows;
+        } catch (ensembleError) {
+            console.warn(`⚠️ [Q&A-Ensemble] Ensemble search failed, falling back to ANN:`, ensembleError);
+            retrievalMethod = 'ann_fallback';
             
+            try {
+                const questionEmbedding = await embeddings.embedQuery(question);
+                const annResults = await qaAnnOptimizer.searchSimilarChunks(
+                    questionEmbedding,
+                    [documentId],
+                    5,
+                    0.8
+                );
+
+                documents = annResults.map(result => ({
+                    pageContent: result.content,
+                    metadata: {
+                        chunkId: result.id,
+                        page: result.page,
+                        distance: 1 - result.confidence,
+                        source: 'ann_fallback'
+                    }
+                }));
+
+            } catch (annError) {
+                console.warn(`⚠️ [Q&A-ANN] ANN search also failed, falling back to traditional search:`, annError);
+                retrievalMethod = 'traditional_fallback';
+                
+                const questionEmbedding = await embeddings.embedQuery(question);
+                const bracketedEmbedding = `[${questionEmbedding.join(",")}]`;
+
+                const query = sql`
+                  SELECT
+                    id,
+                    content,
+                    page,
+                    embedding <-> ${bracketedEmbedding}::vector(1536) AS distance
+                  FROM pdr_ai_v2_pdf_chunks
+                  WHERE document_id = ${documentId}
+                  ORDER BY embedding <-> ${bracketedEmbedding}::vector(1536)
+                  LIMIT 3
+                `;
+
+                const result = await db.execute<PdfChunkRow>(query);
+                documents = result.rows.map(row => ({
+                    pageContent: row.content,
+                    metadata: {
+                        chunkId: row.id,
+                        page: row.page,
+                        distance: row.distance,
+                        source: 'traditional_fallback'
+                    }
+                }));
+            }
         }
 
-        if (rows.length === 0) {
+        if (documents.length === 0) {
             return NextResponse.json({
                 success: false,
                 message: "No relevant content found for the given question and document.",
             });
         }
 
-        const combinedContent = rows
-            .map((row, idx) => {
-                const relevanceScore = Math.round((1 - Number(row.distance)) * 100);
-                return `=== Chunk #${idx + 1}, Page ${row.page}, Relevance: ${relevanceScore}% ===\n${row.content}`;
+        const combinedContent = documents
+            .map((doc, idx) => {
+                const page = doc.metadata?.page ?? 'Unknown';
+                const source = doc.metadata?.source ?? retrievalMethod;
+                const distance = doc.metadata?.distance ?? 0;
+                const relevanceScore = Math.round((1 - Number(distance)) * 100);
+                return `=== Chunk #${idx + 1}, Page ${page}, Source: ${source}, Relevance: ${relevanceScore}% ===\n${doc.pageContent}`;
             })
             .join("\n\n");
 
@@ -152,10 +197,11 @@ export async function POST(request: Request) {
         return NextResponse.json({
             success: true,
             summarizedAnswer: summarizedAnswer.content,
-            recommendedPages: rows.map(r => r.page),
-                         retrievalMethod: rows.length > 0 && rows[0]?.distance !== undefined ? 'ann-optimized' : 'traditional',
+            recommendedPages: documents.map(doc => doc.metadata?.page).filter((page): page is number => page !== undefined),
+            retrievalMethod,
             processingTimeMs: totalTime,
-            chunksAnalyzed: rows.length
+            chunksAnalyzed: documents.length,
+            fusionWeights: ensembleOptions.weights
         });
 
     } catch (error) {

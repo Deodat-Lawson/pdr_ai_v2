@@ -8,6 +8,13 @@
       "when": 1735783699618,
       "tag": "0000_sweet_havok",
       "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "7",
+      "when": 1757887612378,
+      "tag": "0001_tranquil_hitman",
+      "breakpoints": true
     }
   ]
 }

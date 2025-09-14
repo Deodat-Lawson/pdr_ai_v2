@@ -62,6 +62,9 @@ importers:
       node-fetch:
         specifier: ^3.3.2
         version: 3.3.2
+      okapibm25:
+        specifier: ^1.4.1
+        version: 1.4.1
       openai:
         specifier: ^4.62.1
         version: 4.104.0(ws@8.18.3)(zod@3.25.76)
@@ -3240,6 +3243,9 @@ packages:
   object.values@1.2.1:
     resolution: {integrity: sha512-gXah6aZrcUxjWg2zR2MwouP2eHlCBzdV4pygudehaKXSGW4v2AsRQUK+lwwXhii6KFZcunEnmSUoYp5CXibxtA==}
     engines: {node: '>= 0.4'}
+
+  okapibm25@1.4.1:
+    resolution: {integrity: sha512-UHmeH4MAtZXGFVncwbY7pfFvDVNxpsyM3W66aGPU0SHj1+ld59ty+9lJ0ifcrcnPUl1XdYoDgb06ObyCnpTs3g==}
 
   openai@4.104.0:
     resolution: {integrity: sha512-p99EFNsA/yX6UhVO93f5kJsDRLAg+CTA2RBqdHK4RtK8u5IJw32Hyb2dTGKbnnFmnuoBv5r7Z2CURI9sGZpSuA==}
@@ -6743,6 +6749,8 @@ snapshots:
       call-bound: 1.0.4
       define-properties: 1.2.1
       es-object-atoms: 1.1.1
+
+  okapibm25@1.4.1: {}
 
   openai@4.104.0(ws@8.18.3)(zod@3.25.76):
     dependencies:
