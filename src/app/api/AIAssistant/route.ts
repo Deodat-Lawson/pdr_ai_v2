@@ -5,7 +5,7 @@ import { OpenAIEmbeddings } from "@langchain/openai";
 import { db } from "~/server/db/index";
 import { sql } from "drizzle-orm";
 import ANNOptimizer from "../predictive-document-analysis/services/annOptimizer";
-import { ensembleSearch, type EnsembleOptions } from "./services/bm-25-search";
+import { ensembleSearch, type EnsembleOptions } from "./services/hybrid-bm25-ann";
 
 type PostBody = {
     documentId: number;
