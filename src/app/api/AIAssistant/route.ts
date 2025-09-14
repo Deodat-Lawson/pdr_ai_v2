@@ -13,6 +13,18 @@ type PostBody = {
     style?: "concise" | "detailed" | "academic" | "bullet-points";
 };
 
+interface DocumentResult {
+    pageContent: string;
+    metadata: {
+        chunkId?: number;
+        page?: number;
+        distance?: number;
+        source?: string;
+        retrievalMethod?: string;
+        timestamp?: string;
+    };
+}
+
 type PdfChunkRow = Record<string, unknown> & {
     id: number;
     content: string;
@@ -82,7 +94,7 @@ export async function POST(request: Request) {
             topK: 5
         };
 
-        let documents: any[] = [];
+        let documents: DocumentResult[] = [];
         let retrievalMethod = 'ensemble_rrf';
 
         try {
@@ -157,9 +169,9 @@ export async function POST(request: Request) {
 
         const combinedContent = documents
             .map((doc, idx) => {
-                const page = doc.metadata?.page || 'Unknown';
-                const source = doc.metadata?.source || retrievalMethod;
-                const distance = doc.metadata?.distance || 0;
+                const page = doc.metadata?.page ?? 'Unknown';
+                const source = doc.metadata?.source ?? retrievalMethod;
+                const distance = doc.metadata?.distance ?? 0;
                 const relevanceScore = Math.round((1 - Number(distance)) * 100);
                 return `=== Chunk #${idx + 1}, Page ${page}, Source: ${source}, Relevance: ${relevanceScore}% ===\n${doc.pageContent}`;
             })
@@ -185,7 +197,7 @@ export async function POST(request: Request) {
         return NextResponse.json({
             success: true,
             summarizedAnswer: summarizedAnswer.content,
-            recommendedPages: documents.map(doc => doc.metadata?.page).filter(Boolean),
+            recommendedPages: documents.map(doc => doc.metadata?.page).filter((page): page is number => page !== undefined),
             retrievalMethod,
             processingTimeMs: totalTime,
             chunksAnalyzed: documents.length,

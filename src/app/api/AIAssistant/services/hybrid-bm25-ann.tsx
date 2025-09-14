@@ -5,8 +5,8 @@ import { BM25Retriever } from "@langchain/community/retrievers/bm25";
 import { EnsembleRetriever } from "langchain/retrievers/ensemble";
 import { BaseRetriever, type BaseRetrieverInput } from "@langchain/core/retrievers";
 import { Document } from "@langchain/core/documents";
-import { OpenAIEmbeddings } from "@langchain/openai";
-import { CallbackManagerForRetrieverRun } from "@langchain/core/callbacks/manager";
+import type { OpenAIEmbeddings } from "@langchain/openai";
+import type { CallbackManagerForRetrieverRun } from "@langchain/core/callbacks/manager";
 
 export type Bm25Options = {
     topK?: number; 
@@ -123,7 +123,7 @@ async function createBM25Retriever(
     }
     
     const docs = toDocuments(rows);
-    return await BM25Retriever.fromDocuments(docs, { k: topK });
+    return BM25Retriever.fromDocuments(docs, { k: topK });
 }
 
 export async function bm25Search(
@@ -137,7 +137,7 @@ export async function bm25Search(
     if (rows.length === 0) return [];
 
     const docs = toDocuments(rows);
-    const retriever = await BM25Retriever.fromDocuments(docs, { k: topK });
+    const retriever = BM25Retriever.fromDocuments(docs, { k: topK });
     const results = await retriever.getRelevantDocuments(query);
     return results.slice(0, topK);
 }
