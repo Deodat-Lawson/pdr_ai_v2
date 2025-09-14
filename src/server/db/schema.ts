@@ -82,7 +82,6 @@ export const category = pgTable('category', {
 export const pdfChunks = pgTable("pdf_chunks", {
     id: serial("id").primaryKey(),
 
-    // Which document this chunk belongs to
     documentId: integer("document_id")
         .notNull()
         .references(() => document.id, { onDelete: "cascade" }),
@@ -101,7 +100,7 @@ export const ChatHistory = pgTable('chatHistory', {
     documentId: varchar("document id", {  length: 256 }).notNull(),
     documentTitle: varchar("document title", {  length: 256 }).notNull(),
     question: varchar("question", {length: 256}).notNull(),
-    response: varchar("response", {length: 1024}).notNull(),
+    response: text("response").notNull(),
     pages: integer("pages").array().notNull(),
     createdAt: timestamp("created_at", { withTimezone: true })
         .default(sql`CURRENT_TIMESTAMP`)
