@@ -59,10 +59,6 @@ export class ANNOptimizer {
         }
     }
 
-    /**
-     * HNSW-inspired hierarchical search
-     * Uses PostgreSQL's built-in vector operations with optimized queries
-     */
     private async hnswSearch(
         queryEmbedding: number[],
         documentIds: number[],

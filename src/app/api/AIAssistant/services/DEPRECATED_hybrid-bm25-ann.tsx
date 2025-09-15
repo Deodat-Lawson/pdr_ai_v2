@@ -1,6 +1,6 @@
 import { db } from "~/server/db/index";
 import { eq, sql } from "drizzle-orm";
-import { pdfChunks } from "~/server/db/schema";
+import { pdfChunks, document } from "~/server/db/schema";
 import { BM25Retriever } from "@langchain/community/retrievers/bm25";
 import { EnsembleRetriever } from "langchain/retrievers/ensemble";
 import { BaseRetriever, type BaseRetrieverInput } from "@langchain/core/retrievers";
@@ -26,24 +26,32 @@ export type ChunkRow = {
 export interface EnsembleOptions {
     weights?: number[]; 
     topK?: number;
+    searchScope?: "document" | "company";
+    companyId?: number;
 }
 
 class ANNVectorRetriever extends BaseRetriever {
     lc_namespace = ["custom", "retrievers"];
     
-    private documentId: number;
+    private documentId?: number;
+    private companyId?: number;
     private topK: number;
     private embeddings: OpenAIEmbeddings;
+    private searchScope: "document" | "company";
     
     constructor(fields: BaseRetrieverInput & {
-        documentId: number;
+        documentId?: number;
+        companyId?: number;
         topK?: number;
         embeddings: OpenAIEmbeddings;
+        searchScope?: "document" | "company";
     }) {
         super(fields);
         this.documentId = fields.documentId;
+        this.companyId = fields.companyId;
         this.topK = fields.topK ?? 10;
         this.embeddings = fields.embeddings;
+        this.searchScope = fields.searchScope ?? "document";
     }
     
     async _getRelevantDocuments(
@@ -54,22 +62,49 @@ class ANNVectorRetriever extends BaseRetriever {
             const queryEmbedding = await this.embeddings.embedQuery(query);
             const bracketedEmbedding = `[${queryEmbedding.join(",")}]`;
             
-            const sqlQuery = sql`
-                SELECT 
-                    id,
-                    content,
-                    page,
-                    embedding <-> ${bracketedEmbedding}::vector(1536) AS distance
-                FROM pdr_ai_v2_pdf_chunks
-                WHERE document_id = ${this.documentId}
-                ORDER BY embedding <-> ${bracketedEmbedding}::vector(1536)
-                LIMIT ${this.topK}
-            `;
+            let sqlQuery;
+            if (this.searchScope === "company" && this.companyId) {
+                // Company-wide search
+                sqlQuery = sql`
+                    SELECT 
+                        c.id,
+                        c.content,
+                        c.page,
+                        c.document_id,
+                        d.title as document_title,
+                        c.embedding <-> ${bracketedEmbedding}::vector(1536) AS distance
+                    FROM pdr_ai_v2_pdf_chunks c
+                    JOIN pdr_ai_v2_document d ON c.document_id = d.id 
+                    WHERE d.company_id = ${this.companyId?.toString()}
+                    ORDER BY c.embedding <-> ${bracketedEmbedding}::vector(1536)
+                    LIMIT ${this.topK}
+                `;
+            } else if (this.documentId) {
+                // Single document search
+                sqlQuery = sql`
+                    SELECT 
+                        c.id,
+                        c.content,
+                        c.page,
+                        c.document_id,
+                        d.title as document_title,
+                        c.embedding <-> ${bracketedEmbedding}::vector(1536) AS distance
+                    FROM pdr_ai_v2_pdf_chunks c
+                    JOIN pdr_ai_v2_document d ON c.document_id = d.id 
+                    WHERE c.document_id = ${this.documentId}
+                    ORDER BY c.embedding <-> ${bracketedEmbedding}::vector(1536)
+                    LIMIT ${this.topK}
+                `;
+            } else {
+                throw new Error("Either documentId or companyId must be provided");
+            }
             
             const result = await db.execute<{
                 id: number;
                 content: string;
                 page: number;
+                document_id: number;
+                document_title: string;
                 distance: number;
             }>(sqlQuery);
             
@@ -78,8 +113,11 @@ class ANNVectorRetriever extends BaseRetriever {
                 metadata: { 
                     chunkId: row.id, 
                     page: row.page, 
+                    documentId: row.document_id,
+                    documentTitle: row.document_title,
                     distance: row.distance,
-                    source: 'ann'
+                    source: 'ann',
+                    searchScope: this.searchScope
                 }
             }));
             
@@ -103,6 +141,20 @@ async function getDocumentChunks(documentId: number): Promise<ChunkRow[]> {
     return rows;
 }
 
+async function getCompanyChunks(companyId: number): Promise<ChunkRow[]> {
+    const rows = await db
+        .select({
+            id: pdfChunks.id,
+            content: pdfChunks.content,
+            page: pdfChunks.page,
+        })
+        .from(pdfChunks)
+        .innerJoin(document, eq(pdfChunks.documentId, document.id))
+        .where(eq(document.companyId, companyId.toString()));
+
+    return rows;
+}
+
 function toDocuments(rows: ChunkRow[]): Document[] {
     return rows.map((r) =>
         new Document({
@@ -114,12 +166,28 @@ function toDocuments(rows: ChunkRow[]): Document[] {
 
 
 async function createBM25Retriever(
-    documentId: number, 
-    topK = 10
+    options: {
+        documentId?: number;
+        companyId?: number;
+        searchScope?: "document" | "company";
+        topK?: number;
+    }
 ): Promise<BM25Retriever> {
-    const rows = await getDocumentChunks(documentId);
-    if (rows.length === 0) {
-        throw new Error(`No chunks found for document ${documentId}`);
+    const { documentId, companyId, searchScope = "document", topK = 10 } = options;
+    
+    let rows: ChunkRow[];
+    if (searchScope === "company" && companyId) {
+        rows = await getCompanyChunks(companyId);
+        if (rows.length === 0) {
+            throw new Error(`No chunks found for company ${companyId}`);
+        }
+    } else if (documentId) {
+        rows = await getDocumentChunks(documentId);
+        if (rows.length === 0) {
+            throw new Error(`No chunks found for document ${documentId}`);
+        }
+    } else {
+        throw new Error("Either documentId or companyId must be provided");
     }
     
     const docs = toDocuments(rows);
@@ -184,18 +252,29 @@ export function reciprocalRankFusion(
 }
 
 export async function createEnsembleRetriever(
-    documentId: number,
-    embeddings: OpenAIEmbeddings,
-    options: EnsembleOptions = {}
+    options: {
+        documentId?: number;
+        companyId?: number;
+        embeddings: OpenAIEmbeddings;
+        ensembleOptions?: EnsembleOptions;
+    }
 ): Promise<EnsembleRetriever> {
-    const { weights = [0.5, 0.5], topK = 10 } = options;
+    const { documentId, companyId, embeddings, ensembleOptions = {} } = options;
+    const { weights = [0.5, 0.5], topK = 10, searchScope = "document" } = ensembleOptions;
     
-    const bm25Retriever = await createBM25Retriever(documentId, topK);
+    const bm25Retriever = await createBM25Retriever({
+        documentId,
+        companyId,
+        searchScope,
+        topK
+    });
     
     const annRetriever = new ANNVectorRetriever({
         documentId,
+        companyId,
         topK,
-        embeddings
+        embeddings,
+        searchScope
     });
     
     return new EnsembleRetriever({
@@ -231,17 +310,23 @@ export async function hybridRrfSearch(
 }
 
 export async function ensembleSearch(
-    documentId: number,
-    query: string,
-    embeddings: OpenAIEmbeddings,
-    options: EnsembleOptions = {}
+    options: {
+        documentId?: number;
+        companyId?: number;
+        query: string;
+        embeddings: OpenAIEmbeddings;
+        ensembleOptions?: EnsembleOptions;
+    }
 ): Promise<Document[]> {
+    const { documentId, companyId, query, embeddings, ensembleOptions = {} } = options;
+    
     try {
-        const ensembleRetriever = await createEnsembleRetriever(
-            documentId, 
-            embeddings, 
-            options
-        );
+        const ensembleRetriever = await createEnsembleRetriever({
+            documentId,
+            companyId,
+            embeddings,
+            ensembleOptions
+        });
         
         const results = await ensembleRetriever.getRelevantDocuments(query);
         
@@ -250,13 +335,26 @@ export async function ensembleSearch(
             metadata: {
                 ...doc.metadata,
                 retrievalMethod: 'ensemble_rrf',
-                timestamp: new Date().toISOString()
+                timestamp: new Date().toISOString(),
+                searchScope: ensembleOptions.searchScope ?? "document"
             }
         }));
         
     } catch (error) {
         console.error("Ensemble search error:", error);
         console.warn("Falling back to BM25-only search");
-        return await bm25Search(documentId, query, { topK: options.topK });
+        
+        if (ensembleOptions.searchScope === "company" && companyId) {
+            // Company-wide BM25 fallback
+            const rows = await getCompanyChunks(companyId);
+            const docs = toDocuments(rows);
+            const retriever = BM25Retriever.fromDocuments(docs, { k: ensembleOptions.topK ?? 10 });
+            return await retriever.getRelevantDocuments(query);
+        } else if (documentId) {
+            // Single document BM25 fallback
+            return await bm25Search(documentId, query, { topK: ensembleOptions.topK });
+        } else {
+            throw new Error("Either documentId or companyId must be provided");
+        }
     }
 }

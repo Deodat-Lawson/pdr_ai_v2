@@ -98,6 +98,9 @@ interface DocumentContentProps {
   predictiveError: string;
   onRefreshAnalysis: () => void;
   onSelectDocument?: (docId: number, page: number) => void;
+  searchScope: "document" | "company";
+  setSearchScope: React.Dispatch<React.SetStateAction<"document" | "company">>;
+  companyId: number | null;
 }
 
 export const DocumentContent: React.FC<DocumentContentProps> = ({
@@ -121,6 +124,9 @@ export const DocumentContent: React.FC<DocumentContentProps> = ({
   predictiveError,
   onRefreshAnalysis,
   onSelectDocument,
+  searchScope,
+  setSearchScope,
+  companyId
 }) => {
   // States for modals
   const [showMissingModal, setShowMissingModal] = useState(false);
@@ -263,6 +269,37 @@ export const DocumentContent: React.FC<DocumentContentProps> = ({
 
           <form onSubmit={handleAiSearch} className="flex flex-col space-y-3">
             <div className="flex flex-col space-y-2">
+              <label className="text-sm font-medium text-gray-700">Search Scope:</label>
+              <div className="flex space-x-4">
+                <label className="flex items-center">
+                  <input
+                    type="radio"
+                    value="document"
+                    checked={searchScope === "document"}
+                    onChange={(e) => setSearchScope(e.target.value as "document" | "company")}
+                    className="mr-2 text-purple-600 focus:ring-purple-500"
+                  />
+                  <span className="text-sm text-gray-700">
+                    Current Document {selectedDoc ? `(${selectedDoc.title})` : ""}
+                  </span>
+                </label>
+                <label className="flex items-center">
+                  <input
+                    type="radio"
+                    value="company"
+                    checked={searchScope === "company"}
+                    onChange={(e) => setSearchScope(e.target.value as "document" | "company")}
+                    className="mr-2 text-purple-600 focus:ring-purple-500"
+                    disabled={!companyId}
+                  />
+                  <span className={`text-sm ${!companyId ? 'text-gray-400' : 'text-gray-700'}`}>
+                    All Company Documents
+                  </span>
+                </label>
+              </div>
+            </div>
+            
+            <div className="flex flex-col space-y-2">
               <label className="text-sm font-medium text-gray-700">Response Style:</label>
               <select
                 value={aiStyle}
@@ -278,17 +315,28 @@ export const DocumentContent: React.FC<DocumentContentProps> = ({
             </div>
             <input
               type="text"
-              placeholder="Ask a question about your documents..."
+              placeholder={
+                searchScope === "company" 
+                  ? "Ask a question about all your company documents..." 
+                  : selectedDoc 
+                    ? `Ask a question about "${selectedDoc.title}"...`
+                    : "Select a document to ask questions..."
+              }
               value={aiQuestion}
               onChange={(e) => setAiQuestion(e.target.value)}
               className="border border-gray-300 rounded p-2 w-full focus:ring-2 focus:ring-purple-500 focus:border-purple-500"
             />
             <button
               type="submit"
-              disabled={aiLoading}
+              disabled={aiLoading || (searchScope === "document" && !selectedDoc) || (searchScope === "company" && !companyId)}
               className="bg-purple-600 text-white px-4 py-2 rounded hover:bg-purple-700 focus:outline-none focus:ring-2 focus:ring-purple-500 transition-colors disabled:opacity-50"
             >
-              {aiLoading ? "Asking AI..." : "Ask AI"}
+              {aiLoading 
+                ? "Asking AI..." 
+                : searchScope === "company" 
+                  ? "Search All Documents" 
+                  : "Ask AI"
+              }
             </button>
           </form>
 
