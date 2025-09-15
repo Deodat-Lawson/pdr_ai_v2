@@ -19,6 +19,14 @@ const SYSTEM_PROMPTS = {
   "bullet-points": "Organized Bullet Points",
 } as const;
 
+interface RequestBody {
+  question: string;
+  style: string;
+  searchScope: "document" | "company";
+  documentId?: number;
+  companyId?: number;
+}
+
 interface DocumentType {
   id: number;
   title: string;
@@ -120,6 +128,8 @@ const DocumentViewer: React.FC = () => {
   const [isAiLoading, setIsAiLoading] = useState(false);
   const [referencePages, setReferencePages] = useState<number[]>([]);
   const [aiStyle, setAiStyle] = useState<string>("concise");
+  const [searchScope, setSearchScope] = useState<"document" | "company">("document");
+  const [companyId, setCompanyId] = useState<number | null>(null);
   const [pdfPageNumber, setPdfPageNumber] = useState<number>(1);
   const [qaHistory, setQaHistory] = useState<QAHistoryEntry[]>([]);
   const [predictiveAnalysis, setPredictiveAnalysis] = useState<PredictiveAnalysisResponse | null>(null);
@@ -208,11 +218,16 @@ const DocumentViewer: React.FC = () => {
         }
 
         const rawData: unknown = await response.json();
-        const data = rawData as { role?: string };
+        const data = rawData as { role?: string; companyId?: string };
         
         if (data?.role !== "employer" && data?.role !== "owner") {
           window.alert("Authentication failed! You are not an employer or owner.");
           router.push("/");
+        }
+
+        // Store company ID for company-wide search
+        if (data.companyId) {
+          setCompanyId(Number(data.companyId));
         }
       } catch (error) {
         console.error("Error checking employer role:", error);
@@ -307,7 +322,14 @@ const DocumentViewer: React.FC = () => {
 
   const handleAiSearch = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!aiQuestion.trim() || !selectedDoc) return;
+    if (!aiQuestion.trim()) return;
+    
+    // For company-wide search, we don't need selectedDoc
+    if (searchScope === "document" && !selectedDoc) return;
+    if (searchScope === "company" && !companyId) {
+      setAiError("Company information not available for company-wide search.");
+      return;
+    }
 
     setAiError("");
     setAiAnswer("");
@@ -315,16 +337,24 @@ const DocumentViewer: React.FC = () => {
     setIsAiLoading(true);
 
     try {
+      const requestBody: RequestBody = {
+        question: aiQuestion,
+        style: aiStyle,
+        searchScope,
+      };
+
+      if (searchScope === "document" && selectedDoc) {
+        requestBody.documentId = selectedDoc.id;
+      } else if (searchScope === "company") {
+        requestBody.companyId = companyId ?? undefined;
+      }
+
       const data = (await fetchWithRetries(
         "/api/AIAssistant",
         {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            documentId: selectedDoc.id,
-            question: aiQuestion,
-            style: aiStyle,
-          }),
+          body: JSON.stringify(requestBody),
         },
         5
       )) as LangChainResponse;
@@ -334,7 +364,10 @@ const DocumentViewer: React.FC = () => {
       if (Array.isArray(data.recommendedPages)) {
         const uniquePages = Array.from(new Set(data.recommendedPages));
         setReferencePages(uniquePages);
-        await saveToHistory(aiQuestion, data.summarizedAnswer, uniquePages);
+        // Only save to history for document-specific searches
+        if (searchScope === "document" && selectedDoc) {
+          await saveToHistory(aiQuestion, data.summarizedAnswer, uniquePages);
+        }
       }
     } catch (error: unknown) {
       setAiError("Timeout or fetch error: Please try again later." + (error as Error).toString());
@@ -449,6 +482,9 @@ const DocumentViewer: React.FC = () => {
           predictiveError={predictiveError}
           onRefreshAnalysis={() => selectedDoc && fetchPredictiveAnalysis(selectedDoc.id, true)}
           onSelectDocument={handleSelectDocument}
+          searchScope={searchScope}
+          setSearchScope={setSearchScope}
+          companyId={companyId}
         />
       </main>
     </div>

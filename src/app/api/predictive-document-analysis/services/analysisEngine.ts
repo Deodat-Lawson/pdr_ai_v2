@@ -214,7 +214,7 @@ async function enhanceWithCompanyDocuments(
 ): Promise<void> {
 
     const references = await extractReferences(allChunks, timeoutMs);
-    deduplicateReferences(references); // Process references for side effects
+    deduplicateReferences(references);
 
     const otherDocsQuery = await withRetry(() => db.select({ 
         id: document.id, 

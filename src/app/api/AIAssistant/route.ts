@@ -5,25 +5,21 @@ import { OpenAIEmbeddings } from "@langchain/openai";
 import { db } from "~/server/db/index";
 import { sql } from "drizzle-orm";
 import ANNOptimizer from "../predictive-document-analysis/services/annOptimizer";
-import { ensembleSearch, type EnsembleOptions } from "./services/hybrid-bm25-ann";
+import { 
+    companyEnsembleSearch,
+    documentEnsembleSearch,
+    type CompanyEnsembleOptions,
+    type DocumentEnsembleOptions,
+    type SearchResult
+} from "./services";
 
 type PostBody = {
-    documentId: number;
+    documentId?: number; 
+    companyId?: number; 
     question: string;
     style?: "concise" | "detailed" | "academic" | "bullet-points";
+    searchScope?: "document" | "company"; 
 };
-
-interface DocumentResult {
-    pageContent: string;
-    metadata: {
-        chunkId?: number;
-        page?: number;
-        distance?: number;
-        source?: string;
-        retrievalMethod?: string;
-        timestamp?: string;
-    };
-}
 
 type PdfChunkRow = Record<string, unknown> & {
     id: number;
@@ -82,23 +78,61 @@ export async function POST(request: Request) {
     const startTime = Date.now();
     
     try {
-        const { documentId, question, style } = (await request.json()) as PostBody;
+        const { documentId, companyId, question, style, searchScope = "document" } = (await request.json()) as PostBody;
+        
+        // Validate input
+        if (searchScope === "company" && !companyId) {
+            return NextResponse.json({
+                success: false,
+                message: "companyId is required for company-wide search"
+            }, { status: 400 });
+        }
+        
+        if (searchScope === "document" && !documentId) {
+            return NextResponse.json({
+                success: false,
+                message: "documentId is required for document search"
+            }, { status: 400 });
+        }
 
         const embeddings = new OpenAIEmbeddings({
             model: "text-embedding-ada-002",
             openAIApiKey: process.env.OPENAI_API_KEY,
         });
 
-        const ensembleOptions: EnsembleOptions = {
-            weights: [0.4, 0.6], 
-            topK: 5
-        };
-
-        let documents: DocumentResult[] = [];
-        let retrievalMethod = 'ensemble_rrf';
+        let documents: SearchResult[] = [];
+        let retrievalMethod = searchScope === "company" ? 'company_ensemble_rrf' : 'document_ensemble_rrf';
 
         try {
-            documents = await ensembleSearch(documentId, question, embeddings, ensembleOptions);
+            if (searchScope === "company" && companyId) {
+                const companyOptions: CompanyEnsembleOptions = {
+                    weights: [0.4, 0.6],
+                    topK: 10,
+                    companyId
+                };
+                
+                documents = await companyEnsembleSearch(
+                    companyId,
+                    question,
+                    embeddings,
+                    companyOptions
+                );
+            } else if (searchScope === "document" && documentId) {
+                const documentOptions: DocumentEnsembleOptions = {
+                    weights: [0.4, 0.6],
+                    topK: 5,
+                    documentId
+                };
+                
+                documents = await documentEnsembleSearch(
+                    documentId,
+                    question,
+                    embeddings,
+                    documentOptions
+                );
+            } else {
+                throw new Error("Invalid search parameters");
+            }
             
             if (documents.length === 0) {
                 console.warn("Ensemble search returned no results, trying fallback methods");
@@ -106,57 +140,73 @@ export async function POST(request: Request) {
             }
 
         } catch (ensembleError) {
-            console.warn(`⚠️ [Q&A-Ensemble] Ensemble search failed, falling back to ANN:`, ensembleError);
-            retrievalMethod = 'ann_fallback';
+            console.warn(`⚠️ [Q&A-Ensemble] Ensemble search failed, falling back to simpler methods:`, ensembleError);
             
-            try {
-                const questionEmbedding = await embeddings.embedQuery(question);
-                const annResults = await qaAnnOptimizer.searchSimilarChunks(
-                    questionEmbedding,
-                    [documentId],
-                    5,
-                    0.8
-                );
-
-                documents = annResults.map(result => ({
-                    pageContent: result.content,
-                    metadata: {
-                        chunkId: result.id,
-                        page: result.page,
-                        distance: 1 - result.confidence,
-                        source: 'ann_fallback'
-                    }
-                }));
-
-            } catch (annError) {
-                console.warn(`⚠️ [Q&A-ANN] ANN search also failed, falling back to traditional search:`, annError);
-                retrievalMethod = 'traditional_fallback';
+            if (searchScope === "company" && companyId) {
+                retrievalMethod = 'company_fallback_failed';
+                documents = [];
+            } else if (searchScope === "document" && documentId) {
+                retrievalMethod = 'ann_fallback';
                 
-                const questionEmbedding = await embeddings.embedQuery(question);
-                const bracketedEmbedding = `[${questionEmbedding.join(",")}]`;
+                try {
+                    const questionEmbedding = await embeddings.embedQuery(question);
+                    const annResults = await qaAnnOptimizer.searchSimilarChunks(
+                        questionEmbedding,
+                        [documentId],
+                        5,
+                        0.8
+                    );
 
-                const query = sql`
-                  SELECT
-                    id,
-                    content,
-                    page,
-                    embedding <-> ${bracketedEmbedding}::vector(1536) AS distance
-                  FROM pdr_ai_v2_pdf_chunks
-                  WHERE document_id = ${documentId}
-                  ORDER BY embedding <-> ${bracketedEmbedding}::vector(1536)
-                  LIMIT 3
-                `;
+                    documents = annResults.map(result => ({
+                        pageContent: result.content,
+                        metadata: {
+                            chunkId: result.id,
+                            page: result.page,
+                            documentId: result.documentId,
+                            distance: 1 - result.confidence,
+                            source: 'ann_fallback',
+                            searchScope: 'document' as const,
+                            retrievalMethod: 'ann_fallback',
+                            timestamp: new Date().toISOString()
+                        }
+                    }));
 
-                const result = await db.execute<PdfChunkRow>(query);
-                documents = result.rows.map(row => ({
-                    pageContent: row.content,
-                    metadata: {
-                        chunkId: row.id,
-                        page: row.page,
-                        distance: row.distance,
-                        source: 'traditional_fallback'
-                    }
-                }));
+                } catch (annError) {
+                    console.warn(`⚠️ [Q&A-ANN] ANN search also failed, falling back to traditional search:`, annError);
+                    retrievalMethod = 'traditional_fallback';
+                    
+                    const questionEmbedding = await embeddings.embedQuery(question);
+                    const bracketedEmbedding = `[${questionEmbedding.join(",")}]`;
+
+                    const query = sql`
+                      SELECT
+                        id,
+                        content,
+                        page,
+                        embedding <-> ${bracketedEmbedding}::vector(1536) AS distance
+                      FROM pdr_ai_v2_pdf_chunks
+                      WHERE document_id = ${documentId}
+                      ORDER BY embedding <-> ${bracketedEmbedding}::vector(1536)
+                      LIMIT 3
+                    `;
+
+                    const result = await db.execute<PdfChunkRow>(query);
+                    documents = result.rows.map(row => ({
+                        pageContent: row.content,
+                        metadata: {
+                            chunkId: row.id,
+                            page: row.page,
+                            distance: row.distance,
+                            source: 'traditional_fallback',
+                            searchScope: 'document' as const,
+                            retrievalMethod: 'traditional_fallback',
+                            timestamp: new Date().toISOString()
+                        }
+                    }));
+                }
+            } else {
+                retrievalMethod = 'invalid_parameters';
+                documents = [];
             }
         }
 
@@ -201,7 +251,8 @@ export async function POST(request: Request) {
             retrievalMethod,
             processingTimeMs: totalTime,
             chunksAnalyzed: documents.length,
-            fusionWeights: ensembleOptions.weights
+            fusionWeights: [0.4, 0.6],
+            searchScope
         });
 
     } catch (error) {
