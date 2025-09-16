@@ -4,10 +4,18 @@ import { eq, sql, and, gt, desc, ne } from "drizzle-orm";
 import { analyzeDocumentChunks } from "./agent";
 import type { PredictiveAnalysisResult } from "./agent";
 import { predictiveDocumentAnalysisResults, document, pdfChunks } from "~/server/db/schema";
+import {
+    ANALYSIS_TYPES,
+    TIMEOUT_LIMITS,
+    CACHE_CONFIG,
+    ERROR_TYPES,
+    HTTP_STATUS,
+    type AnalysisType
+} from "~/lib/constants";
 
 type PostBody = {
     documentId: number;
-    analysisType?: 'contract' | 'financial' | 'technical' | 'compliance' | 'general';
+    analysisType?: AnalysisType;
     includeRelatedDocs?: boolean;
     timeoutMs?: number;
     forceRefresh?: boolean;
@@ -42,7 +50,6 @@ type PredictiveAnalysisOutput = {
     };
 };
 
-const CACHE_TTL_HOURS = 24;
 
 async function getCachedAnalysis(documentId: number, analysisType: string, includeRelatedDocs: boolean) {
     const result = await db.select({ resultJson: predictiveDocumentAnalysisResults.resultJson })
@@ -54,7 +61,7 @@ async function getCachedAnalysis(documentId: number, analysisType: string, inclu
                 eq(predictiveDocumentAnalysisResults.includeRelatedDocs, includeRelatedDocs),
                 gt(
                     predictiveDocumentAnalysisResults.createdAt,
-                    sql`NOW() - INTERVAL '${sql.raw(`${CACHE_TTL_HOURS} hours`)}'`
+                    sql`NOW() - INTERVAL '${sql.raw(`${CACHE_CONFIG.TTL_HOURS} hours`)}'`
                 )
             )
         )
@@ -91,12 +98,33 @@ export async function POST(request: Request) {
             documentId,
             analysisType = 'general',
             includeRelatedDocs = false,
-            timeoutMs = 30000,
+            timeoutMs = TIMEOUT_LIMITS.DEFAULT_MS,
             forceRefresh = false
         } = body;
 
+        // Input validation
         if (typeof documentId !== 'number' || documentId <= 0) {
-            return NextResponse.json({ success: false, message: "Invalid documentId." }, { status: 400 });
+            return NextResponse.json({
+                success: false,
+                message: "Invalid documentId. Must be a positive number.",
+                errorType: ERROR_TYPES.VALIDATION
+            }, { status: HTTP_STATUS.BAD_REQUEST });
+        }
+
+        if (analysisType && !ANALYSIS_TYPES.includes(analysisType)) {
+            return NextResponse.json({
+                success: false,
+                message: `Invalid analysisType. Must be one of: ${ANALYSIS_TYPES.join(', ')}`,
+                errorType: ERROR_TYPES.VALIDATION
+            }, { status: HTTP_STATUS.BAD_REQUEST });
+        }
+
+        if (timeoutMs && (timeoutMs < TIMEOUT_LIMITS.MIN_MS || timeoutMs > TIMEOUT_LIMITS.MAX_MS)) {
+            return NextResponse.json({
+                success: false,
+                message: `Invalid timeoutMs. Must be between ${TIMEOUT_LIMITS.MIN_MS} and ${TIMEOUT_LIMITS.MAX_MS}`,
+                errorType: ERROR_TYPES.VALIDATION
+            }, { status: HTTP_STATUS.BAD_REQUEST });
         }
 
         if (!forceRefresh) {
@@ -107,13 +135,17 @@ export async function POST(request: Request) {
                     success: true,
                     ...cachedResult,
                     fromCache: true
-                }, { status: 200 });
+                }, { status: HTTP_STATUS.OK });
             }
         }
 
         const docDetails = await getDocumentDetails(documentId);
         if (!docDetails) {
-            return NextResponse.json({ success: false, message: "Document not found." }, { status: 404 });
+            return NextResponse.json({
+                success: false,
+                message: "Document not found.",
+                errorType: ERROR_TYPES.VALIDATION
+            }, { status: HTTP_STATUS.NOT_FOUND });
         }
 
         const chunksResults = await db
@@ -130,7 +162,8 @@ export async function POST(request: Request) {
             return NextResponse.json({
                 success: false,
                 message: "No chunks found for the given documentId.",
-            }, { status: 404 });
+                errorType: ERROR_TYPES.VALIDATION
+            }, { status: HTTP_STATUS.NOT_FOUND });
         }
 
         const chunks: PdfChunk[] = chunksResults;
@@ -201,28 +234,44 @@ export async function POST(request: Request) {
             success: true,
             ...fullResult,
             fromCache: false
-        }, { status: 200 });
+        }, { status: HTTP_STATUS.OK });
     } catch (error: unknown) {
         console.error("Predictive Document Analysis Error:", error);
-        
-        let status = 500;
+
+        let status = HTTP_STATUS.INTERNAL_SERVER_ERROR;
         let message = "Failed to perform predictive document analysis";
-        
+        let errorType = ERROR_TYPES.UNKNOWN;
+
         if (error instanceof Error) {
-            if (error.message.includes('timed out')) {
-                status = 408;
+            if (error.message.includes('timed out') || error.message.includes('timeout')) {
+                status = HTTP_STATUS.TIMEOUT;
                 message = "The AI analysis took too long to complete. Please try again or reduce the document size.";
-            } else if (error.message.includes('database')) {
-                message = "Database error occurred.";
-            } else if (error.message.includes('search')) {
-                message = "Web search failed; analysis completed without online suggestions.";
+                errorType = ERROR_TYPES.TIMEOUT;
+            } else if (error.message.includes('database') || error.message.includes('connection')) {
+                status = HTTP_STATUS.SERVICE_UNAVAILABLE;
+                message = "Database connection error. Please try again later.";
+                errorType = ERROR_TYPES.DATABASE;
+            } else if (error.message.includes('search') || error.message.includes('fetch')) {
+                status = HTTP_STATUS.BAD_GATEWAY;
+                message = "External service error. Analysis completed with limited functionality.";
+                errorType = ERROR_TYPES.EXTERNAL_SERVICE;
+            } else if (error.message.includes('openai') || error.message.includes('api')) {
+                status = HTTP_STATUS.BAD_GATEWAY;
+                message = "AI service temporarily unavailable. Please try again later.";
+                errorType = ERROR_TYPES.AI_SERVICE;
+            } else if (error.message.includes('validation') || error.message.includes('invalid')) {
+                status = HTTP_STATUS.BAD_REQUEST;
+                message = "Invalid request data provided.";
+                errorType = ERROR_TYPES.VALIDATION;
             }
         }
-        
-        return NextResponse.json({ 
-            success: false, 
-            error: String(error),
-            message
+
+        return NextResponse.json({
+            success: false,
+            error: process.env.NODE_ENV === 'development' ? String(error) : undefined,
+            message,
+            errorType,
+            timestamp: new Date().toISOString()
         }, { status });
     }
 }
