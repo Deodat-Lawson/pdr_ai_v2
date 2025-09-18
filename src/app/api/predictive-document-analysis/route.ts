@@ -4,14 +4,8 @@ import { eq, sql, and, gt, desc, ne } from "drizzle-orm";
 import { analyzeDocumentChunks } from "./agent";
 import type { PredictiveAnalysisResult } from "./agent";
 import { predictiveDocumentAnalysisResults, document, pdfChunks } from "~/server/db/schema";
+import { validateRequestBody, PredictiveAnalysisSchema } from "~/lib/validation";
 
-type PostBody = {
-    documentId: number;
-    analysisType?: 'contract' | 'financial' | 'technical' | 'compliance' | 'general';
-    includeRelatedDocs?: boolean;
-    timeoutMs?: number;
-    forceRefresh?: boolean;
-};
 
 type PdfChunk = {
     id: number;
@@ -86,21 +80,21 @@ async function getDocumentDetails(documentId: number) : Promise<DocumentDetails 
 
 export async function POST(request: Request) {
     try {
-        const body = await request.json() as PostBody;
-        const {
-            documentId,
-            analysisType = 'general',
-            includeRelatedDocs = false,
-            timeoutMs = 30000,
-            forceRefresh = false
-        } = body;
-
-        if (typeof documentId !== 'number' || documentId <= 0) {
-            return NextResponse.json({ success: false, message: "Invalid documentId." }, { status: 400 });
+        const validation = await validateRequestBody(request, PredictiveAnalysisSchema);
+        if (!validation.success) {
+            return validation.response;
         }
 
+        const {
+            documentId,
+            analysisType,
+            includeRelatedDocs,
+            timeoutMs,
+            forceRefresh
+        } = validation.data;
+
         if (!forceRefresh) {
-            const cachedResult = await getCachedAnalysis(documentId, analysisType, includeRelatedDocs);
+            const cachedResult = await getCachedAnalysis(documentId, analysisType!, includeRelatedDocs!);
 
             if (cachedResult) {
                 return NextResponse.json({
@@ -160,8 +154,8 @@ export async function POST(request: Request) {
         }
 
         const specification = {
-            type: analysisType,
-            includeRelatedDocs,
+            type: analysisType!,
+            includeRelatedDocs: includeRelatedDocs!,
             existingDocuments,
             title: docDetails.title,
             category: docDetails.category
@@ -195,7 +189,7 @@ export async function POST(request: Request) {
             }
         } as PredictiveAnalysisOutput;
 
-        await storeAnalysisResult(documentId, analysisType, includeRelatedDocs, fullResult);
+        await storeAnalysisResult(documentId, analysisType!, includeRelatedDocs!, fullResult);
 
         return NextResponse.json({
             success: true,
