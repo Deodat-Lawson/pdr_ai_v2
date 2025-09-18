@@ -2,15 +2,25 @@ import { NextResponse } from 'next/server';
 import { db } from "../../../server/db/index";
 import { document, ChatHistory, documentReferenceResolution } from "../../../server/db/schema";
 import { eq } from "drizzle-orm";
+import { validateRequestBody, DeleteDocumentSchema } from "~/lib/validation";
 
-type PostBody = {
-    docId: string;
-};
 
 export async function DELETE(request: Request) {
     try {
-        const { docId } = (await request.json()) as PostBody;
+        const validation = await validateRequestBody(request, DeleteDocumentSchema);
+        if (!validation.success) {
+            return validation.response;
+        }
+
+        const { docId } = validation.data;
         const documentId = Number(docId);
+
+        if (isNaN(documentId) || documentId <= 0) {
+            return NextResponse.json({
+                success: false,
+                error: "Invalid document ID format"
+            }, { status: 400 });
+        }
 
         await db.delete(ChatHistory).where(eq(ChatHistory.documentId, docId));
         await db.delete(documentReferenceResolution).where(

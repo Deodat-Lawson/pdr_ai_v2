@@ -1,16 +1,18 @@
 import { NextResponse } from "next/server";
 import { db } from "../../../server/db/index";
-import { document,users } from "../../../server/db/schema";
+import { document, users } from "../../../server/db/schema";
 import { eq } from "drizzle-orm";
-import * as console from "console";
+import { validateRequestBody, UserIdSchema } from "~/lib/validation";
 
-type PostBody = {
-    userId: string;
-};
 
 export async function POST(request: Request) {
     try {
-        const { userId } = (await request.json()) as PostBody;
+        const validation = await validateRequestBody(request, UserIdSchema);
+        if (!validation.success) {
+            return validation.response;
+        }
+
+        const { userId } = validation.data;
 
         const [userInfo] = await db
             .select()
