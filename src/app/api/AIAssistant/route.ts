@@ -5,21 +5,15 @@ import { OpenAIEmbeddings } from "@langchain/openai";
 import { db } from "~/server/db/index";
 import { sql } from "drizzle-orm";
 import ANNOptimizer from "../predictive-document-analysis/services/annOptimizer";
-import { 
+import {
     companyEnsembleSearch,
     documentEnsembleSearch,
     type CompanyEnsembleOptions,
     type DocumentEnsembleOptions,
     type SearchResult
 } from "./services";
+import { validateRequestBody, QuestionSchema } from "~/lib/validation";
 
-type PostBody = {
-    documentId?: number; 
-    companyId?: number; 
-    question: string;
-    style?: "concise" | "detailed" | "academic" | "bullet-points";
-    searchScope?: "document" | "company"; 
-};
 
 type PdfChunkRow = Record<string, unknown> & {
     id: number;
@@ -76,18 +70,23 @@ const qaAnnOptimizer = new ANNOptimizer({
 
 export async function POST(request: Request) {
     const startTime = Date.now();
-    
+
     try {
-        const { documentId, companyId, question, style, searchScope = "document" } = (await request.json()) as PostBody;
-        
-        // Validate input
+        const validation = await validateRequestBody(request, QuestionSchema);
+        if (!validation.success) {
+            return validation.response;
+        }
+
+        const { documentId, companyId, question, style, searchScope } = validation.data;
+
+        // Additional business logic validation
         if (searchScope === "company" && !companyId) {
             return NextResponse.json({
                 success: false,
                 message: "companyId is required for company-wide search"
             }, { status: 400 });
         }
-        
+
         if (searchScope === "document" && !documentId) {
             return NextResponse.json({
                 success: false,
