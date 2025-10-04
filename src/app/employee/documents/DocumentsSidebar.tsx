@@ -99,7 +99,6 @@ export const DocumentsSidebar: React.FC<DocumentsSidebarProps> = ({
 
   return (
     <aside className={`${styles.sidebar} ${isCollapsed ? styles.collapsed : ""}`}>
-      {/* Toggle Button */}
       <button 
         className={styles.toggleButton}
         onClick={toggleSidebar}
@@ -110,14 +109,12 @@ export const DocumentsSidebar: React.FC<DocumentsSidebarProps> = ({
         />
       </button>
 
-      {/* Header */}
       <div className={styles.sidebarHeader}>
         <button className={styles.logoContainer}>
           <Brain className={styles.logoIcon} />
           <span className={styles.logoText}>PDR AI</span>
         </button>
 
-        {/* Search Bar */}
         <div className={styles.searchContainer}>
           <Search className={`${styles.searchIcon} ${isSearchFocused ? 'text-purple-600 scale-110' : ''}`} />
           <input
@@ -132,7 +129,6 @@ export const DocumentsSidebar: React.FC<DocumentsSidebarProps> = ({
         </div>
       </div>
 
-      {/* View-Mode Buttons */}
       <div className={styles.viewModeContainer}>
         <div className={styles.viewModeHeader}>
           <span className={styles.viewModeTitle}>View Options</span>
@@ -162,7 +158,6 @@ export const DocumentsSidebar: React.FC<DocumentsSidebarProps> = ({
         </div>
       </div>
 
-      {/* Document List */}
       <nav className={styles.docList}>
         {categories.map((category) => (
           <div key={category.name} className={styles.categoryGroup}>
@@ -207,7 +202,6 @@ export const DocumentsSidebar: React.FC<DocumentsSidebarProps> = ({
         ))}
       </nav>
 
-      {/* Profile Section */}
       <div className={styles.profileSection}>
         <UserButton
           afterSignOutUrl="/sign-in"

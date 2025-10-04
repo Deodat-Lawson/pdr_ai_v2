@@ -187,8 +187,8 @@ export async function analyzeDocumentChunks(
         const chunkResults = await Promise.all(chunkPromises);
 
         const combinedResult: PredictiveAnalysisResult = {
-            missingDocuments: chunkResults.flatMap(result => result.missingDocuments || []),
-            recommendations: chunkResults.flatMap(result => result.recommendations || []),
+            missingDocuments: chunkResults.flatMap((result: PredictiveAnalysisResult) => result.missingDocuments || []),
+            recommendations: chunkResults.flatMap((result: PredictiveAnalysisResult) => result.recommendations || []),
         };
 
         combinedResult.missingDocuments = deduplicateMissingDocuments(combinedResult.missingDocuments);
@@ -202,7 +202,7 @@ export async function analyzeDocumentChunks(
         return combinedResult;
     } catch (error) {
         console.error("Batch analysis error:", error);
-        throw error;
+        throw error instanceof Error ? error : new Error(String(error));
     }
 }
 
@@ -257,8 +257,12 @@ async function enhanceWithWebSearch(
     await Promise.all(
         highPriorityMissing.map(missing =>
         limit(async () => {
-            const missingQuery = `"${missing.documentName}" "${missing.documentType}" (template OR sample OR example) filetype:pdf "free download" site:gov OR site:edu OR site:org`;
-            missing.suggestedLinks = await performWebSearch(missingQuery, 3);
+            try {
+                const missingQuery = `"${missing.documentName}" "${missing.documentType}" (template OR sample OR example) filetype:pdf "free download" site:gov OR site:edu OR site:org`;
+                missing.suggestedLinks = await performWebSearch(missingQuery, 3);
+            } catch (error) {
+                console.error(`Error searching for ${missing.documentName}:`, error);
+            }
         })
         )
     );
@@ -278,7 +282,7 @@ function deduplicateMissingDocuments(docs: MissingDocumentPrediction[]): Missing
 } 
 
 function deduplicateRecommendations(recommendations: string[], threshold = 0.8): string[] {
-    const unique = [];
+    const unique: string[] = [];
   
     for (const rec of recommendations) {
       let isDuplicate = false;
