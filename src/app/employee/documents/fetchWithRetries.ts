@@ -11,7 +11,6 @@ export async function fetchWithRetries(
             const res = await fetch(url, options);
 
             if (!res.ok) {
-                // For a non-200 response, you can parse the error body or just throw.
                 const rawErrorData: unknown = await res.json().catch(() => ({}));
 
                 if (typeof rawErrorData !== "object") {
@@ -23,26 +22,22 @@ export async function fetchWithRetries(
                 throw new Error(errorData.error ?? `Request failed with status ${res.status}`);
             }
 
-            // If fetch + response parsing is successful, return the JSON
-            const data: unknown = await res.json(); // Store in a variable
-            return data; // Then return the resolved value
+            const data: unknown = await res.json();
+            return data;
         } catch (err: unknown) {
             lastError = err;
 
-            // Check if it's specifically a "timeout" or "network" error
             if (err instanceof Error) {
                 const isTimeoutError =
                     /timed out/i.test(err.message) || err.name === "AbortError";
 
                 if (isTimeoutError && attempt < maxRetries) {
                     console.warn(`Attempt ${attempt} failed due to timeout, retrying...`);
-                    continue; // Go to the next attempt
+                    continue;
                 }
 
-                // If it's a non-timeout error or we've used all retries, re-throw
-                throw err; // This is safe now because `err` is an Error
+                throw err;
             } else {
-                // Wrap non-Error in a real Error
                 throw new Error(`Non-Error thrown: ${String(err)}`);
             }
         }

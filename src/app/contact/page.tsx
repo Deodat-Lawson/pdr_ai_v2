@@ -110,7 +110,6 @@ const SupportPage = () => {
                 </div>
 
                 <div className={styles.contentGrid}>
-                    {/* Contact Form Section */}
                     <section className={styles.contactSection}>
                         <h2 className={styles.sectionTitle}>
                             <MessageSquare className={styles.sectionIcon} />
@@ -189,7 +188,6 @@ const SupportPage = () => {
                         </form>
                     </section>
 
-                    {/* FAQ Section */}
                     <section className={styles.faqSection}>
                         <h2 className={styles.sectionTitle}>Frequently Asked Questions</h2>
                         <div className={styles.faqList}>
