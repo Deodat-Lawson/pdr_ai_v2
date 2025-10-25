@@ -1,8 +1,10 @@
 "use client"
-import React, {type FormEvent, useState} from 'react';
-import { Brain, Mail, MessageSquare, ChevronDown, ChevronUp, Home } from 'lucide-react';
+import React, { type FormEvent, useState } from 'react';
+import { Mail, MessageSquare, ChevronDown, ChevronUp } from 'lucide-react';
 import styles from '~/styles/SupportPage.module.css';
 import emailjs from '@emailjs/browser';
+import { Navbar } from '../_components/Navbar';
+import { ClerkProvider } from '@clerk/nextjs';
 
 
 
@@ -85,142 +87,130 @@ const SupportPage = () => {
     };
 
     return (
-        <div className={styles.container}>
-            {/* Navigation */}
-            <nav className={styles.navbar}>
-                <div className={styles.navContent}>
-                    <div className={styles.logoContainer}>
-                        <Brain className={styles.logoIcon} />
-                        <span className={styles.logoText}>PDR AI</span>
+        <ClerkProvider>
+            <div className={styles.container}>
+                <Navbar />
+
+                <main className={styles.main}>
+                    <div className={styles.header}>
+                        <h1 className={styles.title}>Support & Help Center</h1>
+                        <p className={styles.subtitle}>Get help with your account and find answers to common questions</p>
                     </div>
-                    <button
-                        onClick={() => window.location.href = '/'}
-                        className={styles.homeButton}
-                    >
-                        <Home className={styles.homeIcon} />
-                        Home
-                    </button>
-                </div>
-            </nav>
 
-            <main className={styles.main}>
-                <div className={styles.header}>
-                    <h1 className={styles.title}>Support & Help Center</h1>
-                    <p className={styles.subtitle}>Get help with your account and find answers to common questions</p>
-                </div>
-
-                <div className={styles.contentGrid}>
-                    {/* Contact Form Section */}
-                    <section className={styles.contactSection}>
-                        <h2 className={styles.sectionTitle}>
-                            <MessageSquare className={styles.sectionIcon} />
-                            Contact Us
-                        </h2>
-                        <form onSubmit={handleSubmit} className={styles.contactForm}>
-                            <div className={styles.formGroup}>
-                                <label htmlFor="name" className={styles.label}>Name</label>
-                                <input
-                                    type="text"
-                                    id="from_name"
-                                    name="from_name"
-                                    value={formData.from_name}
-                                    onChange={handleChange}
-                                    className={styles.input}
-                                    required
-                                />
-                            </div>
-
-                            <div className={styles.formGroup}>
-                                <label htmlFor="email" className={styles.label}>Email</label>
-                                <input
-                                    type="email"
-                                    id="from_email"
-                                    name="from_email"
-                                    value={formData.from_email}
-                                    onChange={handleChange}
-                                    className={styles.input}
-                                    required
-                                />
-                            </div>
-
-                            <div className={styles.formGroup}>
-                                <label htmlFor="subject" className={styles.label}>Subject</label>
-                                <input
-                                    type="text"
-                                    id="subject"
-                                    name="subject"
-                                    value={formData.subject}
-                                    onChange={handleChange}
-                                    className={styles.input}
-                                    required
-                                />
-                            </div>
-
-                            <div className={styles.formGroup}>
-                                <label htmlFor="message" className={styles.label}>Message</label>
-                                <textarea
-                                    id="message"
-                                    name="message"
-                                    value={formData.message}
-                                    onChange={handleChange}
-                                    className={styles.textarea}
-                                    rows={5}
-                                    required
-                                />
-                            </div>
-
-                            <button type="submit" className={styles.submitButton} disabled={isSubmitting}>
-                                <Mail className={styles.buttonIcon} />
-                                {isSubmitting ? 'Sending...' : 'Send Message'}
-                            </button>
-
-                            {submitStatus === 'success' && (
-                                <p className={styles.successMessage}>
-                                    Message sent successfully! I will get back to you soon.
-                                </p>
-                            )}
-
-                            {submitStatus === 'error' && (
-                                <p className={styles.errorMessage}>
-                                    Oops! Something went wrong. Please try again.
-                                </p>
-                            )}
-
-                        </form>
-                    </section>
-
-                    {/* FAQ Section */}
-                    <section className={styles.faqSection}>
-                        <h2 className={styles.sectionTitle}>Frequently Asked Questions</h2>
-                        <div className={styles.faqList}>
-                            {faqs.map((faq, index) => (
-                                <div
-                                    key={index}
-                                    className={`${styles.faqItem} ${expandedFaq === index ? styles.expanded : ''}`}
-                                >
-                                    <button
-                                        className={styles.faqButton}
-                                        onClick={() => setExpandedFaq(expandedFaq === index ? null : index)}
-                                    >
-                                        <span>{faq.question}</span>
-                                        {expandedFaq === index ? (
-                                            <ChevronUp className={styles.faqIcon} />
-                                        ) : (
-                                            <ChevronDown className={styles.faqIcon} />
-                                        )}
-                                    </button>
-                                    {expandedFaq === index && (
-                                        <div className={styles.faqAnswer}>
-                                            {faq.answer}
-                                        </div>
-                                    )}
+                    <div className={styles.contentGrid}>
+                        {/* Contact Form Section */}
+                        <section className={styles.contactSection}>
+                            <h2 className={styles.sectionTitle}>
+                                <MessageSquare className={styles.sectionIcon} />
+                                Contact Us
+                            </h2>
+                            <form onSubmit={handleSubmit} className={styles.contactForm}>
+                                <div className={styles.formGroup}>
+                                    <label htmlFor="name" className={styles.label}>Name</label>
+                                    <input
+                                        type="text"
+                                        id="from_name"
+                                        name="from_name"
+                                        value={formData.from_name}
+                                        onChange={handleChange}
+                                        className={styles.input}
+                                        required
+                                    />
                                 </div>
-                            ))}
-                        </div>
-                    </section>
-                </div>
-            </main>
-        </div>
+
+                                <div className={styles.formGroup}>
+                                    <label htmlFor="email" className={styles.label}>Email</label>
+                                    <input
+                                        type="email"
+                                        id="from_email"
+                                        name="from_email"
+                                        value={formData.from_email}
+                                        onChange={handleChange}
+                                        className={styles.input}
+                                        required
+                                    />
+                                </div>
+
+                                <div className={styles.formGroup}>
+                                    <label htmlFor="subject" className={styles.label}>Subject</label>
+                                    <input
+                                        type="text"
+                                        id="subject"
+                                        name="subject"
+                                        value={formData.subject}
+                                        onChange={handleChange}
+                                        className={styles.input}
+                                        required
+                                    />
+                                </div>
+
+                                <div className={styles.formGroup}>
+                                    <label htmlFor="message" className={styles.label}>Message</label>
+                                    <textarea
+                                        id="message"
+                                        name="message"
+                                        value={formData.message}
+                                        onChange={handleChange}
+                                        className={styles.textarea}
+                                        rows={5}
+                                        required
+                                    />
+                                </div>
+
+                                <button type="submit" className={styles.submitButton} disabled={isSubmitting}>
+                                    <Mail className={styles.buttonIcon} />
+                                    {isSubmitting ? 'Sending...' : 'Send Message'}
+                                </button>
+
+                                {submitStatus === 'success' && (
+                                    <p className={styles.successMessage}>
+                                        Message sent successfully! I will get back to you soon.
+                                    </p>
+                                )}
+
+                                {submitStatus === 'error' && (
+                                    <p className={styles.errorMessage}>
+                                        Oops! Something went wrong. Please try again.
+                                    </p>
+                                )}
+
+                            </form>
+                        </section>
+
+                        {/* FAQ Section */}
+                        <section className={styles.faqSection}>
+                            <h2 className={styles.sectionTitle}>Frequently Asked Questions</h2>
+                            <div className={styles.faqList}>
+                                {faqs.map((faq, index) => (
+                                    <div
+                                        key={index}
+                                        className={`${styles.faqItem} ${expandedFaq === index ? styles.expanded : ''}`}
+                                    >
+                                        <button
+                                            className={styles.faqButton}
+                                            onClick={() => setExpandedFaq(expandedFaq === index ? null : index)}
+                                        >
+                                            <span>{faq.question}</span>
+                                            {expandedFaq === index ? (
+                                                <ChevronUp className={styles.faqIcon} />
+                                            ) : (
+                                                <ChevronDown className={styles.faqIcon} />
+                                            )}
+                                        </button>
+                                        {expandedFaq === index && (
+                                            <div className={`${styles.faqAnswer}`}>
+                                                {faq.answer}
+                                            </div>
+                                        )}
+
+                                    </div>
+                                ))}
+                            </div>
+                        </section>
+                    </div>
+                </main>
+            </div>
+        </ClerkProvider>
     );
 };
 
