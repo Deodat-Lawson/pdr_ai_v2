@@ -132,8 +132,11 @@ export const DocumentContent: React.FC<DocumentContentProps> = ({
   const [showMissingModal, setShowMissingModal] = useState(false);
   const [showRecommendationsModal, setShowRecommendationsModal] = useState(false);
   const [showResolvedModal, setShowResolvedModal] = useState(false);
+  
+  // State for query mode: 'simple' for one-time query, 'chat' for conversation
+  const [queryMode, setQueryMode] = useState<'simple' | 'chat'>('simple');
 
-  if (!selectedDoc) {
+  if (!selectedDoc && viewMode !== "with-ai-qa" && viewMode !== "with-ai-qa-history") {
     return (
       <div className={styles.noDocSelected}>
         <h1 className={styles.noDocTitle}>Select a document to view</h1>
@@ -144,11 +147,11 @@ export const DocumentContent: React.FC<DocumentContentProps> = ({
   const getPdfSrcWithPage = (url: string, page: number) => `${url}#page=${page}`;
 
   const Modal = ({ title, children, onClose }: { title: string; children: React.ReactNode; onClose: () => void }) => (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-      <div className="bg-white p-6 rounded-lg max-w-3xl w-full max-h-[80vh] overflow-y-auto shadow-xl">
+    <div className="fixed inset-0 bg-black bg-opacity-50 dark:bg-black dark:bg-opacity-70 flex items-center justify-center z-50">
+      <div className="bg-white dark:bg-slate-900 p-6 rounded-lg max-w-3xl w-full max-h-[80vh] overflow-y-auto shadow-xl dark:border dark:border-purple-500/30">
         <div className="flex justify-between items-center mb-4">
-          <h3 className="text-xl font-semibold text-gray-900">{title}</h3>
-          <button onClick={onClose} className="text-gray-500 hover:text-gray-700">
+          <h3 className="text-xl font-semibold text-gray-900 dark:text-white">{title}</h3>
+          <button onClick={onClose} className="text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200 text-2xl">
             ✕
           </button>
         </div>
@@ -158,46 +161,46 @@ export const DocumentContent: React.FC<DocumentContentProps> = ({
   );
 
   const renderMissingItem = (doc: PredictiveAnalysisResponse['analysis']['missingDocuments'][0], index: number) => (
-    <div key={index} className="border-l-4 border-orange-400 pl-4 py-3 bg-orange-50 rounded-md">
-      <div className="font-medium text-gray-900 flex items-center justify-between">
+    <div key={index} className="border-l-4 border-orange-400 dark:border-orange-500 pl-4 py-3 bg-orange-50 dark:bg-orange-900/20 rounded-md">
+      <div className="font-medium text-gray-900 dark:text-gray-100 flex items-center justify-between">
         {doc.documentName}
         {doc.resolvedIn && (
           <button
             onClick={() => onSelectDocument?.(doc.resolvedIn!.documentId, doc.resolvedIn!.page)}
-            className="text-xs bg-green-100 text-green-700 px-2 py-1 rounded hover:bg-green-200 ml-2"
+            className="text-xs bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-300 px-2 py-1 rounded hover:bg-green-200 dark:hover:bg-green-900/50 ml-2"
           >
             View in {doc.resolvedIn.documentTitle ?? `Document ${doc.resolvedIn.documentId}`}
           </button>
         )}
       </div>
-      <div className="text-sm text-gray-600 mt-1">{doc.reason}</div>
-      <div className="text-xs text-gray-500 mt-2">
+      <div className="text-sm text-gray-600 dark:text-gray-400 mt-1">{doc.reason}</div>
+      <div className="text-xs text-gray-500 dark:text-gray-500 mt-2">
         Type: {doc.documentType} | Priority: {doc.priority}
       </div>
       <button
         onClick={() => setPdfPageNumber(doc.page)}
-        className="text-xs bg-orange-100 text-orange-700 px-2 py-1 rounded mt-1 hover:bg-orange-200"
+        className="text-xs bg-orange-100 dark:bg-orange-900/30 text-orange-700 dark:text-orange-300 px-2 py-1 rounded mt-1 hover:bg-orange-200 dark:hover:bg-orange-900/50"
       >
         Original Reference: Page {doc.page}
       </button>
       {doc.suggestedCompanyDocuments && doc.suggestedCompanyDocuments.length > 0 && (
         <div className="mt-2">
-          <div className="text-xs font-medium text-gray-700">Possible Company Documents:</div>
+          <div className="text-xs font-medium text-gray-700 dark:text-gray-300">Possible Company Documents:</div>
           <div className="mt-1 space-y-1">
             {doc.suggestedCompanyDocuments.map((companyDoc, companyIndex) => (
-              <div key={companyIndex} className="bg-blue-50 border border-blue-200 rounded p-2">
+              <div key={companyIndex} className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-500/30 rounded p-2">
                 <div className="flex items-center justify-between">
                   <button
                     onClick={() => onSelectDocument?.(companyDoc.documentId, companyDoc.page)}
-                    className="text-xs font-medium text-blue-700 hover:underline"
+                    className="text-xs font-medium text-blue-700 dark:text-blue-300 hover:underline"
                   >
                     {companyDoc.documentTitle}
                   </button>
-                  <span className="text-xs text-blue-600">
+                  <span className="text-xs text-blue-600 dark:text-blue-400">
                     {Math.round(companyDoc.similarity * 100)}% match
                   </span>
                 </div>
-                <div className="text-xs text-gray-600 mt-1">
+                <div className="text-xs text-gray-600 dark:text-gray-400 mt-1">
                   Page {companyDoc.page}: {companyDoc.snippet}
                 </div>
               </div>
@@ -207,14 +210,14 @@ export const DocumentContent: React.FC<DocumentContentProps> = ({
       )}
       {doc.suggestedLinks && doc.suggestedLinks.length > 0 && (
         <div className="mt-2">
-          <div className="text-xs font-medium text-gray-700">External Suggested Links:</div>
-          <ul className="list-disc pl-4 mt-1 text-xs text-blue-600">
+          <div className="text-xs font-medium text-gray-700 dark:text-gray-300">External Suggested Links:</div>
+          <ul className="list-disc pl-4 mt-1 text-xs text-blue-600 dark:text-blue-400">
             {doc.suggestedLinks.map((link, linkIndex) => (
               <li key={linkIndex}>
                 <a href={link.link} target="_blank" rel="noopener noreferrer" className="hover:underline">
                   {link.title}
                 </a>
-                <p className="text-gray-500">{link.snippet}</p>
+                <p className="text-gray-500 dark:text-gray-400">{link.snippet}</p>
               </li>
             ))}
           </ul>
@@ -224,23 +227,23 @@ export const DocumentContent: React.FC<DocumentContentProps> = ({
   );
 
   const renderResolvedItem = (doc: NonNullable<PredictiveAnalysisResponse['analysis']['resolvedDocuments']>[0], index: number) => (
-    <div key={index} className="border-l-4 border-green-400 pl-4 py-3 bg-green-50 rounded-md">
-      <div className="font-medium text-gray-900 flex items-center justify-between">
+    <div key={index} className="border-l-4 border-green-400 dark:border-green-500 pl-4 py-3 bg-green-50 dark:bg-green-900/20 rounded-md">
+      <div className="font-medium text-gray-900 dark:text-gray-100 flex items-center justify-between">
         {doc.documentName}
         <button
           onClick={() => onSelectDocument?.(doc.resolvedDocumentId, doc.resolvedPage)}
-          className="text-xs bg-green-100 text-green-700 px-2 py-1 rounded hover:bg-green-200 ml-2"
+          className="text-xs bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-300 px-2 py-1 rounded hover:bg-green-200 dark:hover:bg-green-900/50 ml-2"
         >
           View in {doc.resolvedDocumentTitle ?? `Document ${doc.resolvedDocumentId}`} (Page {doc.resolvedPage})
         </button>
       </div>
-      <div className="text-sm text-gray-600 mt-1">{doc.reason}</div>
-      <div className="text-xs text-gray-500 mt-2">
+      <div className="text-sm text-gray-600 dark:text-gray-400 mt-1">{doc.reason}</div>
+      <div className="text-xs text-gray-500 dark:text-gray-500 mt-2">
         Type: {doc.documentType} | Priority: {doc.priority}
       </div>
       <button
         onClick={() => setPdfPageNumber(doc.originalPage)}
-        className="text-xs bg-green-100 text-green-700 px-2 py-1 rounded mt-1 hover:bg-green-200"
+        className="text-xs bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-300 px-2 py-1 rounded mt-1 hover:bg-green-200 dark:hover:bg-green-900/50"
       >
         Original Reference: Page {doc.originalPage}
       </button>
@@ -248,15 +251,17 @@ export const DocumentContent: React.FC<DocumentContentProps> = ({
   );
 
   const renderRecommendationItem = (rec: string, index: number) => (
-    <div key={index} className="border-l-4 border-green-400 pl-4 py-3 bg-green-50 rounded-md">
-      <div className="text-sm text-gray-600">{rec}</div>
+    <div key={index} className="border-l-4 border-green-400 dark:border-green-500 pl-4 py-3 bg-green-50 dark:bg-green-900/20 rounded-md">
+      <div className="text-sm text-gray-600 dark:text-gray-300">{rec}</div>
     </div>
   );
 
   return (
     <>
       <div className={styles.docHeader}>
-        <h1 className={styles.docTitle}>{selectedDoc.title}</h1>
+        <h1 className={styles.docTitle}>
+          {selectedDoc ? selectedDoc.title : "All Documents"}
+        </h1>
       </div>
 
       {/* AI Q&A Section */}
@@ -267,9 +272,42 @@ export const DocumentContent: React.FC<DocumentContentProps> = ({
             <h2 className={styles.summaryTitle}>AI Q&A</h2>
           </div>
 
+          {/* Query Mode Toggle */}
+          <div className="mb-4">
+            <div className="flex gap-2 p-1 bg-gray-100 dark:bg-slate-800 rounded-lg w-fit">
+              <button
+                type="button"
+                onClick={() => setQueryMode('simple')}
+                className={`px-4 py-2 rounded-md font-medium text-sm transition-all duration-200 ${
+                  queryMode === 'simple'
+                    ? 'bg-white dark:bg-slate-700 text-purple-600 dark:text-purple-400 shadow-md'
+                    : 'text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-200'
+                }`}
+              >
+                💬 Simple Query
+              </button>
+              <button
+                type="button"
+                onClick={() => setQueryMode('chat')}
+                className={`px-4 py-2 rounded-md font-medium text-sm transition-all duration-200 ${
+                  queryMode === 'chat'
+                    ? 'bg-white dark:bg-slate-700 text-purple-600 dark:text-purple-400 shadow-md'
+                    : 'text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-200'
+                }`}
+              >
+                🤖 AI Chat
+              </button>
+            </div>
+            <p className="text-xs text-gray-500 dark:text-gray-400 mt-2">
+              {queryMode === 'simple' 
+                ? '✓ Quick one-time questions with focused answers' 
+                : '✓ Interactive conversation mode with context retention'}
+            </p>
+          </div>
+
           <form onSubmit={handleAiSearch} className="flex flex-col space-y-3">
             <div className="flex flex-col space-y-2">
-              <label className="text-sm font-medium text-gray-700">Search Scope:</label>
+              <label className="text-sm font-medium text-gray-700 dark:text-gray-300">Search Scope:</label>
               <div className="flex space-x-4">
                 <label className="flex items-center">
                   <input
@@ -279,7 +317,7 @@ export const DocumentContent: React.FC<DocumentContentProps> = ({
                     onChange={(e) => setSearchScope(e.target.value as "document" | "company")}
                     className="mr-2 text-purple-600 focus:ring-purple-500"
                   />
-                  <span className="text-sm text-gray-700">
+                  <span className="text-sm text-gray-700 dark:text-gray-300">
                     Current Document {selectedDoc ? `(${selectedDoc.title})` : ""}
                   </span>
                 </label>
@@ -292,7 +330,7 @@ export const DocumentContent: React.FC<DocumentContentProps> = ({
                     className="mr-2 text-purple-600 focus:ring-purple-500"
                     disabled={!companyId}
                   />
-                  <span className={`text-sm ${!companyId ? 'text-gray-400' : 'text-gray-700'}`}>
+                  <span className={`text-sm ${!companyId ? 'text-gray-400' : 'text-gray-700 dark:text-gray-300'}`}>
                     All Company Documents
                   </span>
                 </label>
@@ -300,11 +338,11 @@ export const DocumentContent: React.FC<DocumentContentProps> = ({
             </div>
             
             <div className="flex flex-col space-y-2">
-              <label className="text-sm font-medium text-gray-700">Response Style:</label>
+              <label className="text-sm font-medium text-gray-700 dark:text-gray-300">Response Style:</label>
               <select
                 value={aiStyle}
                 onChange={(e) => setAiStyle(e.target.value)}
-                className="border border-gray-300 rounded p-2 w-full focus:ring-2 focus:ring-purple-500 focus:border-purple-500"
+                className="border border-gray-300 dark:border-slate-600 dark:bg-slate-800 dark:text-white rounded p-2 w-full focus:ring-2 focus:ring-purple-500 focus:border-purple-500"
               >
                 {Object.entries(styleOptions).map(([key, label]) => (
                   <option key={key} value={key}>
@@ -324,7 +362,7 @@ export const DocumentContent: React.FC<DocumentContentProps> = ({
               }
               value={aiQuestion}
               onChange={(e) => setAiQuestion(e.target.value)}
-              className="border border-gray-300 rounded p-2 w-full focus:ring-2 focus:ring-purple-500 focus:border-purple-500"
+              className="border border-gray-300 dark:border-slate-600 dark:bg-slate-800 dark:text-white dark:placeholder-gray-400 rounded p-2 w-full focus:ring-2 focus:ring-purple-500 focus:border-purple-500"
             />
             <button
               type="submit"
@@ -343,18 +381,18 @@ export const DocumentContent: React.FC<DocumentContentProps> = ({
           {aiError && <p className="text-red-500 mt-2">{aiError}</p>}
 
           {aiAnswer && (
-            <div className="bg-gray-100 rounded p-3 mt-2">
-              <p className="text-gray-700 whitespace-pre-wrap">{aiAnswer}</p>
+            <div className="bg-gray-100 dark:bg-slate-800 rounded p-3 mt-2">
+              <p className="text-gray-700 dark:text-gray-300 whitespace-pre-wrap">{aiAnswer}</p>
 
               {referencePages.length > 0 && (
                 <div className="mt-4">
-                  <p className="font-semibold text-gray-700 mb-2">Reference Pages:</p>
+                  <p className="font-semibold text-gray-700 dark:text-gray-300 mb-2">Reference Pages:</p>
                   <div className="flex flex-wrap gap-2">
                     {referencePages.map((page) => (
                       <button
                         key={page}
                         onClick={() => setPdfPageNumber(page)}
-                        className="inline-block bg-purple-100 text-purple-700 px-3 py-1 rounded-md hover:bg-purple-200 transition-colors"
+                        className="inline-block bg-purple-100 dark:bg-purple-900/50 text-purple-700 dark:text-purple-300 px-3 py-1 rounded-md hover:bg-purple-200 dark:hover:bg-purple-900/70 transition-colors"
                       >
                         Page {page}
                       </button>
@@ -380,7 +418,7 @@ export const DocumentContent: React.FC<DocumentContentProps> = ({
             onQuestionSelect={(question) => setAiQuestion(question)}
             selectedDoc={selectedDoc}
             setPdfPageNumber={setPdfPageNumber}
-            documentTitle={selectedDoc.title}
+            documentTitle={selectedDoc?.title ?? "All Documents"}
           />
         </div>
       )}
@@ -404,16 +442,16 @@ export const DocumentContent: React.FC<DocumentContentProps> = ({
 
           {predictiveLoading && (
             <div className="flex items-center justify-center py-8">
-              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-purple-600"></div>
-              <span className="ml-3 text-gray-600">Analyzing document...</span>
+              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-purple-600 dark:border-purple-400"></div>
+              <span className="ml-3 text-gray-600 dark:text-gray-300">Analyzing document...</span>
             </div>
           )}
 
           {predictiveError && (
-            <div className="bg-red-50 border border-red-200 rounded-lg p-4">
+            <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-500/30 rounded-lg p-4">
               <div className="flex items-center">
-                <AlertTriangle className="w-5 h-5 text-red-600 mr-2" />
-                <span className="text-red-700">{predictiveError}</span>
+                <AlertTriangle className="w-5 h-5 text-red-600 dark:text-red-400 mr-2" />
+                <span className="text-red-700 dark:text-red-300">{predictiveError}</span>
               </div>
             </div>
           )}
@@ -422,37 +460,37 @@ export const DocumentContent: React.FC<DocumentContentProps> = ({
             <div className="space-y-6">
               {/* Summary Stats */}
               <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                <div className="bg-blue-50 p-4 rounded-lg">
-                  <div className="text-2xl font-bold text-blue-600">
+                <div className="bg-blue-50 dark:bg-blue-900/20 dark:border dark:border-blue-500/30 p-4 rounded-lg">
+                  <div className="text-2xl font-bold text-blue-600 dark:text-blue-400">
                     {predictiveAnalysis.summary.totalMissingDocuments}
                   </div>
-                  <div className="text-sm text-blue-700">Missing Documents</div>
+                  <div className="text-sm text-blue-700 dark:text-blue-300">Missing Documents</div>
                 </div>
-                <div className="bg-red-50 p-4 rounded-lg">
-                  <div className="text-2xl font-bold text-red-600">
+                <div className="bg-red-50 dark:bg-red-900/20 dark:border dark:border-red-500/30 p-4 rounded-lg">
+                  <div className="text-2xl font-bold text-red-600 dark:text-red-400">
                     {predictiveAnalysis.summary.highPriorityItems}
                   </div>
-                  <div className="text-sm text-red-700">High Priority</div>
+                  <div className="text-sm text-red-700 dark:text-red-300">High Priority</div>
                 </div>
-                <div className="bg-yellow-50 p-4 rounded-lg">
-                  <div className="text-2xl font-bold text-yellow-600">
+                <div className="bg-yellow-50 dark:bg-yellow-900/20 dark:border dark:border-yellow-500/30 p-4 rounded-lg">
+                  <div className="text-2xl font-bold text-yellow-600 dark:text-yellow-400">
                     {predictiveAnalysis.summary.totalRecommendations}
                   </div>
-                  <div className="text-sm text-yellow-700">Recommendations</div>
+                  <div className="text-sm text-yellow-700 dark:text-yellow-300">Recommendations</div>
                 </div>
-                <div className="bg-green-50 p-4 rounded-lg">
-                  <div className="text-2xl font-bold text-green-600">
+                <div className="bg-green-50 dark:bg-green-900/20 dark:border dark:border-green-500/30 p-4 rounded-lg">
+                  <div className="text-2xl font-bold text-green-600 dark:text-green-400">
                     {predictiveAnalysis.summary.totalSuggestedRelated}
                   </div>
-                  <div className="text-sm text-green-700">Suggested Related</div>
+                  <div className="text-sm text-green-700 dark:text-green-300">Suggested Related</div>
                 </div>
               </div>
 
               {/* Missing Documents Section */}
               {predictiveAnalysis.analysis.missingDocuments.length > 0 && (
-                <div className="bg-white border rounded-lg p-6">
-                  <h3 className="text-lg font-semibold mb-4 flex items-center">
-                    <AlertCircle className="w-5 h-5 text-orange-500 mr-2" />
+                <div className="bg-white dark:bg-slate-800/90 border dark:border-purple-500/30 rounded-lg p-6">
+                  <h3 className="text-lg font-semibold mb-4 flex items-center text-gray-900 dark:text-white">
+                    <AlertCircle className="w-5 h-5 text-orange-500 dark:text-orange-400 mr-2" />
                     Missing Documents
                   </h3>
                   <div className="space-y-4">
@@ -462,7 +500,7 @@ export const DocumentContent: React.FC<DocumentContentProps> = ({
                     {predictiveAnalysis.analysis.missingDocuments.length > 1 && (
                       <button
                         onClick={() => setShowMissingModal(true)}
-                        className="text-blue-600 hover:underline mt-2 text-sm font-medium"
+                        className="text-blue-600 dark:text-blue-400 hover:underline mt-2 text-sm font-medium"
                       >
                         View All ({predictiveAnalysis.analysis.missingDocuments.length} total)
                       </button>
@@ -473,9 +511,9 @@ export const DocumentContent: React.FC<DocumentContentProps> = ({
 
               {/* Recommendations Section */}
               {predictiveAnalysis.analysis.recommendations.length > 0 && (
-                <div className="bg-white border rounded-lg p-6">
-                  <h3 className="text-lg font-semibold mb-4 flex items-center">
-                    <CheckCircle className="w-5 h-5 text-green-500 mr-2" />
+                <div className="bg-white dark:bg-slate-800/90 border dark:border-purple-500/30 rounded-lg p-6">
+                  <h3 className="text-lg font-semibold mb-4 flex items-center text-gray-900 dark:text-white">
+                    <CheckCircle className="w-5 h-5 text-green-500 dark:text-green-400 mr-2" />
                     Recommendations
                   </h3>
                   <div className="space-y-3">
@@ -485,7 +523,7 @@ export const DocumentContent: React.FC<DocumentContentProps> = ({
                     {predictiveAnalysis.analysis.recommendations.length > 1 && (
                       <button
                         onClick={() => setShowRecommendationsModal(true)}
-                        className="text-blue-600 hover:underline mt-2 text-sm font-medium"
+                        className="text-blue-600 dark:text-blue-400 hover:underline mt-2 text-sm font-medium"
                       >
                         View All ({predictiveAnalysis.analysis.recommendations.length} total)
                       </button>
@@ -496,9 +534,9 @@ export const DocumentContent: React.FC<DocumentContentProps> = ({
 
               {/* Resolved Documents Section */}
               {predictiveAnalysis.analysis.resolvedDocuments && predictiveAnalysis.analysis.resolvedDocuments.length > 0 && (
-                <div className="bg-white border rounded-lg p-6">
-                  <h3 className="text-lg font-semibold mb-4 flex items-center">
-                    <Check className="w-5 h-5 text-green-500 mr-2" />
+                <div className="bg-white dark:bg-slate-800/90 border dark:border-purple-500/30 rounded-lg p-6">
+                  <h3 className="text-lg font-semibold mb-4 flex items-center text-gray-900 dark:text-white">
+                    <Check className="w-5 h-5 text-green-500 dark:text-green-400 mr-2" />
                     Resolved References
                   </h3>
                   <div className="space-y-3">
@@ -506,7 +544,7 @@ export const DocumentContent: React.FC<DocumentContentProps> = ({
                     {predictiveAnalysis.analysis.resolvedDocuments.length > 1 && (
                       <button
                         onClick={() => setShowResolvedModal(true)}
-                        className="text-blue-600 hover:underline mt-2 text-sm font-medium"
+                        className="text-blue-600 dark:text-blue-400 hover:underline mt-2 text-sm font-medium"
                       >
                         View All ({predictiveAnalysis.analysis.resolvedDocuments.length} total)
                       </button>
@@ -517,23 +555,23 @@ export const DocumentContent: React.FC<DocumentContentProps> = ({
 
               {/* Suggested Related Documents */}
               {predictiveAnalysis.analysis.suggestedRelatedDocuments && predictiveAnalysis.analysis.suggestedRelatedDocuments.length > 0 && (
-                <div className="bg-white border rounded-lg p-6">
-                  <h3 className="text-lg font-semibold mb-4 flex items-center">
-                    <FileSearch className="w-5 h-5 text-blue-500 mr-2" />
+                <div className="bg-white dark:bg-slate-800/90 border dark:border-purple-500/30 rounded-lg p-6">
+                  <h3 className="text-lg font-semibold mb-4 flex items-center text-gray-900 dark:text-white">
+                    <FileSearch className="w-5 h-5 text-blue-500 dark:text-blue-400 mr-2" />
                     Suggested Related Documents
                   </h3>
                   <div className="space-y-3">
                     {predictiveAnalysis.analysis.suggestedRelatedDocuments.map((doc, index) => (
-                      <div key={index} className="border-l-4 border-blue-400 pl-4 py-3 bg-blue-50 rounded-md">
+                      <div key={index} className="border-l-4 border-blue-400 dark:border-blue-500 pl-4 py-3 bg-blue-50 dark:bg-blue-900/20 rounded-md">
                         <a
                           href={doc.link}
                           target="_blank"
                           rel="noopener noreferrer"
-                          className="font-medium text-blue-600 hover:underline"
+                          className="font-medium text-blue-600 dark:text-blue-400 hover:underline"
                         >
                           {doc.title}
                         </a>
-                        <div className="text-sm text-gray-600 mt-1">{doc.snippet}</div>
+                        <div className="text-sm text-gray-600 dark:text-gray-400 mt-1">{doc.snippet}</div>
                       </div>
                     ))}
                   </div>
@@ -544,15 +582,17 @@ export const DocumentContent: React.FC<DocumentContentProps> = ({
         </div>
       )}
 
-      {/* PDF Viewer */}
-      <div className={styles.pdfContainer}>
-        <iframe
-          key={pdfPageNumber}
-          src={getPdfSrcWithPage(selectedDoc.url, pdfPageNumber)}
-          className={styles.pdfViewer}
-          title={selectedDoc.title}
-        />
-      </div>
+      {/* PDF Viewer - Only show when a document is selected */}
+      {selectedDoc && (
+        <div className={styles.pdfContainer}>
+          <iframe
+            key={pdfPageNumber}
+            src={getPdfSrcWithPage(selectedDoc.url, pdfPageNumber)}
+            className={styles.pdfViewer}
+            title={selectedDoc.title}
+          />
+        </div>
+      )}
 
       {/* Modals */}
       {showMissingModal && predictiveAnalysis && (

@@ -26,6 +26,21 @@
     bg-clip-text text-transparent transition-all duration-300;
 }
 
+.navActions {
+    @apply flex items-center gap-4;
+}
+
+.iconButton {
+    @apply p-3 rounded-lg bg-transparent border-0 cursor-pointer;
+    @apply text-gray-600 hover:bg-purple-100 hover:text-purple-600;
+    @apply transition-all duration-200;
+    @apply focus:outline-none focus:ring-2 focus:ring-purple-500 focus:ring-offset-2;
+}
+
+.iconButtonIcon {
+    @apply w-5 h-5;
+}
+
 .homeButton {
     @apply flex items-center px-6 py-3 rounded-xl font-semibold
     bg-gradient-to-r from-purple-600 to-indigo-600 text-white 
@@ -33,6 +48,10 @@
     shadow-lg hover:shadow-xl transition-all duration-300
     transform hover:-translate-y-0.5
     focus:outline-none focus:ring-2 focus:ring-purple-500 focus:ring-offset-2;
+}
+
+.homeIcon {
+    @apply mr-2 w-5 h-5;
 }
 
 /* Main Content - Enhanced Layout */
@@ -283,4 +302,117 @@
     .employeeTable td {
         @apply px-3 py-2 text-xs;
     }
+}
+
+/* Dark Theme Support */
+[data-theme="dark"] .container {
+    @apply bg-gradient-to-br from-slate-950 via-purple-950 to-indigo-950;
+}
+
+[data-theme="dark"] .navbar {
+    @apply bg-slate-950/80 border-b border-purple-500/20;
+}
+
+[data-theme="dark"] .logoIcon {
+    @apply text-purple-400;
+}
+
+[data-theme="dark"] .logoText {
+    @apply bg-gradient-to-r from-purple-400 to-indigo-400 bg-clip-text text-transparent;
+}
+
+[data-theme="dark"] .iconButton {
+    @apply text-gray-400 hover:bg-purple-900/30 hover:text-purple-300;
+}
+
+[data-theme="dark"] .welcomeTitle {
+    background: linear-gradient(135deg, #e0e7ff 0%, #c7d2fe 50%, #a78bfa 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+}
+
+[data-theme="dark"] .employeeSection {
+    @apply bg-slate-900/80 border-purple-500/30;
+}
+
+[data-theme="dark"] .sectionTitle {
+    @apply text-white border-purple-500/20;
+}
+
+[data-theme="dark"] .employeeTable thead {
+    @apply bg-gradient-to-r from-purple-900/40 to-indigo-900/40;
+}
+
+[data-theme="dark"] .employeeTable th {
+    @apply text-gray-300 border-purple-500/20;
+}
+
+[data-theme="dark"] .employeeTable td {
+    @apply text-gray-300 border-slate-700;
+}
+
+[data-theme="dark"] .employeeTable tbody tr:hover {
+    @apply bg-purple-900/20;
+}
+
+[data-theme="dark"] .approveButton {
+    @apply bg-gradient-to-r from-green-900/50 to-green-800/40 text-green-300
+    hover:from-green-800/60 hover:to-green-700/50;
+}
+
+[data-theme="dark"] .removeButton {
+    @apply bg-gradient-to-r from-red-900/50 to-red-800/40 text-red-300
+    hover:from-red-800/60 hover:to-red-700/50;
+}
+
+[data-theme="dark"] .statusBadge.verified {
+    @apply bg-green-900/40 text-green-300;
+}
+
+[data-theme="dark"] .statusBadge.pending {
+    @apply bg-yellow-900/40 text-yellow-300;
+}
+
+[data-theme="dark"] .statusBadge.rejected {
+    @apply bg-red-900/40 text-red-300;
+}
+
+[data-theme="dark"] .roleBadge {
+    @apply bg-purple-900/40 text-purple-300;
+}
+
+[data-theme="dark"] .statCard {
+    @apply bg-slate-900/80 border-purple-500/30;
+}
+
+[data-theme="dark"] .statNumber {
+    background: linear-gradient(135deg, #c7d2fe 0%, #a78bfa 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+}
+
+[data-theme="dark"] .statLabel {
+    @apply text-gray-400;
+}
+
+[data-theme="dark"] .emptyState {
+    @apply text-gray-400;
+}
+
+[data-theme="dark"] .emptyStateIcon {
+    @apply text-purple-400/50;
+}
+
+[data-theme="dark"] .emptyStateTitle {
+    @apply text-gray-300;
+}
+
+[data-theme="dark"] .emptyStateText {
+    @apply text-gray-400;
+}
+
+[data-theme="dark"] .employeeSection p {
+    @apply text-gray-400;
 }

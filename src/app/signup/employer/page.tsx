@@ -3,10 +3,11 @@
 import React, { useState } from "react";
 import { useRouter } from "next/navigation";
 import { useAuth, useUser } from "@clerk/nextjs";
-import { Brain } from "lucide-react";
 import SignInForm from "~/app/signup/employer/SignInForm";
 import SignUpForm from "~/app/signup/employer/SignUpForm";
 import styles from "../../../styles/Employer/Signup.module.css";
+import { SignupNavbar } from "~/app/_components/SignupNavbar";
+import { ClerkProvider } from "@clerk/nextjs";
 
 interface SignInFormData {
     companyName: string;
@@ -113,6 +114,7 @@ const EmployerSignup: React.FC = () => {
         staffCount: "",
     });
     const [signUpErrors, setSignUpErrors] = useState<SignUpFormErrors>({});
+    const [isSubmitting, setIsSubmitting] = useState(false);
 
     const [showSignUpPasswords, setShowSignUpPasswords] = useState({
         manager: false,
@@ -156,8 +158,16 @@ const EmployerSignup: React.FC = () => {
     };
 
     const submitSignUp = async () => {
-        if (!userId || !user) return;
+        if (!userId || !user) {
+            console.error("User not authenticated. userId:", userId, "user:", user);
+            setSignUpErrors((prev) => ({ 
+                ...prev, 
+                companyName: "Please sign in with Clerk first to create an account" 
+            }));
+            return;
+        }
 
+        setIsSubmitting(true);
         try {
             const response = await fetch("/api/signup/employerCompany", {
                 method: "POST",
@@ -181,12 +191,21 @@ const EmployerSignup: React.FC = () => {
                 } else {
                     setSignUpErrors((prev) => ({ ...prev, companyName: "Registration failed" }));
                 }
+                setIsSubmitting(false);
                 return;
             }
+            
+            if (!response.ok) {
+                setSignUpErrors((prev) => ({ ...prev, companyName: "Registration failed. Please try again." }));
+                setIsSubmitting(false);
+                return;
+            }
+
             router.push("/employer/home");
         } catch (error) {
             console.error("Sign up error:", error);
-            setSignUpErrors((prev) => ({ ...prev, companyName: "Registration failed" }));
+            setSignUpErrors((prev) => ({ ...prev, companyName: "Registration failed. Please check your connection." }));
+            setIsSubmitting(false);
         }
     };
 
@@ -207,17 +226,11 @@ const EmployerSignup: React.FC = () => {
     };
 
     return (
-        <div className={styles.container}>
-            <nav className={styles.navbar}>
-                <div className={styles.navContent}>
-                    <div className={styles.logoContainer}>
-                        <Brain className={styles.logoIcon} />
-                        <span className={styles.logoText}>PDR AI</span>
-                    </div>
-                </div>
-            </nav>
+        <ClerkProvider>
+            <div className={styles.container}>
+                <SignupNavbar />
 
-            <main className={styles.main}>
+                <main className={styles.main}>
                 <div className={styles.formContainer}>
                     <div className={styles.authToggle}>
                         <button
@@ -237,7 +250,7 @@ const EmployerSignup: React.FC = () => {
                     </div>
 
                     <h1 className={styles.title}>
-                        {isSignIn ? "Employer Sign In" : "Employer Registration"}
+                        {isSignIn ? "Employer Sign In" : "Owner Registration"}
                     </h1>
                     <p className={styles.subtitle}>
                         {isSignIn
@@ -262,11 +275,13 @@ const EmployerSignup: React.FC = () => {
                             onChange={handleSignUpChange}
                             onSubmit={handleSignUpSubmit}
                             onTogglePassword={toggleSignUpPassword}
+                            isSubmitting={isSubmitting}
                         />
                     )}
                 </div>
             </main>
-        </div>
+            </div>
+        </ClerkProvider>
     );
 };
 
