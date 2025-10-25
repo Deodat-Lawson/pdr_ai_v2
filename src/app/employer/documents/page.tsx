@@ -246,7 +246,36 @@ const DocumentViewer: React.FC = () => {
   }, [userId, isRoleLoading, fetchDocuments]);
 
   useEffect(() => {
-    if (!userId || !selectedDoc?.id) return;
+    if (!userId) return;
+    
+    // If in Q&A history mode and no document selected, fetch all history
+    if (viewMode === "with-ai-qa-history" && !selectedDoc) {
+      const fetchAllHistory = async () => {
+        try {
+          const response = await fetch("/api/Questions/fetch", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ userId }), // Fetch all history for user
+          });
+
+          if (!response.ok) {
+            throw new Error("Failed to fetch Q&A history");
+          }
+
+          const rawData: unknown = await response.json();
+          const { chatHistory } = rawData as FetchHistoryProp;
+          setQaHistory(chatHistory);
+        } catch (error) {
+          console.error("Error fetching Q&A history:", error);
+        }
+      };
+
+      fetchAllHistory().catch(console.error);
+      return;
+    }
+
+    // Fetch history for specific document
+    if (!selectedDoc?.id) return;
 
     const fetchHistory = async () => {
       try {
@@ -269,7 +298,7 @@ const DocumentViewer: React.FC = () => {
     };
 
     fetchHistory().catch(console.error);
-  }, [userId, selectedDoc]);
+  }, [userId, selectedDoc, viewMode]);
 
   const toggleCategory = (categoryName: string) => {
     setOpenCategories(prev => {

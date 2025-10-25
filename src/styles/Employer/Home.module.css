@@ -26,6 +26,10 @@
     bg-clip-text text-transparent transition-all duration-300;
 }
 
+.navActions {
+    @apply flex items-center gap-4;
+}
+
 .profileButton {
     @apply px-6 py-3 rounded-xl font-semibold
     bg-gradient-to-r from-purple-600 to-indigo-600 text-white 
@@ -178,6 +182,78 @@
 /* Interactive States */
 .menuCard:focus {
     @apply outline-none ring-2 ring-purple-500 ring-offset-2;
+}
+
+/* Dark Theme Support */
+[data-theme="dark"] .container {
+    @apply bg-gradient-to-br from-slate-950 via-purple-950 to-indigo-950;
+}
+
+[data-theme="dark"] .navbar {
+    @apply bg-slate-950/80 border-b border-purple-500/20;
+}
+
+[data-theme="dark"] .logoIcon {
+    @apply text-purple-400;
+}
+
+[data-theme="dark"] .logoText {
+    @apply bg-gradient-to-r from-purple-400 to-indigo-400 bg-clip-text text-transparent;
+}
+
+[data-theme="dark"] .welcomeTitle {
+    background: linear-gradient(135deg, #e5e7eb 0%, #a78bfa 50%, #c084fc 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+}
+
+[data-theme="dark"] .welcomeText {
+    @apply text-gray-300;
+}
+
+[data-theme="dark"] .menuCard {
+    @apply bg-slate-900/50 border-purple-500/20 hover:border-purple-400;
+}
+
+[data-theme="dark"] .iconContainer {
+    @apply bg-gradient-to-br from-purple-900/50 to-indigo-900/50;
+}
+
+[data-theme="dark"] .menuIcon {
+    @apply text-purple-400;
+}
+
+[data-theme="dark"] .menuTitle {
+    @apply text-white;
+}
+
+[data-theme="dark"] .menuCard:hover .menuTitle {
+    @apply text-purple-400;
+}
+
+[data-theme="dark"] .menuDescription {
+    @apply text-gray-300;
+}
+
+[data-theme="dark"] .cardFooter {
+    @apply border-purple-500/20;
+}
+
+[data-theme="dark"] .getStarted {
+    @apply text-purple-400;
+}
+
+[data-theme="dark"] .menuCard:hover .getStarted {
+    @apply text-purple-300;
+}
+
+[data-theme="dark"] .stat {
+    @apply bg-slate-900/50 border-purple-500/20;
+}
+
+[data-theme="dark"] .statLabel {
+    @apply text-gray-300;
 }
 
 /* Responsive Design */

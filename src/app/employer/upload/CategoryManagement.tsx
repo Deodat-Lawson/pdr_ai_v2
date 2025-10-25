@@ -35,8 +35,7 @@ const CategoryManagement: React.FC<CategoryManagementProps> = ({
             // Wait for onAddCategory to finish
             await onAddCategory(userId, newCategory);
             setNewCategory("");
-            // Then refresh to re-fetch updated data
-            router.push("/employer/home");
+            // Parent component handles state update, no need to refresh
         } catch (error) {
             console.error("Error adding category:", error);
         }
@@ -46,8 +45,7 @@ const CategoryManagement: React.FC<CategoryManagementProps> = ({
     const handleRemoveCategory = async (id: string) => {
         try {
             await onRemoveCategory(id);
-            // Refresh to re-fetch updated data
-            router.refresh();
+            // Parent component handles state update
         } catch (error) {
             console.error("Error removing category:", error);
         }

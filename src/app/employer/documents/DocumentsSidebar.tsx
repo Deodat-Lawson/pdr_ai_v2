@@ -17,7 +17,8 @@ import {
     Trash2,
 } from "lucide-react";
 import styles from "~/styles/Employer/DocumentViewer.module.css";
-import { type ViewMode } from "./types";    
+import { type ViewMode } from "./types";
+import { ThemeToggle } from "~/app/_components/ThemeToggle";    
 
 interface DocumentType {
     id: number;
@@ -108,6 +109,7 @@ export const DocumentsSidebar: React.FC<DocumentsSidebarProps> = ({
 
     return (
         <aside className={`${styles.sidebar} ${isCollapsed ? styles.collapsed : ""}`}>
+            {/* Collapse Toggle Button */}
             <button 
                 className={styles.toggleButton}
                 onClick={toggleSidebar}
@@ -118,12 +120,25 @@ export const DocumentsSidebar: React.FC<DocumentsSidebarProps> = ({
                 />
             </button>
 
+            {/* Sidebar Header Section */}
             <div className={styles.sidebarHeader}>
-                <button className={styles.logoContainer}>
-                    <Brain className={styles.logoIcon} />
-                    <span className={styles.logoText}>PDR AI</span>
-                </button>
+                {/* Logo and Actions Row */}
+                <div className={styles.logoRow}>
+                    <div className={styles.logoContainer}>
+                        <Brain className={styles.logoIcon} />
+                        <span className={styles.logoText}>PDR AI</span>
+                    </div>
+                    <div className={styles.headerActions}>
+                        <ThemeToggle />
+                        <Link href="/employer/home">
+                            <button className={styles.iconButton} aria-label="Go to home">
+                                <Home className={styles.iconButtonIcon} />
+                            </button>
+                        </Link>
+                    </div>
+                </div>
 
+                {/* Search Bar */}
                 <div className={styles.searchContainer}>
                     <Search className={`${styles.searchIcon} ${isSearchFocused ? 'text-purple-600 scale-110' : ''}`} />
                     <input
@@ -138,6 +153,7 @@ export const DocumentsSidebar: React.FC<DocumentsSidebarProps> = ({
                 </div>
             </div>
 
+            {/* View Mode Selection Section */}
             <div className={styles.viewModeContainer}>
                 <div className={styles.viewModeHeader}>
                     <span className={styles.viewModeTitle}>View Options</span>
@@ -154,10 +170,11 @@ export const DocumentsSidebar: React.FC<DocumentsSidebarProps> = ({
                                 className={`${styles.viewModeButton} ${viewMode === mode ? styles.activeViewMode : ""
                                     }`}
                                 onClick={() => setViewMode(mode)}
+                                aria-label={tooltip}
                             >
                                 <Icon className={styles.viewModeIcon} />
                             </button>
-                            {hoveredTooltip === mode && (
+                            {hoveredTooltip === mode && !isCollapsed && (
                                 <div className={styles.tooltip}>
                                     <span className={styles.tooltipText}>{tooltip}</span>
                                     <div className={styles.tooltipArrow}></div>
@@ -169,8 +186,24 @@ export const DocumentsSidebar: React.FC<DocumentsSidebarProps> = ({
             </div>
 
             <nav className={styles.docList}>
+                {/* Show "All Documents" option when in AI Q&A mode */}
+                {(viewMode === "with-ai-qa" || viewMode === "with-ai-qa-history") && !isCollapsed && (
+                    <div className={styles.categoryGroup}>
+                        <div 
+                            // className={`${styles.docButton} ${!selectedDoc ? styles.selected : ""}`}
+                            onClick={() => setSelectedDoc(null as any)}
+                        >
+                            <button className={styles.docItem}>
+                                <FileText className={styles.docIcon} />
+                                <span className={styles.docName}>All Documents</span>
+                            </button>
+                        </div>
+                    </div>
+                )}
+
                 {categories.map((category) => (
                     <div key={category.name} className={styles.categoryGroup}>
+                        {/* Category Header */}
                         <div 
                             className={styles.categoryHeader}
                             onClick={() => handleCategoryClick(category.name)}
@@ -191,10 +224,17 @@ export const DocumentsSidebar: React.FC<DocumentsSidebarProps> = ({
                             <span className={styles.categoryName}>{category.name}</span>
                         </div>
 
+                        {/* Category Documents */}
                         {category.isOpen && (
                             <div className={styles.categoryDocs}>
                                 {category.documents.map((doc) => (
-                                    <div key={doc.id} className={`${styles.docButton} group ${selectedDoc && selectedDoc.id === doc.id ? styles.selected : ""}`}>
+                                    <div 
+                                        key={doc.id} 
+                                        className={`${styles.docButton} group ${
+                                            selectedDoc && selectedDoc.id === doc.id ? styles.selected : ""
+                                        }`}
+                                    >
+                                        {/* Document Button */}
                                         <button
                                             onClick={() => setSelectedDoc(doc)}
                                             className={styles.docItem}
@@ -202,6 +242,8 @@ export const DocumentsSidebar: React.FC<DocumentsSidebarProps> = ({
                                             <FileText className={styles.docIcon} />
                                             <span className={styles.docName}>{doc.title}</span>
                                         </button>
+                                        
+                                        {/* Delete Button (appears on hover) */}
                                         {!isCollapsed && deleteDocument && (
                                             <button
                                                 onClick={(e) => handleDeleteDocument(doc.id, e)}
@@ -220,13 +262,9 @@ export const DocumentsSidebar: React.FC<DocumentsSidebarProps> = ({
                 ))}
             </nav>
 
+            {/* Sidebar Footer Section - Reserved for future actions */}
             <div className={styles.sidebarFooter}>
-                <Link href="/employer/home">
-                    <button className={styles.homeButton}>
-                        <Home className={styles.homeIcon} />
-                        <span>Home</span>
-                    </button>
-                </Link>
+                {/* Add additional actions here as needed */}
             </div>
         </aside>
     );

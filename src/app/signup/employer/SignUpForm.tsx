@@ -1,7 +1,7 @@
 "use client";
 
-import React, { type FC } from "react";
-import { Eye, EyeOff, Lock, Building, Users } from "lucide-react";
+import React, { type FC, useState } from "react";
+import { Eye, EyeOff, Lock, Building, Users, Info } from "lucide-react";
 import styles from "~/styles/Employer/Signup.module.css";
 
 // Types for form data & errors
@@ -35,6 +35,7 @@ interface SignUpFormProps {
     onChange: (e: React.ChangeEvent<HTMLInputElement>) => void;
     onSubmit: (e: React.FormEvent) => void;
     onTogglePassword: (field: keyof SignUpFormProps["showPasswords"]) => void;
+    isSubmitting?: boolean;
 }
 
 const SignUpForm: FC<SignUpFormProps> = ({
@@ -44,7 +45,10 @@ const SignUpForm: FC<SignUpFormProps> = ({
                                              onChange,
                                              onSubmit,
                                              onTogglePassword,
+                                             isSubmitting = false,
                                          }) => {
+    const [showTooltip, setShowTooltip] = useState<string | null>(null);
+
     return (
         <form onSubmit={onSubmit} className={styles.form}>
             {/* Company Name */}
@@ -68,7 +72,21 @@ const SignUpForm: FC<SignUpFormProps> = ({
 
             {/* Manager Passcode */}
             <div className={styles.formGroup}>
-                <label className={styles.label}>Manager Passcode</label>
+                <div className={styles.labelWithInfo}>
+                    <label className={styles.label}>Manager Passcode</label>
+                    <div 
+                        className={styles.infoIconWrapper}
+                        onMouseEnter={() => setShowTooltip('manager')}
+                        onMouseLeave={() => setShowTooltip(null)}
+                    >
+                        <Info className={styles.infoIcon} />
+                        {showTooltip === 'manager' && (
+                            <div className={styles.tooltip}>
+                                Passcode needed for the organization's manager to sign in
+                            </div>
+                        )}
+                    </div>
+                </div>
                 <div className={styles.inputWrapper}>
                     <Lock className={styles.inputIcon} />
                     <input
@@ -120,7 +138,21 @@ const SignUpForm: FC<SignUpFormProps> = ({
 
             {/* Employee Passcode */}
             <div className={styles.formGroup}>
-                <label className={styles.label}>Employee Passcode</label>
+                <div className={styles.labelWithInfo}>
+                    <label className={styles.label}>Employee Passcode</label>
+                    <div 
+                        className={styles.infoIconWrapper}
+                        onMouseEnter={() => setShowTooltip('employee')}
+                        onMouseLeave={() => setShowTooltip(null)}
+                    >
+                        <Info className={styles.infoIcon} />
+                        {showTooltip === 'employee' && (
+                            <div className={styles.tooltip}>
+                                Passcode for employees to access the system
+                            </div>
+                        )}
+                    </div>
+                </div>
                 <div className={styles.inputWrapper}>
                     <Lock className={styles.inputIcon} />
                     <input
@@ -172,7 +204,21 @@ const SignUpForm: FC<SignUpFormProps> = ({
 
             {/* Staff Count */}
             <div className={styles.formGroup}>
-                <label className={styles.label}>Approximate Number of Staff</label>
+                <div className={styles.labelWithInfo}>
+                    <label className={styles.label}>Approximate Number of Staff</label>
+                    <div 
+                        className={styles.infoIconWrapper}
+                        onMouseEnter={() => setShowTooltip('staff')}
+                        onMouseLeave={() => setShowTooltip(null)}
+                    >
+                        <Info className={styles.infoIcon} />
+                        {showTooltip === 'staff' && (
+                            <div className={styles.tooltip}>
+                                Helps us adjust scalability to match your organization's needs
+                            </div>
+                        )}
+                    </div>
+                </div>
                 <div className={styles.inputWrapper}>
                     <Users className={styles.inputIcon} />
                     <input
@@ -190,8 +236,12 @@ const SignUpForm: FC<SignUpFormProps> = ({
                 )}
             </div>
 
-            <button type="submit" className={styles.submitButton}>
-                Create Account
+            <button 
+                type="submit" 
+                className={styles.submitButton}
+                disabled={isSubmitting}
+            >
+                {isSubmitting ? "Creating Account..." : "Create Account"}
             </button>
         </form>
     );

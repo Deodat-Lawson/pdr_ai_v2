@@ -58,7 +58,7 @@
 }
 
 /* Responsive Design */
-@media (max-width: 768px) {
+@media (max-width: 1024px) {
     .navLinks {
         @apply space-x-2;
     }
@@ -68,13 +68,29 @@
     }
 }
 
-@media (max-width: 640px) {
+@media (max-width: 768px) {
     .navLinks {
-        @apply flex-wrap justify-end gap-2;
+        @apply space-x-1;
     }
     
     .btn {
         @apply px-2 py-1.5 text-xs;
+    }
+    
+    /* Hide text on smaller buttons, keep icons */
+    .btn:not(.btnPrimary) {
+        @apply hidden;
+    }
+    
+    /* Keep theme toggle and Get Started visible */
+    .navLinks > :nth-last-child(-n+2) {
+        @apply flex;
+    }
+}
+
+@media (max-width: 640px) {
+    .logoText {
+        @apply text-lg;
     }
 }
 

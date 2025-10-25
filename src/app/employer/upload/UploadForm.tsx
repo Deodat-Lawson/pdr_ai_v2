@@ -113,6 +113,7 @@ const UploadForm: React.FC<UploadFormProps> = ({ categories }) => {
                     onUploadError={(error) => {
                         console.error("Upload Error:", error);
                     }}
+                    className={styles.uploadArea}
                 />
             ) : (
                 <div className={styles.fileInfo}>
