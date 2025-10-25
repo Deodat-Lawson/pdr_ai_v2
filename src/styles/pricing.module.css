@@ -108,7 +108,7 @@
 
 .logoPlaceholder {
     @apply flex items-center justify-center space-x-4 
-    bg-white/80 backdrop-blur-sm p-8 rounded-2xl shadow-xl border border-gray-100
+    bg-white/90 backdrop-blur-sm p-8 rounded-2xl shadow-xl border border-purple-200/40
     max-w-md mx-auto;
 }
 
@@ -134,7 +134,10 @@
 }
 
 .pricingContainer {
-    @apply max-w-2xl mx-auto;
+    @apply max-w-7xl mx-auto;
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(400px, 1fr));
+    gap: 2rem;
 }
 
 .pricingCard {
@@ -204,6 +207,14 @@
 /* CTA */
 .ctaContainer {
     @apply text-center;
+}
+
+.buttonGroup {
+    @apply flex gap-4 justify-center flex-wrap mb-4;
+}
+
+.demoButtonWrapper {
+    @apply mt-4;
 }
 
 .arrowIcon {
@@ -277,6 +288,127 @@
     @apply border-white text-white hover:bg-white hover:text-purple-600;
 }
 
+/* Dark Theme Styles */
+[data-theme="dark"] .container {
+    @apply bg-gradient-to-br from-slate-950 via-purple-950 to-indigo-950;
+}
+
+[data-theme="dark"] .navContainer {
+    @apply bg-slate-950/80 border-purple-500/20;
+}
+
+[data-theme="dark"] .logoText {
+    @apply bg-gradient-to-r from-purple-400 to-indigo-400;
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+}
+
+[data-theme="dark"] .iconPurple {
+    @apply text-purple-400;
+}
+
+[data-theme="dark"] .btnGhost {
+    @apply text-gray-300 hover:text-purple-400 hover:bg-purple-900/30;
+}
+
+[data-theme="dark"] .heroTitle {
+    background: linear-gradient(135deg, #ffffff 0%, #a78bfa 30%, #c084fc 60%, #e879f9 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+}
+
+[data-theme="dark"] .heroDescription {
+    @apply text-gray-300;
+}
+
+[data-theme="dark"] .sponsorshipSection {
+    @apply bg-gradient-to-r from-slate-900/50 to-purple-900/50;
+}
+
+[data-theme="dark"] .sponsorshipBadge {
+    @apply bg-red-900/50 text-red-300;
+}
+
+[data-theme="dark"] .sponsorshipDescription {
+    @apply text-gray-300;
+}
+
+[data-theme="dark"] .logoPlaceholder {
+    @apply bg-slate-900/70 border-purple-500/30;
+}
+
+[data-theme="dark"] .universityText h3 {
+    @apply text-white;
+}
+
+[data-theme="dark"] .universityText p {
+    @apply text-gray-400;
+}
+
+[data-theme="dark"] .pricingSection {
+    @apply bg-transparent;
+}
+
+[data-theme="dark"] .pricingCard {
+    @apply bg-slate-900/50 border-purple-500/20;
+}
+
+[data-theme="dark"] .planBadge {
+    @apply bg-purple-900/50 text-purple-300;
+}
+
+[data-theme="dark"] .planTitle {
+    @apply text-white;
+}
+
+[data-theme="dark"] .price {
+    @apply text-white;
+}
+
+[data-theme="dark"] .priceSubtext {
+    @apply text-gray-400;
+}
+
+[data-theme="dark"] .planDescription {
+    @apply text-gray-300;
+}
+
+[data-theme="dark"] .featuresTitle {
+    @apply text-white;
+}
+
+[data-theme="dark"] .featureItem span {
+    @apply text-gray-300;
+}
+
+[data-theme="dark"] .ctaSubtext {
+    @apply text-gray-400;
+}
+
+[data-theme="dark"] .benefitsSection {
+    @apply bg-gradient-to-r from-purple-900/30 to-indigo-900/30;
+}
+
+[data-theme="dark"] .benefitsTitle {
+    @apply text-white;
+}
+
+[data-theme="dark"] .benefitCard {
+    @apply bg-slate-900/50 border-purple-500/20;
+}
+
+[data-theme="dark"] .benefitIcon {
+    @apply text-purple-400;
+}
+
+[data-theme="dark"] .benefitTitle {
+    @apply text-white;
+}
+
+[data-theme="dark"] .benefitDescription {
+    @apply text-gray-300;
+}
+
 /* Responsive Design */
 @media (max-width: 768px) {
     .heroTitle {
@@ -289,6 +421,10 @@
     
     .price {
         @apply text-5xl;
+    }
+    
+    .pricingContainer {
+        grid-template-columns: 1fr;
     }
     
     .pricingCard {

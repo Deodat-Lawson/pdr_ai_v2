@@ -1,7 +1,8 @@
 import Link from "next/link";
 import React, {type FC, type ReactNode} from 'react';
-import { Brain, Zap, ArrowRight, Shield, Clock, Users, TrendingUp, Star, Search, BarChart3, Building2, FileSearch } from 'lucide-react';
+import { Brain, Zap, ArrowRight, Shield, Clock, Users, TrendingUp, Star, Search, BarChart3, Building2, FileSearch, Upload, Sparkles, CheckCircle } from 'lucide-react';
 import styles from '../styles/home.module.css';
+import { Navbar } from './_components/Navbar';
 
 import {
     ClerkProvider,
@@ -26,41 +27,8 @@ export default function HomePage() {
     return (
         <ClerkProvider>
             <div className={styles['documind-container']}>
-                {/* Navigation */}
-                <nav className={styles["nav-container"]}>
-                    <div className={styles["nav-content"]}>
-                        <div className={styles["nav-wrapper"]}>
-                            <div className={styles["logo-container"]}>
-                                <Brain className={styles["icon-purple"]} />
-                                <span className={styles["logo-text"]}>PDR AI</span>
-                            </div>
-                            <div className={styles["nav-links"]}>
-                                {/* Link to /pricing page */}
-                                <Link href="/pricing">
-                                    <button className={`${styles.btn} ${styles["btn-ghost"]}`}>
-                                        Pricing
-                                    </button>
-                                </Link>
+                <Navbar />
 
-                                {/* Contact us */}
-                                <Link href="/contact">
-                                    <button className={`${styles.btn} ${styles["btn-ghost"]}`}>
-                                        Contact Support
-                                    </button>
-                                </Link>
-
-                                {/* Link to /get-started page */}
-                                <SignUpButton>
-                                    <button className={`${styles.btn} ${styles["btn-primary"]}`}>
-                                        Get Started
-                                    </button>
-                                </SignUpButton>
-                            </div>
-                        </div>
-                    </div>
-                </nav>
-
-                {/* Hero Section */}
                 <div className={styles['hero-section']}>
                     <div className={styles['hero-content']}>
                         <h1 className={styles['hero-title']}>
@@ -84,8 +52,7 @@ export default function HomePage() {
                         </div>
                     </div>
                 </div>
-
-                {/* Features Section */}    
+  
                 <div className={styles['features-section']}>
                     <div className={styles['features-container']}>
                         <h2 className={styles['features-title']}>
@@ -129,7 +96,6 @@ export default function HomePage() {
                     </div>
                 </div>
 
-                {/* Enhanced Benefits Section */}
                 <div className={styles['benefits-section']}>
                     <div className={styles['benefits-grid']}>
                         <div className={styles['benefits-content']}>
@@ -168,21 +134,74 @@ export default function HomePage() {
                             </div>
                         </div>
                         
-                        <div className={styles['demo-container']}>
-                            <div className={styles['demo-card']}>
-                                <div className={styles['demo-header']}>
-                                    <h3 className={styles['demo-title']}>
-                                        See PDR-AI in Action
+                        <div className={styles['workflow-container']}>
+                            <div className={styles['workflow-card']}>
+                                <div className={styles['workflow-header']}>
+                                    <h3 className={styles['workflow-title']}>
+                                        How PDR-AI Works
                                     </h3>
-                                    <p className={styles['demo-description']}>
-                                        Watch how our predictive document analysis and company management tools transform complex workflows into streamlined operations.
+                                    <p className={styles['workflow-description']}>
+                                        Intelligent document processing powered by cutting-edge AI
                                     </p>
                                 </div>
                                 
-                                <div className={styles['demo-visual']}>
-                                    <span className={styles['demo-placeholder']}>
-                                        Interactive Demo Coming Soon
-                                    </span>
+                                <div className={styles['workflow-diagram']}>
+                                    <div className={styles['workflow-step']}>
+                                        <div className={styles['workflow-step-icon']}>
+                                            <Upload className={styles['workflow-icon']} />
+                                        </div>
+                                        <div className={styles['workflow-step-content']}>
+                                            <h4 className={styles['workflow-step-title']}>1. Upload</h4>
+                                            <p className={styles['workflow-step-text']}>Upload documents to your secure workspace</p>
+                                        </div>
+                                        <div className={styles['workflow-connector']}></div>
+                                    </div>
+
+                                    <div className={styles['workflow-step']}>
+                                        <div className={styles['workflow-step-icon']}>
+                                            <FileSearch className={styles['workflow-icon']} />
+                                        </div>
+                                        <div className={styles['workflow-step-content']}>
+                                            <h4 className={styles['workflow-step-title']}>2. File Identification</h4>
+                                            <p className={styles['workflow-step-text']}>Identify, categorize and graph the files in the database</p>
+                                        </div>
+                                        <div className={styles['workflow-connector']}></div>
+                                    </div>
+
+                                    <div className={styles['workflow-step']}>
+                                        <div className={styles['workflow-step-icon']}>
+                                            <Sparkles className={styles['workflow-icon']} />
+                                        </div>
+                                        <div className={styles['workflow-step-content']}>
+                                            <h4 className={styles['workflow-step-title']}>3. Document Analysis</h4>
+                                            <p className={styles['workflow-step-text']}>Analyzes the document and provides insights</p>
+                                        </div>  
+                                        <div className={styles['workflow-connector']}></div>
+                                    </div>
+
+
+                                    <div className={styles['workflow-step']}>
+                                        <div className={styles['workflow-step-icon']}>
+                                            <Brain className={styles['workflow-icon']} />
+                                        </div>
+                                        <div className={styles['workflow-step-content']}>
+                                            <h4 className={styles['workflow-step-title']}>4. AI Analysis</h4>
+                                            <p className={styles['workflow-step-text']}>Advanced AI processes and queries</p>
+                                        </div>
+                                        <div className={styles['workflow-connector']}></div>
+                                    </div>
+
+
+
+                                    <div className={styles['workflow-step']}>
+                                        <div className={`${styles['workflow-step-icon']} ${styles['workflow-final-icon']}`}>
+                                            <CheckCircle className={styles['workflow-icon']} />
+                                        </div>
+                                        <div className={styles['workflow-step-content']}>
+                                            <h4 className={styles['workflow-step-title']}>5. Insights</h4>
+                                            <p className={styles['workflow-step-text']}>Get actionable insights and complete compliance</p>
+                                        </div>
+                                    </div>
                                 </div>
                                 
                                 <div className={styles['stats-grid']}>
@@ -204,7 +223,6 @@ export default function HomePage() {
                     </div>
                 </div>
 
-                {/* Call to Action Section */}
                 <div className={styles['cta-section']}>
                     <div className={styles['cta-container']}>
                         <h2 className={styles['cta-title']}>
