@@ -82,7 +82,7 @@ const SignUpForm: FC<SignUpFormProps> = ({
                         <Info className={styles.infoIcon} />
                         {showTooltip === 'manager' && (
                             <div className={styles.tooltip}>
-                                Passcode needed for the organization's manager to sign in
+                                Passcode needed for the organization&apos;s manager to sign in
                             </div>
                         )}
                     </div>
@@ -214,7 +214,7 @@ const SignUpForm: FC<SignUpFormProps> = ({
                         <Info className={styles.infoIcon} />
                         {showTooltip === 'staff' && (
                             <div className={styles.tooltip}>
-                                Helps us adjust scalability to match your organization's needs
+                                Helps us adjust scalability to match your organization&apos;s needs
                             </div>
                         )}
                     </div>

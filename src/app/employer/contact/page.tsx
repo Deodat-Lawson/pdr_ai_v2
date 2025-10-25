@@ -113,7 +113,7 @@ const EmployerContactPage = () => {
                 <div className={styles.header}>
                     <h1 className={styles.title}>Contact Support</h1>
                     <p className={styles.subtitle}>
-                        Having technical difficulties? We're here to help. Send us a message and our team will get back to you as soon as possible.
+                        Having technical difficulties? We&apos;re here to help. Send us a message and our team will get back to you as soon as possible.
                     </p>
                 </div>
 
@@ -175,7 +175,7 @@ const EmployerContactPage = () => {
 
                             {submitStatus === "success" && (
                                 <div className={styles.successMessage}>
-                                    ✓ Message sent successfully! We'll get back to you soon.
+                                    ✓ Message sent successfully! We&apos;ll get back to you soon.
                                 </div>
                             )}
 

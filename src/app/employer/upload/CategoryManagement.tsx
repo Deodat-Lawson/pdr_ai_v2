@@ -4,7 +4,6 @@ import React, { useState } from "react";
 import { Trash2 } from "lucide-react";
 import styles from "~/styles/Employer/Upload.module.css";
 import { useAuth } from "@clerk/nextjs";
-import { useRouter } from "next/navigation";
 
 interface Category {
     id: string;
@@ -24,7 +23,6 @@ const CategoryManagement: React.FC<CategoryManagementProps> = ({
                                                                }) => {
     const { userId } = useAuth();
     const [newCategory, setNewCategory] = useState("");
-    const router = useRouter();
 
     // Make the function async, and await the category creation
     const handleAddCategory = async (e: React.FormEvent) => {

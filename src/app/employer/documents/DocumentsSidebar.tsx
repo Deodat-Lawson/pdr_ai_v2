@@ -190,8 +190,8 @@ export const DocumentsSidebar: React.FC<DocumentsSidebarProps> = ({
                 {(viewMode === "with-ai-qa" || viewMode === "with-ai-qa-history") && !isCollapsed && (
                     <div className={styles.categoryGroup}>
                         <div 
-                            // className={`${styles.docButton} ${!selectedDoc ? styles.selected : ""}`}
-                            onClick={() => setSelectedDoc(null as any)}
+                            className={`${styles.docButton} ${!selectedDoc ? styles.selected : ""}`}
+                            onClick={() => setSelectedDoc(null as unknown as DocumentType)}
                         >
                             <button className={styles.docItem}>
                                 <FileText className={styles.docIcon} />

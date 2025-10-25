@@ -60,7 +60,7 @@ const Page: React.FC = () => {
                 if (!res.ok) {
                     throw new Error("Failed to create category");
                 }
-                const rawData: CategoryResponse = await res.json();
+                const rawData = await res.json() as CategoryResponse;
                 
                 if (rawData.success) {
                     const createdCategory = { id: rawData.id, name: rawData.name };
