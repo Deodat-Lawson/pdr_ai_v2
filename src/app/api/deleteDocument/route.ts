@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import { db } from "../../../server/db/index";
-import { document, ChatHistory, documentReferenceResolution } from "../../../server/db/schema";
+import { document, ChatHistory, documentReferenceResolution, pdfChunks } from "../../../server/db/schema";
 import { eq } from "drizzle-orm";
 import { validateRequestBody, DeleteDocumentSchema } from "~/lib/validation";
 
@@ -22,12 +22,17 @@ export async function DELETE(request: Request) {
             }, { status: 400 });
         }
 
+        // Delete related data in proper order to maintain referential integrity
         await db.delete(ChatHistory).where(eq(ChatHistory.documentId, docId));
         await db.delete(documentReferenceResolution).where(
             eq(documentReferenceResolution.resolvedInDocumentId, documentId)
         );
-        
-        //TODO: Delete pdfChunks of the document
+
+        // Delete PDF chunks associated with the document
+        await db.delete(pdfChunks).where(eq(pdfChunks.documentId, documentId));
+        console.log(`Deleted PDF chunks for document ${documentId}`);
+
+        // Finally delete the document itself
         await db.delete(document).where(eq(document.id, documentId));
 
         return NextResponse.json({ 
