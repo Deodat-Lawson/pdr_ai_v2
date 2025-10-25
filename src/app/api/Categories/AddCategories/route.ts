@@ -34,12 +34,12 @@ export async function POST(request: Request) {
 
         const companyId = userInfo.companyId;
 
-        await db.insert(category).values({
+        const newCategoryId = await db.insert(category).values({
             name: CategoryName,
             companyId: companyId,
-        });
+        }).returning({ id: category.id });
 
-        return NextResponse.json({ success: true });
+        return NextResponse.json({ success: true, id: newCategoryId[0], name: CategoryName });
     } catch (error: unknown) {
         console.error(error);
         return NextResponse.json({ error }, { status: 500 });

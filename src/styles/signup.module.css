@@ -174,6 +174,72 @@
     }
 }
 
+/* Dark Theme Support */
+[data-theme="dark"] .container {
+    @apply bg-gradient-to-br from-slate-950 via-purple-950 to-indigo-950;
+}
+
+[data-theme="dark"] .title {
+    background: linear-gradient(135deg, #e5e7eb 0%, #a78bfa 50%, #c084fc 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+}
+
+[data-theme="dark"] .subtitle {
+    @apply text-gray-300;
+}
+
+[data-theme="dark"] .roleCard {
+    @apply bg-slate-900/50 border-purple-500/20 backdrop-blur-sm;
+    @apply hover:border-purple-400;
+}
+
+[data-theme="dark"] .roleCard.selected {
+    @apply border-purple-400 bg-gradient-to-br from-slate-900/80 to-purple-900/50;
+    @apply ring-purple-500/50;
+}
+
+[data-theme="dark"] .iconWrapper {
+    @apply bg-gradient-to-br from-purple-900/50 to-indigo-900/50;
+}
+
+[data-theme="dark"] .roleCard.selected .iconWrapper {
+    @apply bg-gradient-to-br from-purple-800/70 to-indigo-800/70;
+}
+
+[data-theme="dark"] .cardIcon {
+    @apply text-purple-400;
+}
+
+[data-theme="dark"] .roleCard.selected .cardIcon {
+    @apply text-purple-300;
+}
+
+[data-theme="dark"] .cardTitle {
+    @apply text-white;
+}
+
+[data-theme="dark"] .roleCard:hover .cardTitle {
+    @apply text-purple-400;
+}
+
+[data-theme="dark"] .roleCard.selected .cardTitle {
+    @apply text-purple-300;
+}
+
+[data-theme="dark"] .cardDescription {
+    @apply text-gray-300;
+}
+
+[data-theme="dark"] .roleCard.selected .cardDescription {
+    @apply text-gray-200;
+}
+
+[data-theme="dark"] .continueButton {
+    @apply bg-gray-700 text-gray-400;
+}
+
 /* Responsive Design */
 @media (max-width: 768px) {
     .title {

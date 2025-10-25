@@ -1,9 +1,11 @@
 "use client"
 
 import React, { useState } from 'react';
-import { Briefcase, Users, ArrowRight, Brain } from 'lucide-react';
-import { useRouter } from 'next/navigation'; // <-- Use 'next/navigation'
+import { Briefcase, Users, ArrowRight } from 'lucide-react';
+import { useRouter } from 'next/navigation';
 import styles from '~/styles/signup.module.css';
+import { SignupNavbar } from '../_components/SignupNavbar';
+import { ClerkProvider } from '@clerk/nextjs';
 
 interface RoleCardProps {
     title: string;
@@ -48,18 +50,11 @@ const RoleSelection: React.FC = () => {
     };
 
     return (
-        <div className={styles.container}>
-            {/* Navigation */}
-            <nav className={styles.navbar}>
-                <div className={styles.navContent}>
-                    <div className={styles.logoContainer}>
-                        <Brain className={styles.logoIcon} />
-                        <span className={styles.logoText}>PDR AI</span>
-                    </div>
-                </div>
-            </nav>
+        <ClerkProvider>
+            <div className={styles.container}>
+                <SignupNavbar />
 
-            <main className={styles.main}>
+                <main className={styles.main}>
                 <div className={styles.contentWrapper}>
                     <h1 className={styles.title}>Choose Your Role</h1>
                     <p className={styles.subtitle}>Select how you will be using PDR AI</p>
@@ -90,7 +85,8 @@ const RoleSelection: React.FC = () => {
                     </button>
                 </div>
             </main>
-        </div>
+            </div>
+        </ClerkProvider>
     );
 };
 

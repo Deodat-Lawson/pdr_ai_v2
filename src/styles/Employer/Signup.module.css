@@ -213,6 +213,100 @@
     -moz-appearance: textfield;
 }
 
+/* Dark Theme Support */
+[data-theme="dark"] .container {
+    @apply bg-gradient-to-br from-slate-950 via-purple-950 to-indigo-950;
+}
+
+[data-theme="dark"] .formContainer {
+    @apply bg-slate-900/50 border border-purple-500/20 backdrop-blur-sm;
+}
+
+[data-theme="dark"] .authToggle {
+    @apply bg-slate-800/50;
+}
+
+[data-theme="dark"] .toggleButton {
+    @apply text-gray-300 bg-slate-800/50 hover:bg-slate-700/50;
+}
+
+[data-theme="dark"] .toggleButton.active {
+    @apply bg-slate-900/80 text-purple-400;
+}
+
+[data-theme="dark"] .title {
+    @apply text-white;
+}
+
+[data-theme="dark"] .subtitle {
+    @apply text-gray-300;
+}
+
+[data-theme="dark"] .label {
+    @apply text-gray-300;
+}
+
+[data-theme="dark"] .input {
+    @apply bg-slate-800/80 border-purple-500/20 text-white placeholder-gray-400;
+    @apply focus:border-purple-400;
+}
+
+[data-theme="dark"] .inputIcon {
+    @apply text-gray-400;
+}
+
+[data-theme="dark"] .eyeIcon {
+    @apply text-gray-400 hover:text-gray-300;
+}
+
+[data-theme="dark"] .error {
+    @apply text-red-400;
+}
+
+/* Info Icon and Tooltip Styles */
+.labelWithInfo {
+    @apply flex items-center gap-2 mb-1;
+}
+
+.infoIconWrapper {
+    @apply relative inline-flex items-center;
+}
+
+.infoIcon {
+    @apply w-4 h-4 text-purple-500 cursor-help transition-colors hover:text-purple-700;
+}
+
+[data-theme="dark"] .infoIcon {
+    @apply text-purple-400 hover:text-purple-300;
+}
+
+.tooltip {
+    @apply absolute left-0 top-6 z-50 w-64 p-3 text-sm;
+    @apply bg-gray-900 text-white rounded-lg shadow-xl;
+    @apply border border-purple-500/20;
+    animation: fadeIn 0.2s ease-in;
+}
+
+.tooltip::before {
+    content: '';
+    @apply absolute -top-1 left-4 w-2 h-2;
+    @apply bg-gray-900 border-l border-t border-purple-500/20;
+    transform: rotate(45deg);
+}
+
+[data-theme="dark"] .tooltip {
+    @apply bg-slate-800 border-purple-400/30;
+}
+
+[data-theme="dark"] .tooltip::before {
+    @apply bg-slate-800 border-purple-400/30;
+}
+
+@keyframes fadeIn {
+    from { opacity: 0; transform: translateY(-5px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
 /* Responsive Adjustments */
 @media (max-width: 640px) {
     .formContainer {

@@ -4,8 +4,10 @@ import React, { useState } from "react";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@clerk/nextjs";
 import { useUser } from "@clerk/nextjs";
-import { Eye, EyeOff, Lock, Building, Brain } from "lucide-react";
+import { Eye, EyeOff, Lock, Building } from "lucide-react";
 import styles from "~/styles/Employee/SignIn.module.css";
+import { SignupNavbar } from "~/app/_components/SignupNavbar";
+import { ClerkProvider } from "@clerk/nextjs";
 
 interface EmployeeSignInFormData {
     companyName: string;
@@ -104,17 +106,11 @@ const EmployeeSignIn: React.FC = () => {
     };
 
     return (
-        <div className={styles.container}>
-            <nav className={styles.navbar}>
-                <div className={styles.navContent}>
-                    <div className={styles.logoContainer}>
-                        <Brain className={styles.logoIcon} />
-                        <span className={styles.logoText}>PDR AI</span>
-                    </div>
-                </div>
-            </nav>
+        <ClerkProvider>
+            <div className={styles.container}>
+                <SignupNavbar />
 
-            <main className={styles.main}>
+                <main className={styles.main}>
                 <div className={styles.formContainer}>
                     <h1 className={styles.title}>Employee Sign In</h1>
                     <p className={styles.subtitle}>
@@ -179,7 +175,8 @@ const EmployeeSignIn: React.FC = () => {
                     </form>
                 </div>
             </main>
-        </div>
+            </div>
+        </ClerkProvider>
     );
 };
 
