@@ -6,8 +6,13 @@ import { validateRequestBody, UserIdSchema } from "~/lib/validation";
 import { auth } from '@clerk/nextjs/server'
 
 
-export async function POST() {
+export async function POST(request: Request) {
     try {
+        const validation = await validateRequestBody(request, UserIdSchema);
+        if (!validation.success) {
+            return validation.response;
+        }
+
         const { userId } = await auth()
 
         const [userInfo] = await db

@@ -48,7 +48,7 @@ const Page: React.FC = () => {
     }, []);
 
     const handleAddCategory = useCallback(
-        async (userId: string, newCategory: string) => {
+        async (newCategory: string) => {
             if (!newCategory.trim()) return;
             try {
                 const res = await fetch("/api/Categories/AddCategories", {

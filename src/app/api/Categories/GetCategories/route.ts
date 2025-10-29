@@ -3,23 +3,25 @@ import { db } from "../../../../server/db";
 import {category, users} from "../../../../server/db/schema";
 import { eq } from "drizzle-orm";
 import * as console from "console";
+import { auth } from "@clerk/nextjs/server";
 
-type PostBody = {
-    userId: string;
-};
-
-export async function POST(request: Request) {
+export async function GET(request: Request) {
     try {
-        const { userId } = (await request.json()) as PostBody;
+        const { userId } = await auth();
 
         const [userInfo] = await db
             .select()
             .from(users)
-            .where(eq(users.userId, userId));
+            .where(eq(users.userId, userId as string));
 
         if (!userInfo) {
             return NextResponse.json(
                 { error: "Invalid user." },
+                { status: 400 }
+            );
+        } else if (userInfo.role !== "employer" && userInfo.role !== "owner") {
+            return NextResponse.json(
+                { error: "Invalid user role." },
                 { status: 400 }
             );
         }
