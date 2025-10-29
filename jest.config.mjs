@@ -2,15 +2,15 @@
 export default {
   testEnvironment: 'node',
   transform: {
-    '^.+\\.(ts|tsx|js|jsx)$': 'babel-jest',
+    '^.+\\.(ts|tsx|js|jsx)$': [
+      'babel-jest',
+      { configFile: './jest.babel.config.cjs' },
+    ],
   },
   moduleNameMapper: {
     '^~/(.*)$': '<rootDir>/src/$1',
   },
   moduleDirectories: ['node_modules', 'src'],
-  extensionsToTreatAsEsm: ['.ts', '.tsx', '.jsx'],
-  testMatch: ['**/__tests__/**/*.(test|spec).{ts,tsx,js,jsx}'],
+  testMatch: ['**/__tests__/**/*.(test|spec).[jt]s?(x)'],
   verbose: true,
 };
-
-
