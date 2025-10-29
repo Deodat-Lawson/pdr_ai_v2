@@ -5,14 +5,20 @@ import { eq } from "drizzle-orm";
 import * as console from "console";
 import { auth } from "@clerk/nextjs/server";
 
-export async function GET(request: Request) {
+export async function GET(_request: Request) {
     try {
         const { userId } = await auth();
+        if (!userId) {
+            return NextResponse.json(
+                { error: "Invalid user." },
+                { status: 400 }
+            );
+        }
 
         const [userInfo] = await db
             .select()
             .from(users)
-            .where(eq(users.userId, userId as string));
+            .where(eq(users.userId, userId));
 
         if (!userInfo) {
             return NextResponse.json(

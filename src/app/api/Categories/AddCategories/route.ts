@@ -18,12 +18,18 @@ export async function POST(request: Request) {
             return validation.response;
         }
 
-        const { userId } = await auth();
+			const { userId } = await auth();
+			if (!userId) {
+				return NextResponse.json(
+					{ error: "Invalid user." },
+					{ status: 400 }
+				);
+			}
 
         const [userInfo] = await db
             .select()
             .from(users)
-            .where(eq(users.userId, userId as string));
+				.where(eq(users.userId, userId));
 
         if (!userInfo) {
             return NextResponse.json(
