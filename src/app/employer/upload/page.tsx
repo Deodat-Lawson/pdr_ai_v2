@@ -25,12 +25,11 @@ const Page: React.FC = () => {
 
     const [categories, setCategories] = useState<Category[]>([]);
 
-    const fetchCategories = useCallback(async (userId: string) => {
+    const fetchCategories = useCallback(async () => {
         try {
             const res = await fetch("/api/Categories/GetCategories", {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ userId }),
             });
             if (!res.ok) {
                 throw new Error("Failed to fetch categories");
@@ -55,7 +54,7 @@ const Page: React.FC = () => {
                 const res = await fetch("/api/Categories/AddCategories", {
                     method: "POST",
                     headers: { "Content-Type": "application/json" },
-                    body: JSON.stringify({ userId, CategoryName: newCategory }),
+                    body: JSON.stringify({ CategoryName: newCategory }),
                 });
                 if (!res.ok) {
                     throw new Error("Failed to create category");

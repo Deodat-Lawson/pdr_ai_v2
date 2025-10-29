@@ -3,6 +3,7 @@ import { db } from "../../../server/db/index";
 import { company, users } from "../../../server/db/schema";
 import { and, eq } from "drizzle-orm";
 import * as console from "console";
+import { auth } from '@clerk/nextjs/server'
 
 type PostBody = {
     userId: string;
@@ -10,12 +11,12 @@ type PostBody = {
 
 export async function POST(request: Request) {
     try {
-        const { userId } = (await request.json()) as PostBody;
+        const { userId } = await auth()
 
         const [userInfo] = await db
             .select()
             .from(users)
-            .where(eq(users.userId, userId));
+            .where(eq(users.userId, userId as string));
 
         if (!userInfo) {
             return NextResponse.json({ error: "Invalid user." }, { status: 400 });
