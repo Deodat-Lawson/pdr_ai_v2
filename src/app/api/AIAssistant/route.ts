@@ -13,6 +13,7 @@ import {
     type SearchResult
 } from "./services";
 import { validateRequestBody, QuestionSchema } from "~/lib/validation";
+import { auth } from "@clerk/nextjs/server";
 
 
 type PdfChunkRow = Record<string, unknown> & {
@@ -75,6 +76,14 @@ export async function POST(request: Request) {
         const validation = await validateRequestBody(request, QuestionSchema);
         if (!validation.success) {
             return validation.response;
+        }
+
+        const { userId } = await auth();
+        if (!userId) {
+            return NextResponse.json({
+                success: false,
+                message: "Unauthorized"
+            }, { status: 401 });
         }
 
         const { documentId, companyId, question, style, searchScope } = validation.data;
