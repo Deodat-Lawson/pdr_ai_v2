@@ -3,6 +3,7 @@ import { db } from "../../../server/db/index";
 import { document, users } from "../../../server/db/schema";
 import { eq } from "drizzle-orm";
 import { validateRequestBody, UserIdSchema } from "~/lib/validation";
+import { auth } from '@clerk/nextjs/server'
 
 
 export async function POST(request: Request) {
@@ -12,7 +13,13 @@ export async function POST(request: Request) {
             return validation.response;
         }
 
-        const { userId } = validation.data;
+        const { userId } = await auth()
+        if (!userId) {
+            return NextResponse.json(
+                { error: "Invalid user." },
+                { status: 400 }
+            );
+        }
 
         const [userInfo] = await db
             .select()

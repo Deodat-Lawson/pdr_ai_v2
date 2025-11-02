@@ -93,6 +93,44 @@
     -moz-appearance: textfield;
 }
 
+/* Dark Theme Support */
+[data-theme="dark"] .container {
+    @apply bg-gradient-to-br from-slate-950 via-purple-950 to-indigo-950;
+}
+
+[data-theme="dark"] .formContainer {
+    @apply bg-slate-900/50 border border-purple-500/20 backdrop-blur-sm;
+}
+
+[data-theme="dark"] .title {
+    @apply text-white;
+}
+
+[data-theme="dark"] .subtitle {
+    @apply text-gray-300;
+}
+
+[data-theme="dark"] .label {
+    @apply text-gray-300;
+}
+
+[data-theme="dark"] .input {
+    @apply bg-slate-800/80 border-purple-500/20 text-white placeholder-gray-400;
+    @apply focus:border-purple-400;
+}
+
+[data-theme="dark"] .inputIcon {
+    @apply text-gray-400;
+}
+
+[data-theme="dark"] .eyeIcon {
+    @apply text-gray-400 hover:text-gray-300;
+}
+
+[data-theme="dark"] .error {
+    @apply text-red-400;
+}
+
 /* Responsive Adjustments */
 @media (max-width: 640px) {
     .formContainer {

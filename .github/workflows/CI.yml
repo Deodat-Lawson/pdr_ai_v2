@@ -64,6 +64,9 @@ jobs:
       - name: Checking lint
         run: pnpm lint
 
+      - name: Run tests
+        run: pnpm test
+
   build:
     runs-on: ubuntu-latest
 
