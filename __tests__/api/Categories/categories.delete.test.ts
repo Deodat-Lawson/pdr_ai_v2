@@ -24,7 +24,6 @@ describe("DELETE /api/Categories/DeleteCategory", () => {
   });
 
   it("should allow an authenticated employer to delete a category", async () => {
-    // Mock successful validation
     (validateRequestBody as jest.Mock).mockResolvedValue({
       success: true,
       data: { id: "123" },

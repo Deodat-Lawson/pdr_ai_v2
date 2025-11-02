@@ -1,15 +1,40 @@
 import { NextResponse } from 'next/server';
 import { db } from "../../../server/db/index";
-import { document, ChatHistory, documentReferenceResolution, pdfChunks } from "../../../server/db/schema";
+import { document, ChatHistory, documentReferenceResolution, pdfChunks, users } from "../../../server/db/schema";
 import { eq } from "drizzle-orm";
 import { validateRequestBody, DeleteDocumentSchema } from "~/lib/validation";
-
+import { auth } from "@clerk/nextjs/server";
 
 export async function DELETE(request: Request) {
     try {
         const validation = await validateRequestBody(request, DeleteDocumentSchema);
         if (!validation.success) {
             return validation.response;
+        }
+
+        const { userId } = await auth();
+        if (!userId) {
+            return NextResponse.json({
+                success: false,
+                message: "Invalid user."
+            }, { status: 401 });
+        }
+
+        const [userInfo] = await db
+            .select()
+            .from(users)
+            .where(eq(users.userId, userId));
+
+        if (!userInfo) {
+            return NextResponse.json({
+                success: false,
+                message: "Invalid user."
+            }, { status: 401 });
+        } else if (userInfo.role !== "employer" && userInfo.role !== "owner") {
+            return NextResponse.json({
+                success: false,
+                message: "Unauthorized"
+            }, { status: 401 });
         }
 
         const { docId } = validation.data;

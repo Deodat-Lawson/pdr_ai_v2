@@ -3,6 +3,7 @@ import { db } from "../../../server/db/index";
 import { users } from "../../../server/db/schema";
 import { eq } from "drizzle-orm";
 import * as console from "console";
+import { auth } from "@clerk/nextjs/server";
 
 type PostBody = {
     userId: string;
@@ -11,7 +12,13 @@ type PostBody = {
 
 export async function POST(request: Request) {
     try {
-        const { userId } = (await request.json()) as PostBody;
+        const { userId } = await auth();
+        if (!userId) {
+            return NextResponse.json({
+                success: false,
+                message: "Unauthorized"
+            }, { status: 401 });
+        }
 
         const [userInfo] = await db
             .select()
