@@ -1,23 +1,63 @@
 import { NextResponse } from 'next/server';
 import { db } from "../../../server/db/index";
-import { document, ChatHistory, documentReferenceResolution } from "../../../server/db/schema";
+import { document, ChatHistory, documentReferenceResolution, pdfChunks, users } from "../../../server/db/schema";
 import { eq } from "drizzle-orm";
-
-type PostBody = {
-    docId: string;
-};
+import { validateRequestBody, DeleteDocumentSchema } from "~/lib/validation";
+import { auth } from "@clerk/nextjs/server";
 
 export async function DELETE(request: Request) {
     try {
-        const { docId } = (await request.json()) as PostBody;
+        const validation = await validateRequestBody(request, DeleteDocumentSchema);
+        if (!validation.success) {
+            return validation.response;
+        }
+
+        const { userId } = await auth();
+        if (!userId) {
+            return NextResponse.json({
+                success: false,
+                message: "Invalid user."
+            }, { status: 401 });
+        }
+
+        const [userInfo] = await db
+            .select()
+            .from(users)
+            .where(eq(users.userId, userId));
+
+        if (!userInfo) {
+            return NextResponse.json({
+                success: false,
+                message: "Invalid user."
+            }, { status: 401 });
+        } else if (userInfo.role !== "employer" && userInfo.role !== "owner") {
+            return NextResponse.json({
+                success: false,
+                message: "Unauthorized"
+            }, { status: 401 });
+        }
+
+        const { docId } = validation.data;
         const documentId = Number(docId);
 
+        if (isNaN(documentId) || documentId <= 0) {
+            return NextResponse.json({
+                success: false,
+                error: "Invalid document ID format"
+            }, { status: 400 });
+        }
+
+        // Delete related data in proper order to maintain referential integrity
         await db.delete(ChatHistory).where(eq(ChatHistory.documentId, docId));
         await db.delete(documentReferenceResolution).where(
             eq(documentReferenceResolution.resolvedInDocumentId, documentId)
         );
-        
-        //TODO: Delete pdfChunks of the document
+
+        // Delete PDF chunks associated with the document
+        await db.delete(pdfChunks).where(eq(pdfChunks.documentId, documentId));
+        console.log(`Deleted PDF chunks for document ${documentId}`);
+
+        // Finally delete the document itself
         await db.delete(document).where(eq(document.id, documentId));
 
         return NextResponse.json({ 

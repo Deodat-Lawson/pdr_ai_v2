@@ -18,6 +18,7 @@ import {
 import { SignOutButton, UserButton } from "@clerk/nextjs";
 import styles from "~/styles/Employee/DocumentViewer.module.css";
 import { type ViewMode } from "./types";
+import { ThemeToggle } from "~/app/_components/ThemeToggle";
 
 interface DocumentType {
   id: number;
@@ -164,6 +165,19 @@ export const DocumentsSidebar: React.FC<DocumentsSidebarProps> = ({
 
       {/* Document List */}
       <nav className={styles.docList}>
+        {/* Show "All Documents" option when in AI Q&A mode */}
+        {(viewMode === "with-ai-qa" || viewMode === "with-ai-qa-history") && !isCollapsed && (
+          <div className={styles.categoryGroup}>
+            <button
+              onClick={() => setSelectedDoc(null as unknown as DocumentType)}
+              className={`${styles.docItem} ${!selectedDoc ? styles.selected : ""}`}
+            >
+              <FileText className={styles.docIcon} />
+              <span className={styles.docName}>All Documents</span>
+            </button>
+          </div>
+        )}
+
         {categories.map((category) => (
           <div key={category.name} className={styles.categoryGroup}>
             <div 
@@ -209,6 +223,7 @@ export const DocumentsSidebar: React.FC<DocumentsSidebarProps> = ({
 
       {/* Profile Section */}
       <div className={styles.profileSection}>
+        <ThemeToggle />
         <UserButton
           afterSignOutUrl="/sign-in"
           appearance={{

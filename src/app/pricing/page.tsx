@@ -3,6 +3,7 @@ import React from 'react';
 import { Brain, Check, Users, Heart, Award, GraduationCap } from 'lucide-react';
 import styles from '../../styles/pricing.module.css';
 import Image from "next/image";
+import { Navbar } from '../_components/Navbar';
 import {
     ClerkProvider,
     SignUpButton,
@@ -12,47 +13,19 @@ export default function PricingPage() {
     return (
         <ClerkProvider>
             <div className={styles.container}>
-                <nav className={styles.navContainer}>
-                    <div className={styles.navContent}>
-                        <div className={styles.navWrapper}>
-                            <Link href="/" className={styles.logoContainer}>
-                                <Brain className={styles.iconPurple} />
-                                <span className={styles.logoText}>PDR AI</span>
-                            </Link>
-                            <div className={styles.navLinks}>
-                                <Link href="/">
-                                    <button className={`${styles.btn} ${styles.btnGhost}`}>
-                                        Home
-                                    </button>
-                                </Link>
-                                <Link href="/contact">
-                                    <button className={`${styles.btn} ${styles.btnGhost}`}>
-                                        Contact Support
-                                    </button>
-                                </Link>
-                                <SignUpButton>
-                                    <button className={`${styles.btn} ${styles.btnPrimary}`}>
-                                        Get Started
-                                    </button>
-                                </SignUpButton>
-                            </div>
-                        </div>
-                    </div>
-                </nav>
+                <Navbar />
 
-                {/* Hero Section */}
                 <div className={styles.heroSection}>
                     <div className={styles.heroContent}>
                         <h1 className={styles.heroTitle}>
-                            Simple, Transparent Pricing
+                            Open Source & Self-Deployable
                         </h1>
                         <p className={styles.heroDescription}>
-                            PDR AI is completely free to use, made possible by Johns Hopkins University
+                            Deploy PDR AI with your own API keys - this website serves as a free demo
                         </p>
                     </div>
                 </div>
 
-                {/* Sponsorship Section */}
                 <div className={styles.sponsorshipSection}>
                     <div className={styles.sponsorshipContainer}>
                         <div className={styles.sponsorshipContent}>
@@ -62,10 +35,10 @@ export default function PricingPage() {
                             </div>
                             <div className={styles.universityLogo}>
                                 <div className={styles.logoPlaceholder}>
-                                    <Image 
-                                        src="https://h0xotvuawi.ufs.sh/f/KSLubuOGoQY2bwMRkW2r4k1ug2cIMO7AxhWZJm08SoX5VeYq" 
-                                        alt="Johns Hopkins University" 
-                                        width={100} 
+                                    <Image
+                                        src="https://iiazjw8b8a.ufs.sh/f/zllPuoqtDQmM5spvD3EI3EhyDsbv87pB2AlOH1udg6mXVtkK"
+                                        alt="Johns Hopkins University"
+                                        width={100}
                                         height={100}
                                         className="rounded-lg"
                                     />
@@ -75,7 +48,7 @@ export default function PricingPage() {
                                 </div>
                             </div>
                             <p className={styles.sponsorshipDescription}>
-                                This project is made possible through the generous support of Johns Hopkins University&apos;s 
+                                This project is made possible through the generous support of Johns Hopkins University&apos;s
                                 commitment to advancing AI research and providing cutting-edge tools to professionals worldwide.
                             </p>
                         </div>
@@ -84,19 +57,87 @@ export default function PricingPage() {
 
                 <div className={styles.pricingSection}>
                     <div className={styles.pricingContainer}>
+
                         <div className={styles.pricingCard}>
                             <div className={styles.cardHeader}>
                                 <div className={styles.planBadge}>
                                     <Award className={styles.awardIcon} />
-                                    <span>Free Forever</span>
+                                    <span>Demo Access</span>
                                 </div>
-                                <h2 className={styles.planTitle}>Complete Access</h2>
+                                <h2 className={styles.planTitle}>Demo Access</h2>
                                 <div className={styles.priceContainer}>
-                                    <span className={styles.price}>$0</span>
-                                    <span className={styles.priceSubtext}>forever</span>
+                                    <span className={styles.price}>Free</span>
                                 </div>
                                 <p className={styles.planDescription}>
-                                    Full access to all PDR AI features with no limitations, no trial periods, and no hidden costs.
+                                    This is a demo version of PDR AI for testing and exploration.
+                                </p>
+                            </div>
+
+                            <div className={styles.featuresContainer}>
+                                <h3 className={styles.featuresTitle}>Demo Access Features:</h3>
+                                <ul className={styles.featuresList}>
+                                    <li className={styles.featureItem}>
+                                        <Check className={styles.checkIcon} />
+                                        <span>Document Analysis</span>
+                                    </li>
+                                    <li className={styles.featureItem}>
+                                        <Check className={styles.checkIcon} />
+                                        <span>Predictive Document Analysis</span>
+                                    </li>
+                                    <li className={styles.featureItem}>
+                                        <Check className={styles.checkIcon} />
+                                        <span>AI-Powered Q&A Engine</span>
+                                    </li>
+                                    <li className={styles.featureItem}>
+                                        <Check className={styles.checkIcon} />
+                                        <span>Company Management Tools</span>
+                                    </li>
+                                    <li className={styles.featureItem}>
+                                        <Check className={styles.checkIcon} />
+                                        <span>Employee Management System</span>
+                                    </li>
+                                    <li className={styles.featureItem}>
+                                        <Check className={styles.checkIcon} />
+                                        <span>Analytics & Insights Dashboard</span>
+                                    </li>
+                                    <li className={styles.featureItem}>
+                                        <Check className={styles.checkIcon} />
+                                        <span>Enterprise-Grade Security</span>
+                                    </li>
+                                    <li className={styles.featureItem}>
+                                        <Check className={styles.checkIcon} />
+                                        <span>24/7 Technical Support</span>
+                                    </li>
+                                    <li className={styles.featureItem}>
+                                        <Check className={styles.checkIcon} />
+                                        <span>Regular Feature Updates</span>
+                                    </li>
+                                </ul>
+                            </div>
+
+                            <div className={styles.ctaContainer}>
+                                <SignUpButton>
+                                    <button className={`${styles.btn} ${styles.btnPrimary} ${styles.btnLg}`}>
+                                        Try Demo Now
+                                    </button>
+                                </SignUpButton>
+                            </div>
+                        </div>
+
+
+                        <div className={styles.pricingCard}>
+                            <div className={styles.cardHeader}>
+                                <div className={styles.planBadge}>
+                                    <Award className={styles.awardIcon} />
+                                    <span>Open Source</span>
+                                </div>
+                                <h2 className={styles.planTitle}>Self-Deployable Solution</h2>
+                                <div className={styles.priceContainer}>
+                                    <span className={styles.price}>Free</span>
+                                    <span className={styles.priceSubtext}>with your API keys</span>
+                                </div>
+                                <p className={styles.planDescription}>
+                                    Deploy PDR AI on your own infrastructure with your API keys. This website is a free demo for testing and exploration.
                                 </p>
                             </div>
 
@@ -147,43 +188,49 @@ export default function PricingPage() {
                             </div>
 
                             <div className={styles.ctaContainer}>
-                                <SignUpButton>
-                                    <button className={`${styles.btn} ${styles.btnPrimary} ${styles.btnLg}`}>
-                                        Get Started Now
-                                    </button>
-                                </SignUpButton>
-                                <p className={styles.ctaSubtext}>
-                                    No credit card required • Instant access • Always free
-                                </p>
+                                <div className={styles.buttonGroup}>
+                                    <a 
+                                        href="https://github.com/Deodat-Lawson/pdr_ai_v2" 
+                                        target="_blank" 
+                                        rel="noopener noreferrer"
+                                        className={`${styles.btn} ${styles.btnOutline} ${styles.btnLg}`}
+                                    >
+                                        View on GitHub
+                                    </a>
+                                    <Link href="/deployment">
+                                        <button className={`${styles.btn} ${styles.btnPrimary} ${styles.btnLg}`}>
+                                            Deployment Guide
+                                        </button>
+                                    </Link>
+                                </div>
                             </div>
                         </div>
                     </div>
                 </div>
 
-                {/* Additional Benefits */}
                 <div className={styles.benefitsSection}>
                     <div className={styles.benefitsContainer}>
-                        <h2 className={styles.benefitsTitle}>Why PDR AI is Free</h2>
+                        <h2 className={styles.benefitsTitle}>Why Choose PDR AI</h2>
                         <div className={styles.benefitsGrid}>
                             <div className={styles.benefitCard}>
                                 <GraduationCap className={styles.benefitIcon} />
-                                <h3 className={styles.benefitTitle}>Academic Mission</h3>
+                                <h3 className={styles.benefitTitle}>Academic Research</h3>
                                 <p className={styles.benefitDescription}>
-                                    Supported by Johns Hopkins University to advance AI research and provide valuable tools to the professional community.
+                                    Developed at Johns Hopkins University to advance AI research and provide cutting-edge document analysis tools.
                                 </p>
                             </div>
                             <div className={styles.benefitCard}>
                                 <Users className={styles.benefitIcon} />
-                                <h3 className={styles.benefitTitle}>Community Impact</h3>
+                                <h3 className={styles.benefitTitle}>Open Source Freedom</h3>
                                 <p className={styles.benefitDescription}>
-                                    Our goal is to democratize access to advanced AI document analysis tools for organizations of all sizes.
+                                    Deploy on your infrastructure with your own API keys. Full control over your data and deployment.
                                 </p>
                             </div>
                             <div className={styles.benefitCard}>
                                 <Brain className={styles.benefitIcon} />
-                                <h3 className={styles.benefitTitle}>Research & Innovation</h3>
+                                <h3 className={styles.benefitTitle}>Free Demo Platform</h3>
                                 <p className={styles.benefitDescription}>
-                                    User feedback helps improve our AI models and contributes to cutting-edge research in document analysis.
+                                    Test all features on our demo platform before deploying your own instance. No commitment required.
                                 </p>
                             </div>
                         </div>

@@ -2,9 +2,9 @@ name: CI Pipeline
 
 on:
   push:
-    branches: [main]
+    branches: [stable]
   pull_request:
-    branches: [main]
+    branches: [stable]
 env:
   NODE_VERSION: '18'
   PNPM_VERSION: '8'
@@ -63,6 +63,9 @@ jobs:
 
       - name: Checking lint
         run: pnpm lint
+
+      - name: Run tests
+        run: pnpm test
 
   build:
     runs-on: ubuntu-latest

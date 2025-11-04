@@ -215,22 +215,51 @@ pnpm install
 Create a `.env` file in the root directory with the following variables:
 
 ```env
-# Database
+# Database Configuration
+# Format: postgresql://[user]:[password]@[host]:[port]/[database]
+# For local development using Docker: postgresql://postgres:password@localhost:5432/pdr_ai_v2
+# For production: Use your production PostgreSQL connection string
 DATABASE_URL="postgresql://postgres:password@localhost:5432/pdr_ai_v2"
 
 # Clerk Authentication (get from https://clerk.com/)
+# Required for user authentication and authorization
 NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY=your_clerk_publishable_key
 CLERK_SECRET_KEY=your_clerk_secret_key
 
+# Clerk Force Redirect URLs (Optional - for custom redirect after authentication)
+# These URLs control where users are redirected after sign in/up/sign out
+# If not set, Clerk will use default redirect behavior
+NEXT_PUBLIC_CLERK_SIGN_IN_FORCE_REDIRECT_URL=https://your-domain.com/employer/home
+NEXT_PUBLIC_CLERK_SIGN_UP_FORCE_REDIRECT_URL=https://your-domain.com/signup
+NEXT_PUBLIC_CLERK_SIGN_OUT_FORCE_REDIRECT_URL=https://your-domain.com/
+
 # OpenAI API (get from https://platform.openai.com/)
+# Required for AI features: document analysis, embeddings, chat functionality
 OPENAI_API_KEY=your_openai_api_key
 
+# LangChain (get from https://smith.langchain.com/)
+# Optional: Required for LangSmith tracing and monitoring of LangChain operations
+# LangSmith provides observability, debugging, and monitoring for LangChain applications
+LANGCHAIN_TRACING_V2=true
+LANGCHAIN_API_KEY=your_langchain_api_key
+
+# Tavily Search API (get from https://tavily.com/)
+# Optional: Required for enhanced web search capabilities in document analysis
+# Used for finding related documents and external resources
+TAVILY_API_KEY=your_tavily_api_key
+
 # UploadThing (get from https://uploadthing.com/)
+# Required for file uploads (PDF documents)
 UPLOADTHING_SECRET=your_uploadthing_secret
 UPLOADTHING_APP_ID=your_uploadthing_app_id
 
-# Environment
+# Environment Configuration
+# Options: development, test, production
 NODE_ENV=development
+
+# Optional: Skip environment validation (useful for Docker builds)
+# Set to "true" to skip validation during build
+# SKIP_ENV_VALIDATION=false
 ```
 
 ### 4. Database Setup
@@ -276,6 +305,18 @@ pnpm db:push
 2. Generate an API key
 3. Add the key to your `.env` file
 
+#### LangChain (LangSmith) - Optional
+1. Create account at [LangSmith](https://smith.langchain.com/)
+2. Generate an API key from your account settings
+3. Set `LANGCHAIN_TRACING_V2=true` and add `LANGCHAIN_API_KEY` to your `.env` file
+4. This enables tracing and monitoring of LangChain operations for debugging and observability
+
+#### Tavily Search API - Optional
+1. Create account at [Tavily](https://tavily.com/)
+2. Generate an API key from your dashboard
+3. Add `TAVILY_API_KEY` to your `.env` file
+4. Used for enhanced web search capabilities in document analysis features
+
 #### UploadThing
 1. Create account at [UploadThing](https://uploadthing.com/)
 2. Create a new app
@@ -300,6 +341,255 @@ pnpm build
 # Start production server
 pnpm start
 ```
+
+## 🚀 Deployment Guide
+
+### Prerequisites for Production
+
+Before deploying, ensure you have:
+- ✅ All environment variables configured
+- ✅ Production database set up (PostgreSQL with pgvector extension)
+- ✅ API keys for all external services
+- ✅ Domain name configured (if using custom domain)
+
+### Deployment Options
+
+#### 1. Vercel (Recommended for Next.js)
+
+Vercel is the recommended platform for Next.js applications:
+
+**Steps:**
+
+1. **Push your code to GitHub**
+   ```bash
+   git push origin main
+   ```
+
+2. **Import repository on Vercel**
+   - Go to [vercel.com](https://vercel.com) and sign in
+   - Click "Add New Project"
+   - Import your GitHub repository
+
+3. **Set up Database and Environment Variables**
+   
+   **Database Setup:**
+   
+   **Option A: Using Vercel Postgres (Recommended)**
+   - In Vercel dashboard, go to Storage → Create Database → Postgres
+   - Choose a region and create the database
+   - Vercel will automatically create the `DATABASE_URL` environment variable
+   - Enable pgvector extension: Connect to your database and run `CREATE EXTENSION IF NOT EXISTS vector;`
+   
+   **Option B: Using Neon Database (Recommended for pgvector support)**
+   - Create a Neon account at [neon.tech](https://neon.tech) if you don't have one
+   - Create a new project in Neon dashboard
+   - Choose PostgreSQL version 14 or higher
+   - In Vercel dashboard, go to your project → Storage tab
+   - Click "Create Database" or "Browse Marketplace"
+   - Select "Neon" from the integrations
+   - Click "Connect" or "Add Integration"
+   - Authenticate with your Neon account
+   - Select your Neon project and branch
+   - Vercel will automatically create the `DATABASE_URL` environment variable from Neon
+   - You may also see additional Neon-related variables like:
+     - `POSTGRES_URL`
+     - `POSTGRES_PRISMA_URL`
+     - `POSTGRES_URL_NON_POOLING`
+     - Your application uses `DATABASE_URL`, so ensure this is set correctly
+   - Enable pgvector extension in Neon:
+     - Go to Neon dashboard → SQL Editor
+     - Run: `CREATE EXTENSION IF NOT EXISTS vector;`
+     - Or use Neon's SQL editor to enable the extension
+   
+   **Option C: Using External Database (Manual Setup)**
+   - In Vercel dashboard, go to Settings → Environment Variables
+   - Click "Add New"
+   - Key: `DATABASE_URL`
+   - Value: Your PostgreSQL connection string (e.g., `postgresql://user:password@host:port/database`)
+   - Select environments: Production, Preview, Development (as needed)
+   - Click "Save"
+   
+   **Add Other Environment Variables:**
+   - In Vercel dashboard, go to Settings → Environment Variables
+   - Add all required environment variables:
+     - `NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY`
+     - `CLERK_SECRET_KEY`
+     - `OPENAI_API_KEY`
+     - `UPLOADTHING_SECRET`
+     - `UPLOADTHING_APP_ID`
+     - `NODE_ENV=production`
+     - `LANGCHAIN_TRACING_V2=true` (optional, for LangSmith tracing)
+     - `LANGCHAIN_API_KEY` (optional, required if `LANGCHAIN_TRACING_V2=true`)
+     - `TAVILY_API_KEY` (optional, for enhanced web search)
+     - `NEXT_PUBLIC_CLERK_SIGN_IN_FORCE_REDIRECT_URL` (optional)
+     - `NEXT_PUBLIC_CLERK_SIGN_UP_FORCE_REDIRECT_URL` (optional)
+     - `NEXT_PUBLIC_CLERK_SIGN_OUT_FORCE_REDIRECT_URL` (optional)
+
+4. **Configure build settings**
+   - Build Command: `pnpm build`
+   - Output Directory: `.next` (default)
+   - Install Command: `pnpm install`
+
+5. **Deploy**
+   - Click "Deploy"
+   - Vercel will automatically deploy on every push to your main branch
+
+**Post-Deployment:**
+
+1. **Enable pgvector Extension** (Required)
+   - **For Vercel Postgres**: Connect to your database using Vercel's database connection tool or SQL editor in the Storage dashboard
+   - **For Neon**: Go to Neon dashboard → SQL Editor and run the command
+   - **For External Database**: Connect using your preferred PostgreSQL client
+   - Run: `CREATE EXTENSION IF NOT EXISTS vector;`
+
+2. **Run Database Migrations**
+   - After deployment, run migrations using one of these methods:
+     ```bash
+     # Option 1: Using Vercel CLI locally
+     vercel env pull .env.local
+     pnpm db:migrate
+     
+     # Option 2: Using direct connection (set DATABASE_URL locally)
+     DATABASE_URL="your_production_db_url" pnpm db:migrate
+     
+     # Option 3: Using Drizzle Studio with production URL
+     DATABASE_URL="your_production_db_url" pnpm db:studio
+     ```
+
+3. **Set up Clerk webhooks** (if needed)
+   - Configure webhook URL in Clerk dashboard
+   - URL format: `https://your-domain.com/api/webhooks/clerk`
+
+4. **Configure UploadThing**
+   - Add your production domain to UploadThing allowed origins
+   - Configure CORS settings in UploadThing dashboard
+
+#### 2. Self-Hosted VPS Deployment
+
+**Prerequisites:**
+- VPS with Node.js 18+ installed
+- PostgreSQL database (with pgvector extension)
+- Nginx (for reverse proxy)
+- PM2 or similar process manager
+
+**Steps:**
+
+1. **Clone and install dependencies**
+   ```bash
+   git clone <your-repo-url>
+   cd pdr_ai_v2-2
+   pnpm install
+   ```
+
+2. **Configure environment variables**
+   ```bash
+   # Create .env file
+   nano .env
+   # Add all production environment variables
+   ```
+
+3. **Build the application**
+   ```bash
+   pnpm build
+   ```
+
+4. **Set up PM2**
+   ```bash
+   # Install PM2 globally
+   npm install -g pm2
+   
+   # Start the application
+   pm2 start pnpm --name "pdr-ai" -- start
+   
+   # Save PM2 configuration
+   pm2 save
+   pm2 startup
+   ```
+
+5. **Configure Nginx**
+   ```nginx
+   server {
+       listen 80;
+       server_name your-domain.com;
+
+       location / {
+           proxy_pass http://localhost:3000;
+           proxy_http_version 1.1;
+           proxy_set_header Upgrade $http_upgrade;
+           proxy_set_header Connection 'upgrade';
+           proxy_set_header Host $host;
+           proxy_cache_bypass $http_upgrade;
+           proxy_set_header X-Real-IP $remote_addr;
+           proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+           proxy_set_header X-Forwarded-Proto $scheme;
+       }
+   }
+   ```
+
+6. **Set up SSL with Let's Encrypt**
+   ```bash
+   sudo apt-get install certbot python3-certbot-nginx
+   sudo certbot --nginx -d your-domain.com
+   ```
+
+7. **Run database migrations**
+   ```bash
+   pnpm db:migrate
+   ```
+
+### Production Database Setup
+
+**Important:** Your production database must have the `pgvector` extension enabled:
+
+```sql
+-- Connect to your PostgreSQL database
+CREATE EXTENSION IF NOT EXISTS vector;
+```
+
+**Database Connection:**
+
+For production, use a managed PostgreSQL service (recommended):
+- **Neon**: Fully serverless PostgreSQL with pgvector support
+- **Supabase**: PostgreSQL with pgvector extension
+- **AWS RDS**: Managed PostgreSQL (requires manual pgvector installation)
+- **Railway**: Simple PostgreSQL hosting
+
+**Example Neon connection string:**
+```
+DATABASE_URL="postgresql://user:password@ep-xxx.us-east-2.aws.neon.tech/dbname?sslmode=require"
+```
+
+### Post-Deployment Checklist
+
+- [ ] Verify all environment variables are set correctly
+- [ ] Database migrations have been run
+- [ ] Clerk authentication is working
+- [ ] File uploads are working (UploadThing)
+- [ ] AI features are functioning (OpenAI API)
+- [ ] Database has pgvector extension enabled
+- [ ] SSL certificate is configured (if using custom domain)
+- [ ] Monitoring and logging are set up
+- [ ] Backup strategy is in place
+- [ ] Error tracking is configured (e.g., Sentry)
+
+### Monitoring and Maintenance
+
+**Health Checks:**
+- Monitor application uptime
+- Check database connection health
+- Monitor API usage (OpenAI, UploadThing)
+- Track error rates
+
+**Backup Strategy:**
+- Set up automated database backups
+- Configure backup retention policy
+- Test restore procedures regularly
+
+**Scaling Considerations:**
+- Database connection pooling (use PgBouncer or similar)
+- CDN for static assets (Vercel handles this automatically)
+- Rate limiting for API endpoints
+- Caching strategy for frequently accessed data
 
 ### Other Useful Scripts
 
@@ -385,15 +675,33 @@ Key directories:
 
 ## 🛡️ Environment Variables Reference
 
-| Variable | Description | Required |
-|----------|-------------|----------|
-| `DATABASE_URL` | PostgreSQL connection string | ✅ |
-| `NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY` | Clerk publishable key | ✅ |
-| `CLERK_SECRET_KEY` | Clerk secret key | ✅ |
-| `OPENAI_API_KEY` | OpenAI API key for AI features | ✅ |
-| `UPLOADTHING_SECRET` | UploadThing secret for file uploads | ✅ |
-| `UPLOADTHING_APP_ID` | UploadThing application ID | ✅ |
-| `NODE_ENV` | Environment mode | ✅ |
+| Variable | Description | Required | Example |
+|----------|-------------|----------|---------|
+| `DATABASE_URL` | PostgreSQL connection string. Format: `postgresql://user:password@host:port/database` | ✅ | `postgresql://postgres:password@localhost:5432/pdr_ai_v2` |
+| `NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY` | Clerk publishable key (client-side). Get from [Clerk Dashboard](https://clerk.com/) | ✅ | `pk_test_...` |
+| `CLERK_SECRET_KEY` | Clerk secret key (server-side). Get from [Clerk Dashboard](https://clerk.com/) | ✅ | `sk_test_...` |
+| `NEXT_PUBLIC_CLERK_SIGN_IN_FORCE_REDIRECT_URL` | Force redirect URL after sign in. If not set, uses Clerk default. | ✅ | `https://your-domain.com/employer/home` |
+| `NEXT_PUBLIC_CLERK_SIGN_UP_FORCE_REDIRECT_URL` | Force redirect URL after sign up. If not set, uses Clerk default. | ✅ | `https://your-domain.com/signup` |
+| `NEXT_PUBLIC_CLERK_SIGN_OUT_FORCE_REDIRECT_URL` | Force redirect URL after sign out. If not set, uses Clerk default. | ✅ | `https://your-domain.com/` |
+| `OPENAI_API_KEY` | OpenAI API key for AI features (embeddings, chat, document analysis). Get from [OpenAI Platform](https://platform.openai.com/) | ✅ | `sk-...` |
+| `LANGCHAIN_TRACING_V2` | Enable LangSmith tracing for LangChain operations. Set to `true` to enable. Get API key from [LangSmith](https://smith.langchain.com/) | ❌ | `true` or `false` |
+| `LANGCHAIN_API_KEY` | LangChain API key for LangSmith tracing and monitoring. Required if `LANGCHAIN_TRACING_V2=true`. Get from [LangSmith](https://smith.langchain.com/) | ❌ | `lsv2_...` |
+| `TAVILY_API_KEY` | Tavily Search API key for enhanced web search in document analysis. Get from [Tavily](https://tavily.com/) | ❌ | `tvly-...` |
+| `UPLOADTHING_SECRET` | UploadThing secret key for file uploads. Get from [UploadThing Dashboard](https://uploadthing.com/) | ✅ | `sk_live_...` |
+| `UPLOADTHING_APP_ID` | UploadThing application ID. Get from [UploadThing Dashboard](https://uploadthing.com/) | ✅ | `your_app_id` |
+| `NODE_ENV` | Environment mode. Must be one of: `development`, `test`, `production` | ✅ | `development` |
+| `SKIP_ENV_VALIDATION` | Skip environment validation during build (useful for Docker builds) | ❌ | `false` or `true` |
+
+### Environment Variables by Feature
+
+- **Authentication**: `NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY`, `CLERK_SECRET_KEY`
+- **Authentication Redirects**: `NEXT_PUBLIC_CLERK_SIGN_IN_FORCE_REDIRECT_URL`, `NEXT_PUBLIC_CLERK_SIGN_UP_FORCE_REDIRECT_URL`, `NEXT_PUBLIC_CLERK_SIGN_OUT_FORCE_REDIRECT_URL`
+- **Database**: `DATABASE_URL`
+- **AI Features**: `OPENAI_API_KEY` (used for embeddings, chat, and document analysis)
+- **AI Observability**: `LANGCHAIN_TRACING_V2`, `LANGCHAIN_API_KEY` (for LangSmith tracing and monitoring)
+- **Search Features**: `TAVILY_API_KEY` (for enhanced web search in document analysis)
+- **File Uploads**: `UPLOADTHING_SECRET`, `UPLOADTHING_APP_ID`
+- **Build Configuration**: `NODE_ENV`, `SKIP_ENV_VALIDATION`
 
 ## 🐛 Troubleshooting
 

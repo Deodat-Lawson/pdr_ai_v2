@@ -4,7 +4,6 @@ import React, { useState } from "react";
 import { Trash2 } from "lucide-react";
 import styles from "~/styles/Employer/Upload.module.css";
 import { useAuth } from "@clerk/nextjs";
-import { useRouter } from "next/navigation";
 
 interface Category {
     id: string;
@@ -24,7 +23,6 @@ const CategoryManagement: React.FC<CategoryManagementProps> = ({
                                                                }) => {
     const { userId } = useAuth();
     const [newCategory, setNewCategory] = useState("");
-    const router = useRouter();
 
     // Make the function async, and await the category creation
     const handleAddCategory = async (e: React.FormEvent) => {
@@ -35,8 +33,7 @@ const CategoryManagement: React.FC<CategoryManagementProps> = ({
             // Wait for onAddCategory to finish
             await onAddCategory(userId, newCategory);
             setNewCategory("");
-            // Then refresh to re-fetch updated data
-            router.push("/employer/home");
+            // Parent component handles state update, no need to refresh
         } catch (error) {
             console.error("Error adding category:", error);
         }
@@ -46,8 +43,7 @@ const CategoryManagement: React.FC<CategoryManagementProps> = ({
     const handleRemoveCategory = async (id: string) => {
         try {
             await onRemoveCategory(id);
-            // Refresh to re-fetch updated data
-            router.refresh();
+            // Parent component handles state update
         } catch (error) {
             console.error("Error removing category:", error);
         }

@@ -20,6 +20,7 @@ type PostBody = {
     timeoutMs?: number;
     forceRefresh?: boolean;
 };
+import { validateRequestBody, PredictiveAnalysisSchema } from "~/lib/validation";
 
 type PdfChunk = {
     id: number;
@@ -93,7 +94,11 @@ async function getDocumentDetails(documentId: number) : Promise<DocumentDetails 
 
 export async function POST(request: Request) {
     try {
-        const body = await request.json() as PostBody;
+        const validation = await validateRequestBody(request, PredictiveAnalysisSchema);
+        if (!validation.success) {
+            return validation.response;
+        }
+
         const {
             documentId,
             analysisType = 'general',
@@ -128,7 +133,7 @@ export async function POST(request: Request) {
         }
 
         if (!forceRefresh) {
-            const cachedResult = await getCachedAnalysis(documentId, analysisType, includeRelatedDocs);
+            const cachedResult = await getCachedAnalysis(documentId, analysisType!, includeRelatedDocs!);
 
             if (cachedResult) {
                 return NextResponse.json({
@@ -193,8 +198,8 @@ export async function POST(request: Request) {
         }
 
         const specification = {
-            type: analysisType,
-            includeRelatedDocs,
+            type: analysisType!,
+            includeRelatedDocs: includeRelatedDocs!,
             existingDocuments,
             title: docDetails.title,
             category: docDetails.category
@@ -228,7 +233,7 @@ export async function POST(request: Request) {
             }
         } as PredictiveAnalysisOutput;
 
-        await storeAnalysisResult(documentId, analysisType, includeRelatedDocs, fullResult);
+        await storeAnalysisResult(documentId, analysisType!, includeRelatedDocs!, fullResult);
 
         return NextResponse.json({
             success: true,

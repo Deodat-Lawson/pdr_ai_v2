@@ -70,6 +70,21 @@
     bg-clip-text text-transparent transition-all duration-300;
 }
 
+.navActions {
+    @apply flex items-center gap-4;
+}
+
+.iconButton {
+    @apply p-3 rounded-lg bg-transparent border-0 cursor-pointer;
+    @apply text-gray-600 hover:bg-purple-100 hover:text-purple-600;
+    @apply transition-all duration-200;
+    @apply focus:outline-none focus:ring-2 focus:ring-purple-500 focus:ring-offset-2;
+}
+
+.iconButtonIcon {
+    @apply w-5 h-5;
+}
+
 .homeButton {
     @apply flex items-center px-6 py-3 rounded-xl font-semibold
     bg-gradient-to-r from-purple-600 to-indigo-600 text-white 
@@ -218,4 +233,70 @@
     .settingsContainer {
         @apply p-4;
     }
+}
+
+/* Dark Theme Support */
+[data-theme="dark"] .container {
+    @apply bg-gradient-to-br from-slate-950 via-purple-950 to-indigo-950;
+}
+
+[data-theme="dark"] .navbar {
+    @apply bg-slate-950/80 border-b border-purple-500/20;
+}
+
+[data-theme="dark"] .logoIcon {
+    @apply text-purple-400;
+}
+
+[data-theme="dark"] .logoText {
+    @apply bg-gradient-to-r from-purple-400 to-indigo-400 bg-clip-text text-transparent;
+}
+
+[data-theme="dark"] .iconButton {
+    @apply text-gray-400 hover:bg-purple-900/30 hover:text-purple-300;
+}
+
+[data-theme="dark"] .settingsContainer {
+    @apply bg-slate-900/80 border-purple-500/30;
+}
+
+[data-theme="dark"] .settingsTitle {
+    background: linear-gradient(135deg, #e0e7ff 0%, #c7d2fe 50%, #a78bfa 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+}
+
+[data-theme="dark"] .formSection {
+    @apply bg-slate-800/50 border-purple-500/20;
+}
+
+[data-theme="dark"] .formSectionTitle {
+    @apply text-white border-purple-500/20;
+}
+
+[data-theme="dark"] .label {
+    @apply text-gray-300;
+}
+
+[data-theme="dark"] .input {
+    @apply bg-slate-800/80 border-purple-500/20 text-white placeholder-gray-400;
+    @apply hover:border-purple-400 focus:border-purple-400;
+}
+
+[data-theme="dark"] .input[readonly],
+[data-theme="dark"] .input:disabled {
+    @apply bg-slate-900/60 text-gray-500 border-slate-700;
+}
+
+[data-theme="dark"] .popup {
+    @apply bg-slate-900 border-purple-500/30;
+}
+
+[data-theme="dark"] .popup h3 {
+    @apply text-white;
+}
+
+[data-theme="dark"] .popup p {
+    @apply text-gray-300;
 }

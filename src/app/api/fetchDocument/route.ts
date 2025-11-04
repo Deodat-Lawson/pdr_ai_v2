@@ -1,16 +1,25 @@
 import { NextResponse } from "next/server";
 import { db } from "../../../server/db/index";
-import { document,users } from "../../../server/db/schema";
+import { document, users } from "../../../server/db/schema";
 import { eq } from "drizzle-orm";
-import * as console from "console";
+import { validateRequestBody, UserIdSchema } from "~/lib/validation";
+import { auth } from '@clerk/nextjs/server'
 
-type PostBody = {
-    userId: string;
-};
 
 export async function POST(request: Request) {
     try {
-        const { userId } = (await request.json()) as PostBody;
+        const validation = await validateRequestBody(request, UserIdSchema);
+        if (!validation.success) {
+            return validation.response;
+        }
+
+        const { userId } = await auth()
+        if (!userId) {
+            return NextResponse.json(
+                { error: "Invalid user." },
+                { status: 400 }
+            );
+        }
 
         const [userInfo] = await db
             .select()

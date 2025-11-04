@@ -1,11 +1,12 @@
 "use client";
 import React, { useState, useEffect } from "react";
-import { Upload, FileText, BarChart, Brain, Settings, Users } from "lucide-react";
+import { Upload, FileText, BarChart, Brain, Settings, Users, HelpCircle } from "lucide-react";
 import styles from "~/styles/Employer/Home.module.css";
 import { useRouter } from "next/navigation";
 import ProfileDropdown from "~/app/employer/_components/ProfileDropdown";
 import { useAuth } from "@clerk/nextjs";
 import LoadingPage from "~/app/_components/loading";
+import { ThemeToggle } from "~/app/_components/ThemeToggle";
 
 const HomeScreen = () => {
     const router = useRouter();
@@ -86,6 +87,12 @@ const HomeScreen = () => {
             description: "Manage your profile, preferences, and account details",
             path: "/employer/settings",
         },
+        {
+            icon: <HelpCircle className={styles.menuIcon} />,
+            title: "Contact Support",
+            description: "Get help with technical difficulties and questions",
+            path: "/employer/contact",
+        },
     ];
 
     const handleNavigation = (path: string) => {
@@ -104,7 +111,10 @@ const HomeScreen = () => {
                         <Brain className={styles.logoIcon} />
                         <span className={styles.logoText}>PDR AI</span>
                     </div>
-                    <ProfileDropdown />
+                    <div className={styles.navActions}>
+                        <ThemeToggle />
+                        <ProfileDropdown />
+                    </div>
                 </div>
             </nav>
             <main className={styles.main}>

@@ -2,8 +2,10 @@
 
 import React from 'react';
 import Image from 'next/image';
-import { Home, Github, Linkedin, Mail, Brain } from 'lucide-react';
+import { Github, Linkedin, Mail } from 'lucide-react';
 import styles from '../../styles/about.module.css';
+import { Navbar } from '../_components/Navbar';
+import { ClerkProvider } from '@clerk/nextjs';
 
 const teamMembers = [
     {
@@ -30,22 +32,9 @@ const teamMembers = [
 
 export default function About() {
     return (
-        <div className={styles.container}>
-            <nav className={styles.navbar}>
-                <div className={styles.navContent}>
-                    <div className={styles.logoWrapper}>
-                        <Brain className={styles.logoIcon} />
-                        <span className={styles.logoText}>PDR AI</span>
-                    </div>
-                    <button
-                        onClick={() => window.location.href = '/'}
-                        className={styles.homeButton}
-                    >
-                        <Home className={styles.homeIcon} />
-                        Home
-                    </button>
-                </div>
-            </nav>
+        <ClerkProvider>
+            <div className={styles.container}>
+                <Navbar />
 
             <main className={styles.main}>
                 <div className={styles.header}>
@@ -114,6 +103,7 @@ export default function About() {
                     </p>
                 </div>
             </main>
-        </div>
+            </div>
+        </ClerkProvider>
     );
 }

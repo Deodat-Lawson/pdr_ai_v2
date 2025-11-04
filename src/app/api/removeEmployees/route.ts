@@ -3,12 +3,38 @@ import { db } from "../../../server/db/index";
 import { users } from "../../../server/db/schema";
 import { eq } from "drizzle-orm";
 import * as console from "console";
+import { auth } from "@clerk/nextjs/server";
 
 type PostBody = {
     employeeId: string;
 }
 
 export async function POST(request: Request) {
+    const { userId } = await auth();
+    if (!userId) {
+        return NextResponse.json({
+            success: false,
+            message: "Unauthorized"
+        }, { status: 401 });
+    }
+
+    const [userInfo] = await db
+        .select()
+        .from(users)
+        .where(eq(users.userId, userId));
+
+    if (!userInfo) {
+        return NextResponse.json({
+            success: false,
+            message: "Invalid user."
+        }, { status: 400 });
+    } else if (userInfo.role !== "employer" && userInfo.role !== "owner") {
+        return NextResponse.json({
+            success: false,
+            message: "Unauthorized"
+        }, { status: 401 });
+    }
+    
     try {
         const { employeeId } = (await request.json()) as PostBody;
 

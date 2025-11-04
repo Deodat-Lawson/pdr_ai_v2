@@ -6,8 +6,11 @@
 
 /* Sidebar Styles - Modern Glassmorphism */
 .sidebar {
-    @apply w-80 bg-white/80 backdrop-blur-md border-r border-gray-200/50 
-    flex flex-col h-screen sticky top-0 shadow-lg transition-all duration-300;
+    @apply w-96 bg-white/80 backdrop-blur-md border-r border-gray-200/50 
+    flex flex-col sticky top-0 shadow-lg transition-all duration-300;
+    height: 100vh;
+    max-height: 100vh;
+    overflow-y: hidden;
 }
 
 /* Collapsed Sidebar Styles */
@@ -17,12 +20,14 @@
 
 /* Toggle Button Styles */
 .toggleButton {
-    @apply absolute -right-3 top-6 z-10
+    @apply absolute top-6
     bg-white/90 backdrop-blur-sm border border-gray-200 
     rounded-full p-2 shadow-lg
     hover:bg-purple-50 hover:border-purple-300
     transition-all duration-300 transform hover:scale-110
     focus:outline-none focus:ring-2 focus:ring-purple-500 focus:ring-offset-2;
+    right: -12px;
+    z-index: 100;
 }
 
 .toggleIcon {
@@ -138,8 +143,8 @@
 
 .categoryHeader {
     @apply flex items-center px-4 py-3 text-sm font-semibold text-gray-700 
-    hover:bg-gradient-to-r hover:from-purple-50 hover:to-indigo-50 
-    rounded-xl cursor-pointer transition-all duration-300;
+    rounded-xl cursor-pointer transition-all duration-300
+    hover:bg-purple-50;
 }
 
 /* Collapsed Category Header */
@@ -156,9 +161,6 @@
     @apply mr-0;
 }
 
-.categoryHeader:hover .chevronIcon {
-    @apply text-purple-600;
-}
 
 .categoryName {
     @apply font-semibold transition-all duration-300;
@@ -180,19 +182,18 @@
 
 .docItem {
     @apply flex items-center w-full px-4 py-3 text-sm text-gray-700 
-    hover:bg-gradient-to-r hover:from-purple-50 hover:to-indigo-50 
     rounded-xl transition-all duration-300 
+    hover:bg-purple-50
     focus:outline-none focus:ring-2 focus:ring-purple-500 focus:ring-offset-2;
+}
+
+.docItem.selected {
+    @apply bg-purple-100 border-l-4 border-purple-600;
 }
 
 /* Collapsed Doc Item */
 .sidebar.collapsed .docItem {
     @apply px-2 justify-center;
-}
-
-.docItem.selected {
-    @apply bg-gradient-to-r from-purple-100 to-indigo-100 text-purple-700 
-    shadow-md border border-purple-200;
 }
 
 .docIcon {
@@ -204,13 +205,8 @@
     @apply mr-0;
 }
 
-.docItem:hover .docIcon {
-    @apply text-purple-600 scale-110;
-}
 
-.docItem.selected .docIcon {
-    @apply text-purple-600;
-}
+
 
 .docName {
     @apply truncate text-left font-medium transition-all duration-300;
@@ -597,5 +593,167 @@
 
 .trashIcon {
     @apply w-5 h-5;
+}
+
+/* Dark Theme Support */
+[data-theme="dark"] .container {
+    @apply bg-gradient-to-br from-slate-950 via-purple-950 to-indigo-950;
+}
+
+[data-theme="dark"] .sidebar {
+    @apply bg-slate-950/80 border-r border-purple-500/20;
+}
+
+[data-theme="dark"] .toggleButton {
+    @apply bg-slate-800/90 border-purple-500/30 hover:bg-purple-900/50 hover:border-purple-400;
+}
+
+[data-theme="dark"] .toggleIcon {
+    @apply text-gray-300;
+}
+
+[data-theme="dark"] .toggleButton:hover .toggleIcon {
+    @apply text-purple-400;
+}
+
+[data-theme="dark"] .sidebarHeader {
+    @apply border-b border-purple-500/20;
+}
+
+[data-theme="dark"] .logoIcon {
+    @apply text-purple-400;
+}
+
+[data-theme="dark"] .logoText {
+    @apply bg-gradient-to-r from-purple-400 to-indigo-400 bg-clip-text text-transparent;
+}
+
+[data-theme="dark"] .searchInput {
+    @apply bg-slate-800/80 border-purple-500/20 text-white placeholder-gray-400;
+    @apply hover:border-purple-400 focus:border-purple-400;
+}
+
+[data-theme="dark"] .searchIcon {
+    @apply text-gray-400;
+}
+
+[data-theme="dark"] .viewModeContainer {
+    @apply bg-slate-900/50 border-purple-500/20;
+}
+
+[data-theme="dark"] .viewModeButton {
+    @apply text-gray-300 hover:bg-purple-900/30;
+}
+
+[data-theme="dark"] .viewModeButton.active {
+    @apply bg-purple-900/50 text-purple-300;
+}
+
+[data-theme="dark"] .categoryHeader {
+    @apply text-gray-300 hover:bg-slate-800;
+}
+
+[data-theme="dark"] .categoryIcon {
+    @apply text-gray-400;
+}
+
+[data-theme="dark"] .categoryName {
+    @apply text-gray-200;
+}
+
+[data-theme="dark"] .categoryCount {
+    @apply bg-purple-900/50 text-purple-300;
+}
+
+[data-theme="dark"] .docButton {
+    @apply text-gray-300;
+}
+
+[data-theme="dark"] .docItem {
+    @apply text-gray-300 hover:bg-slate-800;
+}
+
+[data-theme="dark"] .docItem.selected {
+    @apply bg-slate-800 border-l-4 border-purple-500;
+}
+
+[data-theme="dark"] .docTitle {
+    background: linear-gradient(135deg, #e0e7ff 0%, #c7d2fe 50%, #a78bfa 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+    text-shadow: none;
+}
+
+[data-theme="dark"] .docName {
+    @apply text-gray-300;
+}
+
+[data-theme="dark"] .docButton.selected .docName,
+[data-theme="dark"] .docItem.selected .docName {
+    @apply text-white;
+}
+
+[data-theme="dark"] .docIcon {
+    @apply text-purple-400/70;
+}
+
+[data-theme="dark"] .docButton.selected .docIcon,
+[data-theme="dark"] .docItem.selected .docIcon {
+    @apply text-purple-300;
+}
+
+[data-theme="dark"] .docCategory {
+    @apply text-gray-400;
+}
+
+[data-theme="dark"] .profileSection {
+    @apply border-t border-purple-500/20;
+}
+
+[data-theme="dark"] .logoutButton {
+    @apply text-gray-300 hover:bg-red-900/30 hover:text-red-400;
+}
+
+[data-theme="dark"] .mainContent {
+    @apply bg-slate-900/30;
+}
+
+[data-theme="dark"] .deleteButton {
+    @apply text-gray-500 hover:bg-red-900/60 hover:text-red-300;
+}
+
+[data-theme="dark"] .deleteButton:hover {
+    box-shadow: 0 0 10px rgba(239, 68, 68, 0.4);
+}
+
+[data-theme="dark"] .summaryContainer {
+    @apply bg-slate-900/90 border-purple-500/30;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.5), 0 0 40px rgba(124, 58, 237, 0.15);
+}
+
+[data-theme="dark"] .summaryIcon {
+    @apply text-purple-400;
+}
+
+[data-theme="dark"] .summaryTitle {
+    @apply text-white;
+}
+
+[data-theme="dark"] .summaryText {
+    @apply text-gray-300;
+}
+
+[data-theme="dark"] .pdfContainer {
+    @apply bg-slate-900/95 border-purple-500/30;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.5);
+}
+
+[data-theme="dark"] .pdfViewer {
+    filter: invert(0.9) hue-rotate(180deg) brightness(0.95) contrast(0.9);
+}
+
+[data-theme="dark"] .noDocTitle {
+    @apply text-gray-400;
 }
 

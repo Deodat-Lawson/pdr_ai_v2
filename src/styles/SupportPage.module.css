@@ -136,7 +136,7 @@
 
 .faqButton {
     @apply w-full flex items-center justify-between px-6 py-4 text-left font-medium
-    hover:bg-purple-50 transition-all duration-300
+    text-gray-900 hover:bg-purple-50 transition-all duration-300
     focus:outline-none focus:ring-2 focus:ring-purple-500 focus:ring-offset-2;
 }
 
@@ -196,6 +196,93 @@
         opacity: 1; 
         transform: translateY(0); 
     }
+}
+
+/* Dark Theme Support */
+[data-theme="dark"] .container {
+    @apply bg-gradient-to-br from-slate-950 via-purple-950 to-indigo-950;
+}
+
+[data-theme="dark"] .navbar {
+    @apply bg-slate-950/80 border-b border-purple-500/20;
+}
+
+[data-theme="dark"] .logoIcon {
+    @apply text-purple-400;
+}
+
+[data-theme="dark"] .logoText {
+    @apply bg-gradient-to-r from-purple-400 to-indigo-400 bg-clip-text text-transparent;
+}
+
+[data-theme="dark"] .title {
+    background: linear-gradient(135deg, #e5e7eb 0%, #a78bfa 50%, #c084fc 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+}
+
+[data-theme="dark"] .subtitle {
+    @apply text-gray-300;
+}
+
+[data-theme="dark"] .contactSection {
+    @apply bg-slate-900/50 border-purple-500/20 backdrop-blur-sm;
+}
+
+[data-theme="dark"] .faqSection {
+    @apply bg-slate-900/50 border-purple-500/20 backdrop-blur-sm;
+}
+
+[data-theme="dark"] .sectionTitle {
+    @apply text-white;
+}
+
+[data-theme="dark"] .sectionIcon {
+    @apply text-purple-400;
+}
+
+[data-theme="dark"] .label {
+    @apply text-gray-300;
+}
+
+[data-theme="dark"] .input {
+    @apply bg-slate-800/80 border-purple-500/20 text-white placeholder-gray-400;
+    @apply hover:border-purple-400 focus:border-purple-400;
+}
+
+[data-theme="dark"] .textarea {
+    @apply bg-slate-800/80 border-purple-500/20 text-white placeholder-gray-400;
+    @apply hover:border-purple-400 focus:border-purple-400;
+}
+
+[data-theme="dark"] .faqItem {
+    @apply bg-slate-800/50 border-purple-500/20 hover:border-purple-400;
+}
+
+[data-theme="dark"] .faqButton {
+    @apply text-gray-100 hover:bg-purple-900/30;
+}
+
+[data-theme="dark"] .faqIcon {
+    @apply text-gray-400;
+}
+
+[data-theme="dark"] .faqButton:hover .faqIcon {
+    @apply text-purple-400;
+}
+
+[data-theme="dark"] .faqAnswer {
+    background: #383838 !important;
+    @apply text-white border-purple-500/20;
+}
+
+[data-theme="dark"] .successMessage {
+    @apply bg-green-900/50 border-green-500/30 text-green-300;
+}
+
+[data-theme="dark"] .errorMessage {
+    @apply bg-red-900/50 border-red-500/30 text-red-300;
 }
 
 /* Responsive Design */

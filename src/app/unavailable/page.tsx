@@ -28,7 +28,7 @@ const FeatureUnavailable = () => {
                 <div className={styles.messageBox}>
                     <AlertTriangle className={styles.alertIcon} />
                     <p className={styles.message}>
-                        Expected availability: Q1 ~ Q2 2025
+                        Expected availability: Q4 2025 ~ Q1 2026
                     </p>
                 </div>
 

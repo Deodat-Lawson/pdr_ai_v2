@@ -24,6 +24,8 @@ const eslintConfig = [
             "drizzle/**",
             "next-env.d.ts",
             "eslint.config.js",
+            "__tests__/**",
+            "jest.config.mjs",
         ],
     },
     ...compat.extends(
