@@ -1,26 +1,19 @@
 import { NextResponse } from "next/server";
+import { randomUUID } from "crypto";
+import path from "path";
+import os from "os";
+import fs from "fs/promises";
+import fetch from "node-fetch";
+import { eq, sql } from "drizzle-orm";
+
 import { db } from "../../../server/db/index";
 import { users, document, pdfChunks } from "../../../server/db/schema";
-import { eq, sql } from "drizzle-orm";
-import fetch from "node-fetch";
-import fs from "fs/promises";
-import os from "os";
-import path from "path";
+import { validateRequestBody, UploadDocumentSchema } from "~/lib/validation";
 
 import { PDFLoader } from "@langchain/community/document_loaders/fs/pdf";
 import { RecursiveCharacterTextSplitter } from "@langchain/textsplitters";
 import { OpenAIEmbeddings } from "@langchain/openai";
 import type { Document } from "langchain/document";
-
-// Drizzle expects a type for the table columns, skip for brevity
-// import type { InsertPdfChunks } from '../../../server/db/schema/pdfChunks';
-
-type PostBody = {
-    userId: string;
-    documentName: string;
-    documentUrl: string;
-    documentCategory: string;
-};
 
 interface PDFMetadata {
     loc?: {
@@ -28,58 +21,71 @@ interface PDFMetadata {
     };
 }
 
+type DocumentRow = typeof document.$inferSelect;
+
+class UploadError extends Error {
+    constructor(message: string, public status: number) {
+        super(message);
+        this.name = "UploadError";
+    }
+}
+
+const TEMP_FILE_PREFIX = "pdr-ai-upload-";
 
 export async function POST(request: Request) {
-    try {
-        const { userId, documentName, documentUrl, documentCategory } =
-            (await request.json()) as PostBody;
+    let tempFilePath: string | null = null;
 
-        // 1) Validate user
+    try {
+        const validation = await validateRequestBody(request, UploadDocumentSchema);
+        if (!validation.success) {
+            return validation.response;
+        }
+
+        const { userId, documentName, documentUrl, documentCategory } = validation.data;
+
         const [userInfo] = await db
             .select()
             .from(users)
             .where(eq(users.userId, userId));
+
         if (!userInfo) {
-            return NextResponse.json({ error: "Invalid user." }, { status: 400 });
+            throw new UploadError("Invalid user.", 400);
         }
 
-        // 2) Insert new document
-        const [insertedDocument] = await db
-            .insert(document)
-            .values({
-                url: documentUrl,
-                category: documentCategory,
-                title: documentName,
-                companyId: userInfo.companyId,
-            })
-            .returning();
-
-        if (!insertedDocument) {
-            throw new Error("Failed to insert document");
+        if (!process.env.OPENAI_API_KEY) {
+            throw new UploadError("Embedding service is not configured.", 500);
         }
 
-        // 3) Download PDF
         const response = await fetch(documentUrl);
         if (!response.ok) {
-            throw new Error(`Unable to fetch PDF from ${documentUrl}`);
+            throw new UploadError(`Unable to fetch PDF from ${documentUrl}`, 502);
         }
+
         const pdfArrayBuffer = await response.arrayBuffer();
+        if (pdfArrayBuffer.byteLength === 0) {
+            throw new UploadError("The downloaded PDF file is empty.", 400);
+        }
         const pdfBuffer = Buffer.from(pdfArrayBuffer);
 
-        // 4) Write to tmp file
-        const tempFilePath = path.join(os.tmpdir(), "temp.pdf");
+        tempFilePath = path.join(os.tmpdir(), `${TEMP_FILE_PREFIX}${randomUUID()}.pdf`);
         await fs.writeFile(tempFilePath, pdfBuffer);
 
-        // 5) Load & split
         const loader = new PDFLoader(tempFilePath);
         const docs = await loader.load();
+        if (docs.length === 0) {
+            throw new UploadError("No readable content found in the provided PDF.", 422);
+        }
+
         const textSplitter = new RecursiveCharacterTextSplitter({
             chunkSize: 1000,
             chunkOverlap: 200,
         });
         const allSplits = (await textSplitter.splitDocuments(docs)) as Document<PDFMetadata>[];
 
-        // 6) Embed
+        if (allSplits.length === 0) {
+            throw new UploadError("Unable to split document into chunks.", 422);
+        }
+
         const embeddings = new OpenAIEmbeddings({
             model: "text-embedding-ada-002",
             openAIApiKey: process.env.OPENAI_API_KEY,
@@ -88,42 +94,75 @@ export async function POST(request: Request) {
         const chunkTexts = allSplits.map((split) => split.pageContent);
         const chunkEmbeddings = await embeddings.embedDocuments(chunkTexts);
 
-        if(chunkEmbeddings.length !== allSplits.length) {
-            throw new Error("Mismatch between number of splits and embeddings");
+        if (chunkEmbeddings.length !== allSplits.length) {
+            throw new UploadError("Mismatch between number of splits and embeddings.", 500);
         }
 
-
-        // 7) Insert chunks -> pdfChunks table
-        const rowsToInsert = allSplits.map((split, i) => {
-            if (!chunkEmbeddings[i]) {
-                throw new Error("Missing embedding for chunk");
-            }
-
-            // Sanitize the text: remove all null-byte characters
-            const sanitizedContent = split.pageContent.replace(/\0/g, "");
-
-            const bracketedVector = `[${chunkEmbeddings[i].join(",")}]`;
+        const chunkPayload = allSplits.map((split, index) => {
+            const noNullContent = split.pageContent.replace(/\0/g, "");
+            const sanitizedContent = noNullContent.trim() || noNullContent || " ";
 
             return {
-                documentId: insertedDocument.id,
                 page: split.metadata?.loc?.pageNumber ?? 1,
                 content: sanitizedContent,
-                embedding: sql`${bracketedVector}::vector(1536)`,
+                embeddingVector: `[${chunkEmbeddings[index].join(",")}]`,
             };
         });
 
-        await db.insert(pdfChunks).values(rowsToInsert);
+        let createdDocument: DocumentRow | null = null;
 
-        // 9) Return success
+        await db.transaction(async (tx) => {
+            const [insertedDocument] = await tx
+                .insert(document)
+                .values({
+                    url: documentUrl,
+                    category: documentCategory,
+                    title: documentName,
+                    companyId: userInfo.companyId,
+                })
+                .returning();
+
+            if (!insertedDocument) {
+                throw new UploadError("Failed to insert document.", 500);
+            }
+
+            const rowsToInsert = chunkPayload.map((chunk) => ({
+                documentId: insertedDocument.id,
+                page: chunk.page,
+                content: chunk.content,
+                embedding: sql`${chunk.embeddingVector}::vector(1536)`,
+            }));
+
+            await tx.insert(pdfChunks).values(rowsToInsert);
+
+            createdDocument = insertedDocument;
+        });
+
+        if (!createdDocument) {
+            throw new UploadError("Failed to create document.", 500);
+        }
+
         return NextResponse.json(
             {
                 message: "Document created and embeddings stored successfully",
-                document: insertedDocument,
+                document: createdDocument,
             },
             { status: 201 }
         );
     } catch (error: unknown) {
-        console.error(error);
-        return NextResponse.json({ error: String(error) }, { status: 500 });
+        const status = error instanceof UploadError ? error.status : 500;
+        const message =
+            error instanceof UploadError
+                ? error.message
+                : "An unexpected error occurred while processing the document upload.";
+
+        console.error("Upload document error:", error);
+        return NextResponse.json({ error: message }, { status });
+    } finally {
+        if (tempFilePath) {
+            await fs.unlink(tempFilePath).catch((cleanupError) => {
+                console.warn(`Failed to clean up temporary file ${tempFilePath}:`, cleanupError);
+            });
+        }
     }
 }
