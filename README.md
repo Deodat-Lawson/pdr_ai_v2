@@ -680,9 +680,9 @@ Key directories:
 | `DATABASE_URL` | PostgreSQL connection string. Format: `postgresql://user:password@host:port/database` | ✅ | `postgresql://postgres:password@localhost:5432/pdr_ai_v2` |
 | `NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY` | Clerk publishable key (client-side). Get from [Clerk Dashboard](https://clerk.com/) | ✅ | `pk_test_...` |
 | `CLERK_SECRET_KEY` | Clerk secret key (server-side). Get from [Clerk Dashboard](https://clerk.com/) | ✅ | `sk_test_...` |
-| `NEXT_PUBLIC_CLERK_SIGN_IN_FORCE_REDIRECT_URL` | Force redirect URL after sign in. If not set, uses Clerk default. | ❌ | `https://your-domain.com/employer/home` |
-| `NEXT_PUBLIC_CLERK_SIGN_UP_FORCE_REDIRECT_URL` | Force redirect URL after sign up. If not set, uses Clerk default. | ❌ | `https://your-domain.com/signup` |
-| `NEXT_PUBLIC_CLERK_SIGN_OUT_FORCE_REDIRECT_URL` | Force redirect URL after sign out. If not set, uses Clerk default. | ❌ | `https://your-domain.com/` |
+| `NEXT_PUBLIC_CLERK_SIGN_IN_FORCE_REDIRECT_URL` | Force redirect URL after sign in. If not set, uses Clerk default. | ✅ | `https://your-domain.com/employer/home` |
+| `NEXT_PUBLIC_CLERK_SIGN_UP_FORCE_REDIRECT_URL` | Force redirect URL after sign up. If not set, uses Clerk default. | ✅ | `https://your-domain.com/signup` |
+| `NEXT_PUBLIC_CLERK_SIGN_OUT_FORCE_REDIRECT_URL` | Force redirect URL after sign out. If not set, uses Clerk default. | ✅ | `https://your-domain.com/` |
 | `OPENAI_API_KEY` | OpenAI API key for AI features (embeddings, chat, document analysis). Get from [OpenAI Platform](https://platform.openai.com/) | ✅ | `sk-...` |
 | `LANGCHAIN_TRACING_V2` | Enable LangSmith tracing for LangChain operations. Set to `true` to enable. Get API key from [LangSmith](https://smith.langchain.com/) | ❌ | `true` or `false` |
 | `LANGCHAIN_API_KEY` | LangChain API key for LangSmith tracing and monitoring. Required if `LANGCHAIN_TRACING_V2=true`. Get from [LangSmith](https://smith.langchain.com/) | ❌ | `lsv2_...` |
