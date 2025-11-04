@@ -102,10 +102,15 @@ export async function POST(request: Request) {
             const noNullContent = split.pageContent.replace(/\0/g, "");
             const sanitizedContent = noNullContent.trim() || noNullContent || " ";
 
+            const embedding = chunkEmbeddings[index];
+            if (!embedding) {
+                throw new UploadError(`Missing embedding for chunk at index ${index}.`, 500);
+            }
+
             return {
                 page: split.metadata?.loc?.pageNumber ?? 1,
                 content: sanitizedContent,
-                embeddingVector: `[${chunkEmbeddings[index].join(",")}]`,
+                embeddingVector: `[${embedding.join(",")}]`,
             };
         });
 
