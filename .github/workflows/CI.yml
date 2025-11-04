@@ -2,9 +2,9 @@ name: CI Pipeline
 
 on:
   push:
-    branches: [main]
+    branches: [stable]
   pull_request:
-    branches: [main]
+    branches: [stable]
 env:
   NODE_VERSION: '18'
   PNPM_VERSION: '8'
