@@ -101,26 +101,52 @@ export default function DeploymentPage() {
                             <div className={styles.codeSection}>
                                 <h3 className={styles.stepTitle}>3. Configure Environment Variables</h3>
                                 <p className={styles.stepDescription}>
-                                    Create a <code>.env</code> file in the root directory:
+                                    Create a <code>.env</code> file in the root directory with all required variables:
                                 </p>
                                 <div className={styles.codeBlock}>
                                     <code>
-                                        # Database<br />
+                                        # Database Configuration<br />
+                                        # Format: postgresql://[user]:[password]@[host]:[port]/[database]<br />
                                         DATABASE_URL=&quot;postgresql://postgres:password@localhost:5432/pdr_ai_v2&quot;<br />
                                         <br />
-                                        # Clerk Authentication<br />
+                                        # Clerk Authentication (get from https://clerk.com/)<br />
+                                        # Required for user authentication and authorization<br />
                                         NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY=your_clerk_publishable_key<br />
                                         CLERK_SECRET_KEY=your_clerk_secret_key<br />
                                         <br />
-                                        # OpenAI API<br />
+                                        # Clerk Force Redirect URLs (Optional - for custom redirect after authentication)<br />
+                                        # These URLs control where users are redirected after sign in/up/sign out<br />
+                                        # If not set, Clerk will use default redirect behavior<br />
+                                        NEXT_PUBLIC_CLERK_SIGN_IN_FORCE_REDIRECT_URL=https://your-domain.com/employer/home<br />
+                                        NEXT_PUBLIC_CLERK_SIGN_UP_FORCE_REDIRECT_URL=https://your-domain.com/signup<br />
+                                        NEXT_PUBLIC_CLERK_SIGN_OUT_FORCE_REDIRECT_URL=https://your-domain.com/<br />
+                                        <br />
+                                        # OpenAI API (get from https://platform.openai.com/)<br />
+                                        # Required for AI features: document analysis, embeddings, chat<br />
                                         OPENAI_API_KEY=your_openai_api_key<br />
                                         <br />
-                                        # UploadThing<br />
+                                        # LangChain (get from https://smith.langchain.com/)<br />
+                                        # Optional: Required for LangSmith tracing and monitoring<br />
+                                        # LangSmith provides observability and debugging for LangChain operations<br />
+                                        LANGCHAIN_TRACING_V2=true<br />
+                                        LANGCHAIN_API_KEY=your_langchain_api_key<br />
+                                        <br />
+                                        # Tavily Search API (get from https://tavily.com/)<br />
+                                        # Optional: Required for enhanced web search capabilities<br />
+                                        # Used for finding related documents and external resources<br />
+                                        TAVILY_API_KEY=your_tavily_api_key<br />
+                                        <br />
+                                        # UploadThing (get from https://uploadthing.com/)<br />
+                                        # Required for file uploads (PDF documents)<br />
                                         UPLOADTHING_SECRET=your_uploadthing_secret<br />
                                         UPLOADTHING_APP_ID=your_uploadthing_app_id<br />
                                         <br />
-                                        # Environment<br />
-                                        NODE_ENV=development
+                                        # Environment Configuration<br />
+                                        # Options: development, test, production<br />
+                                        NODE_ENV=development<br />
+                                        <br />
+                                        # Optional: Skip environment validation (useful for Docker builds)<br />
+                                        # SKIP_ENV_VALIDATION=false
                                     </code>
                                 </div>
                             </div>
@@ -165,6 +191,13 @@ export default function DeploymentPage() {
                                     <li>Copy the publishable and secret keys</li>
                                     <li>Add them to your <code>.env</code> file</li>
                                     <li>Configure sign-in/sign-up methods as needed</li>
+                                    <li><strong>Optional:</strong> Set up force redirect URLs:
+                                        <ul className={styles.list}>
+                                            <li><code>NEXT_PUBLIC_CLERK_SIGN_IN_FORCE_REDIRECT_URL</code> - Redirect after sign in</li>
+                                            <li><code>NEXT_PUBLIC_CLERK_SIGN_UP_FORCE_REDIRECT_URL</code> - Redirect after sign up</li>
+                                            <li><code>NEXT_PUBLIC_CLERK_SIGN_OUT_FORCE_REDIRECT_URL</code> - Redirect after sign out</li>
+                                        </ul>
+                                    </li>
                                 </ol>
                             </div>
 
@@ -176,6 +209,27 @@ export default function DeploymentPage() {
                                     <li>Generate a new API key</li>
                                     <li>Add the key to your <code>.env</code> file</li>
                                     <li>Set up billing for API usage</li>
+                                </ol>
+                            </div>
+
+                            <div className={styles.apiKeySection}>
+                                <h3 className={styles.apiKeyTitle}>LangChain (LangSmith) - Optional</h3>
+                                <ol className={styles.orderedList}>
+                                    <li>Create an account at <a href="https://smith.langchain.com/" target="_blank" rel="noopener noreferrer" className={styles.link}>LangSmith <ExternalLink className={styles.linkIcon} /></a></li>
+                                    <li>Generate an API key from your account settings</li>
+                                    <li>Set <code>LANGCHAIN_TRACING_V2=true</code> in your <code>.env</code> file</li>
+                                    <li>Add <code>LANGCHAIN_API_KEY</code> to your <code>.env</code> file</li>
+                                    <li>This enables tracing and monitoring of LangChain operations for debugging</li>
+                                </ol>
+                            </div>
+
+                            <div className={styles.apiKeySection}>
+                                <h3 className={styles.apiKeyTitle}>Tavily Search API - Optional</h3>
+                                <ol className={styles.orderedList}>
+                                    <li>Create an account at <a href="https://tavily.com/" target="_blank" rel="noopener noreferrer" className={styles.link}>Tavily <ExternalLink className={styles.linkIcon} /></a></li>
+                                    <li>Generate an API key from your dashboard</li>
+                                    <li>Add <code>TAVILY_API_KEY</code> to your <code>.env</code> file</li>
+                                    <li>Used for enhanced web search capabilities in document analysis</li>
                                 </ol>
                             </div>
 
@@ -194,49 +248,246 @@ export default function DeploymentPage() {
                         <section className={styles.section}>
                             <h2 className={styles.sectionTitle}>Production Deployment</h2>
                             
+                            <div className={styles.infoBox}>
+                                <h3>Prerequisites for Production</h3>
+                                <ul className={styles.list}>
+                                    <li>✅ All environment variables configured</li>
+                                    <li>✅ Production database set up (PostgreSQL with pgvector extension)</li>
+                                    <li>✅ API keys for all external services</li>
+                                    <li>✅ Domain name configured (if using custom domain)</li>
+                                </ul>
+                            </div>
+                            
                             <div className={styles.deploymentOption}>
-                                <h3 className={styles.deploymentTitle}>Vercel (Recommended)</h3>
+                                <h3 className={styles.deploymentTitle}>1. Vercel (Recommended for Next.js)</h3>
+                                <p className={styles.stepDescription}>
+                                    Vercel is the recommended platform for Next.js applications with automatic deployments and scaling.
+                                </p>
                                 <ol className={styles.orderedList}>
-                                    <li>Push your code to GitHub</li>
-                                    <li>Import your repository on <a href="https://vercel.com" target="_blank" rel="noopener noreferrer" className={styles.link}>Vercel <ExternalLink className={styles.linkIcon} /></a></li>
-                                    <li>Configure environment variables in Vercel dashboard</li>
-                                    <li>Deploy automatically on every push</li>
+                                    <li><strong>Push your code to GitHub</strong>
+                                        <div className={styles.codeBlock}>
+                                            <code>git push origin main</code>
+                                        </div>
+                                    </li>
+                                    <li><strong>Import repository on <a href="https://vercel.com" target="_blank" rel="noopener noreferrer" className={styles.link}>Vercel <ExternalLink className={styles.linkIcon} /></a></strong>
+                                        <ul className={styles.list}>
+                                            <li>Go to vercel.com and sign in</li>
+                                            <li>Click &quot;Add New Project&quot;</li>
+                                            <li>Import your GitHub repository</li>
+                                        </ul>
+                                    </li>
+                                    <li><strong>Set up Database and Environment Variables</strong>
+                                        <div className={styles.infoBox}>
+                                            <h4>Database Setup:</h4>
+                                            <p><strong>Option A: Using Vercel Postgres (Recommended)</strong></p>
+                                            <ol className={styles.orderedList}>
+                                                <li>In Vercel dashboard, go to Storage → Create Database → Postgres</li>
+                                                <li>Choose a region and create the database</li>
+                                                <li>Vercel will automatically create the <code>DATABASE_URL</code> environment variable</li>
+                                                <li>Enable pgvector extension: Connect to your database and run <code>CREATE EXTENSION IF NOT EXISTS vector;</code></li>
+                                            </ol>
+                                            <p><strong>Option B: Using Neon Database (Recommended for pgvector support)</strong></p>
+                                            <ol className={styles.orderedList}>
+                                                <li>Create a Neon account at <a href="https://neon.tech" target="_blank" rel="noopener noreferrer" className={styles.link}>neon.tech <ExternalLink className={styles.linkIcon} /></a> if you don&apos;t have one</li>
+                                                <li>Create a new project in Neon dashboard</li>
+                                                <li>Choose PostgreSQL version 14 or higher</li>
+                                                <li>In Vercel dashboard, go to your project → Storage tab</li>
+                                                <li>Click &quot;Create Database&quot; or &quot;Browse Marketplace&quot;</li>
+                                                <li>Select &quot;Neon&quot; from the integrations</li>
+                                                <li>Click &quot;Connect&quot; or &quot;Add Integration&quot;</li>
+                                                <li>Authenticate with your Neon account</li>
+                                                <li>Select your Neon project and branch</li>
+                                                <li>Vercel will automatically create the <code>DATABASE_URL</code> environment variable from Neon</li>
+                                                <li>You may also see additional Neon-related variables like <code>POSTGRES_URL</code>, <code>POSTGRES_PRISMA_URL</code>, etc.</li>
+                                                <li>Enable pgvector extension in Neon:
+                                                    <ul className={styles.list}>
+                                                        <li>Go to Neon dashboard → SQL Editor</li>
+                                                        <li>Run: <code>CREATE EXTENSION IF NOT EXISTS vector;</code></li>
+                                                    </ul>
+                                                </li>
+                                            </ol>
+                                            <p><strong>Option C: Using External Database (Manual Setup)</strong></p>
+                                            <ol className={styles.orderedList}>
+                                                <li>In Vercel dashboard, go to Settings → Environment Variables</li>
+                                                <li>Click &quot;Add New&quot;</li>
+                                                <li>Key: <code>DATABASE_URL</code></li>
+                                                <li>Value: Your PostgreSQL connection string</li>
+                                                <li>Select environments: Production, Preview, Development (as needed)</li>
+                                                <li>Click &quot;Save&quot;</li>
+                                            </ol>
+                                        </div>
+                                        <div className={styles.infoBox}>
+                                            <h4>Add Other Environment Variables:</h4>
+                                            <ul className={styles.list}>
+                                                <li>In Vercel dashboard, go to Settings → Environment Variables</li>
+                                                <li>Add all required environment variables:
+                                                    <ul className={styles.list}>
+                                                        <li><code>NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY</code></li>
+                                                        <li><code>CLERK_SECRET_KEY</code></li>
+                                                        <li><code>OPENAI_API_KEY</code></li>
+                                                        <li><code>UPLOADTHING_SECRET</code></li>
+                                                        <li><code>UPLOADTHING_APP_ID</code></li>
+                                                        <li><code>NODE_ENV=production</code></li>
+                                                        <li><code>LANGCHAIN_TRACING_V2=true</code> (optional, for LangSmith tracing)</li>
+                                                        <li><code>LANGCHAIN_API_KEY</code> (optional, required if tracing enabled)</li>
+                                                        <li><code>TAVILY_API_KEY</code> (optional, for enhanced web search)</li>
+                                                        <li><code>NEXT_PUBLIC_CLERK_SIGN_IN_FORCE_REDIRECT_URL</code> (optional)</li>
+                                                        <li><code>NEXT_PUBLIC_CLERK_SIGN_UP_FORCE_REDIRECT_URL</code> (optional)</li>
+                                                        <li><code>NEXT_PUBLIC_CLERK_SIGN_OUT_FORCE_REDIRECT_URL</code> (optional)</li>
+                                                    </ul>
+                                                </li>
+                                            </ul>
+                                        </div>
+                                    </li>
+                                    <li><strong>Configure build settings</strong>
+                                        <ul className={styles.list}>
+                                            <li>Build Command: <code>pnpm build</code></li>
+                                            <li>Output Directory: <code>.next</code> (default)</li>
+                                            <li>Install Command: <code>pnpm install</code></li>
+                                        </ul>
+                                    </li>
+                                    <li><strong>Deploy</strong>
+                                        <ul className={styles.list}>
+                                            <li>Click &quot;Deploy&quot;</li>
+                                            <li>Vercel will automatically deploy on every push to your main branch</li>
+                                        </ul>
+                                    </li>
                                 </ol>
+                                <div className={styles.infoBox}>
+                                    <h4>Post-Deployment Steps:</h4>
+                                    <ol className={styles.orderedList}>
+                                        <li><strong>Enable pgvector Extension:</strong>
+                                            <ul className={styles.list}>
+                                                <li>For Vercel Postgres: Use Vercel&apos;s SQL editor in Storage dashboard</li>
+                                                <li>For Neon: Go to Neon dashboard → SQL Editor</li>
+                                                <li>For External Database: Connect using your PostgreSQL client</li>
+                                                <li>Run: <code>CREATE EXTENSION IF NOT EXISTS vector;</code></li>
+                                            </ul>
+                                        </li>
+                                        <li><strong>Run database migrations:</strong>
                                 <div className={styles.codeBlock}>
                                     <code>
-                                        # Build command<br />
-                                        pnpm build<br />
+                                                    # Option 1: Using Vercel CLI locally<br />
+                                                    vercel env pull .env.local<br />
+                                                    pnpm db:migrate<br />
                                         <br />
-                                        # Start command<br />
-                                        pnpm start
+                                                    # Option 2: Using direct connection<br />
+                                                    DATABASE_URL=&quot;your_production_db_url&quot; pnpm db:migrate
                                     </code>
+                                            </div>
+                                        </li>
+                                        <li>Set up Clerk webhooks (if needed): Configure webhook URL in Clerk dashboard</li>
+                                        <li>Configure UploadThing: Add your production domain to allowed origins</li>
+                                    </ol>
                                 </div>
                             </div>
 
                             <div className={styles.deploymentOption}>
-                                <h3 className={styles.deploymentTitle}>Docker Deployment</h3>
-                                <div className={styles.codeBlock}>
-                                    <code>
-                                        # Build Docker image<br />
-                                        docker build -t pdr-ai .<br />
-                                        <br />
-                                        # Run container<br />
-                                        docker run -p 3000:3000 --env-file .env pdr-ai
-                                    </code>
-                                </div>
+                                <h3 className={styles.deploymentTitle}>2. Self-Hosted VPS</h3>
+                                <p className={styles.stepDescription}>
+                                    Deploy on your own VPS with full control over the infrastructure.
+                                </p>
+                                <ol className={styles.orderedList}>
+                                    <li><strong>Prerequisites</strong>
+                                        <ul className={styles.list}>
+                                            <li>VPS with Node.js 18+ installed</li>
+                                            <li>PostgreSQL database (with pgvector extension)</li>
+                                            <li>Nginx (for reverse proxy)</li>
+                                            <li>PM2 or similar process manager</li>
+                                        </ul>
+                                    </li>
+                                    <li><strong>Clone and install</strong>
+                                        <div className={styles.codeBlock}>
+                                            <code>
+                                                git clone &lt;your-repo-url&gt;<br />
+                                                cd pdr_ai_v2-2<br />
+                                                pnpm install
+                                            </code>
+                                        </div>
+                                    </li>
+                                    <li><strong>Configure environment variables</strong>
+                                        <div className={styles.codeBlock}>
+                                            <code>nano .env  # Add all production environment variables</code>
+                                        </div>
+                                    </li>
+                                    <li><strong>Build the application</strong>
+                                        <div className={styles.codeBlock}>
+                                            <code>pnpm build</code>
+                                        </div>
+                                    </li>
+                                    <li><strong>Set up PM2</strong>
+                                        <div className={styles.codeBlock}>
+                                            <code>
+                                                npm install -g pm2<br />
+                                                pm2 start pnpm --name &quot;pdr-ai&quot; -- start<br />
+                                                pm2 save<br />
+                                                pm2 startup
+                                            </code>
+                                        </div>
+                                    </li>
+                                    <li><strong>Configure Nginx</strong>
+                                        <div className={styles.codeBlock}>
+                                            <code>
+                                                server &#123;<br />
+                                                &nbsp;&nbsp;listen 80;<br />
+                                                &nbsp;&nbsp;server_name your-domain.com;<br />
+                                                &nbsp;&nbsp;location / &#123;<br />
+                                                &nbsp;&nbsp;&nbsp;&nbsp;proxy_pass http://localhost:3000;<br />
+                                                &nbsp;&nbsp;&nbsp;&nbsp;proxy_set_header Host $host;<br />
+                                                &nbsp;&nbsp;&nbsp;&nbsp;proxy_set_header X-Real-IP $remote_addr;<br />
+                                                &nbsp;&nbsp;&nbsp;&nbsp;proxy_set_header X-Forwarded-Proto $scheme;<br />
+                                                &nbsp;&nbsp;&#125;<br />
+                                                &#125;
+                                            </code>
+                                        </div>
+                                    </li>
+                                    <li><strong>Set up SSL with Let&apos;s Encrypt</strong>
+                                        <div className={styles.codeBlock}>
+                                            <code>
+                                                sudo apt-get install certbot python3-certbot-nginx<br />
+                                                sudo certbot --nginx -d your-domain.com
+                                            </code>
+                                        </div>
+                                    </li>
+                                    <li><strong>Run database migrations</strong>
+                                        <div className={styles.codeBlock}>
+                                            <code>pnpm db:migrate</code>
+                                        </div>
+                                    </li>
+                                </ol>
                             </div>
 
-                            <div className={styles.deploymentOption}>
-                                <h3 className={styles.deploymentTitle}>Self-Hosted VPS</h3>
-                                <ol className={styles.orderedList}>
-                                    <li>Set up a VPS with Node.js and PostgreSQL</li>
-                                    <li>Clone the repository</li>
-                                    <li>Configure environment variables</li>
-                                    <li>Build the application: <code>pnpm build</code></li>
-                                    <li>Use PM2 or similar for process management</li>
-                                    <li>Configure nginx as reverse proxy</li>
-                                    <li>Set up SSL with Let&apos;s Encrypt</li>
-                                </ol>
+                            <div className={styles.infoBox}>
+                                <h3>Production Database Setup</h3>
+                                <p><strong>Important:</strong> Your production database must have the <code>pgvector</code> extension enabled:</p>
+                                <div className={styles.codeBlock}>
+                                    <code>
+                                        CREATE EXTENSION IF NOT EXISTS vector;
+                                    </code>
+                                </div>
+                                <p><strong>Recommended Database Providers:</strong></p>
+                                <ul className={styles.list}>
+                                    <li><strong>Neon</strong>: Fully serverless PostgreSQL with pgvector support</li>
+                                    <li><strong>Supabase</strong>: PostgreSQL with pgvector extension</li>
+                                    <li><strong>AWS RDS</strong>: Managed PostgreSQL (requires manual pgvector installation)</li>
+                                    <li><strong>Railway</strong>: Simple PostgreSQL hosting</li>
+                                </ul>
+                            </div>
+
+                            <div className={styles.infoBox}>
+                                <h3>Post-Deployment Checklist</h3>
+                                <ul className={styles.list}>
+                                    <li>✅ Verify all environment variables are set correctly</li>
+                                    <li>✅ Database migrations have been run</li>
+                                    <li>✅ Clerk authentication is working</li>
+                                    <li>✅ File uploads are working (UploadThing)</li>
+                                    <li>✅ AI features are functioning (OpenAI API)</li>
+                                    <li>✅ Database has pgvector extension enabled</li>
+                                    <li>✅ SSL certificate is configured (if using custom domain)</li>
+                                    <li>✅ Monitoring and logging are set up</li>
+                                    <li>✅ Backup strategy is in place</li>
+                                    <li>✅ Error tracking is configured (e.g., Sentry)</li>
+                                </ul>
                             </div>
                         </section>
 
