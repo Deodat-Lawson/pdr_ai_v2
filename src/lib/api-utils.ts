@@ -45,7 +45,7 @@ export function createSuccessResponse<T>(
 export function createErrorResponse(
   message: string,
   errorType: ErrorType = ERROR_TYPES.UNKNOWN,
-  status = HTTP_STATUS.INTERNAL_SERVER_ERROR,
+  status: number = HTTP_STATUS.BAD_REQUEST,
   error?: Error | string
 ): NextResponse<ErrorResponse> {
   return NextResponse.json(
@@ -70,7 +70,7 @@ export function createValidationError(
   return createErrorResponse(
     message,
     ERROR_TYPES.VALIDATION,
-    HTTP_STATUS.INTERNAL_SERVER_ERROR,
+    HTTP_STATUS.BAD_REQUEST,
     error
   );
 }
@@ -85,7 +85,7 @@ export function createNotFoundError(
   return createErrorResponse(
     message,
     ERROR_TYPES.VALIDATION,
-    HTTP_STATUS.INTERNAL_SERVER_ERROR,
+    HTTP_STATUS.NOT_FOUND,
     error
   );
 }
@@ -100,7 +100,7 @@ export function createTimeoutError(
   return createErrorResponse(
     message,
     ERROR_TYPES.TIMEOUT,
-    HTTP_STATUS.INTERNAL_SERVER_ERROR,
+    HTTP_STATUS.TIMEOUT,
     error
   );
 }
@@ -115,7 +115,7 @@ export function createDatabaseError(
   return createErrorResponse(
     message,
     ERROR_TYPES.DATABASE,
-    HTTP_STATUS.INTERNAL_SERVER_ERROR,
+    HTTP_STATUS.SERVICE_UNAVAILABLE,
     error
   );
 }
@@ -130,7 +130,7 @@ export function createExternalServiceError(
   return createErrorResponse(
     message,
     ERROR_TYPES.EXTERNAL_SERVICE,
-    HTTP_STATUS.INTERNAL_SERVER_ERROR,
+    HTTP_STATUS.BAD_GATEWAY,
     error
   );
 }
