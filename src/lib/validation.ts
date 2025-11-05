@@ -100,6 +100,23 @@ export const UploadDocumentSchema = z.object({
   documentCategory: z.string().min(1, "Document category is required").max(256, "Document category is too long").trim(),
 });
 
+export const UpdateCompanySchema = z.object({
+  name: z.string().min(1, "Company name is required").max(256, "Company name is too long").trim(),
+  employerPasskey: z.string().min(1, "Employer passkey is required").max(256, "Employer passkey is too long").trim(),
+  employeePasskey: z.string().min(1, "Employee passkey is required").max(256, "Employee passkey is too long").trim(),
+  numberOfEmployees: z
+    .string()
+    .trim()
+    .regex(/^\d*$/, "Number of employees must contain only digits")
+    .max(9, "Number of employees is too long")
+    .optional(),
+}).transform((data) => ({
+  name: data.name,
+  employerPasskey: data.employerPasskey,
+  employeePasskey: data.employeePasskey,
+  numberOfEmployees: data.numberOfEmployees && data.numberOfEmployees !== "" ? data.numberOfEmployees : "0",
+}));
+
 export const EmployeeAuthSchema = z.object({
   userId: z.string().min(1, "User ID is required"),
   companyPasskey: z.string().min(1, "Company passkey is required"),
