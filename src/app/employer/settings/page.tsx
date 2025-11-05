@@ -95,9 +95,7 @@ const SettingsPage = () => {
             try {
                 // 1) Verify the user is an employer
                 const response = await fetch("/api/employerAuth", {
-                    method: "POST",
-                    headers: { "Content-Type": "application/json" },
-                    body: JSON.stringify({ userId }),
+                    method: "GET",
                 });
 
                 if (response.status === 300) {
@@ -111,9 +109,7 @@ const SettingsPage = () => {
 
                 // 2) Fetch company info
                 const companyResponse = await fetch("/api/fetchCompany", {
-                    method: "POST",
-                    headers: { "Content-Type": "application/json" },
-                    body: JSON.stringify({ userId }),
+                    method: "GET",
                 });
 
                 if (!companyResponse.ok) {
@@ -164,7 +160,7 @@ const SettingsPage = () => {
 
             const result: { success?: boolean; message?: string } | null = await response
                 .json()
-                .catch(() => null);
+                .catch(() => null) as { success?: boolean; message?: string } | null;
 
             if (!response.ok || result?.success !== true) {
                 throw new Error(result?.message ?? "Error updating settings");

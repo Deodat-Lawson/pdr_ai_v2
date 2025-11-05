@@ -5,12 +5,7 @@ import { eq } from "drizzle-orm";
 import * as console from "console";
 import { auth } from "@clerk/nextjs/server";
 
-type PostBody = {
-    userId: string;
-};
-
-
-export async function POST(request: Request) {
+export async function GET() {
     try {
         const { userId } = await auth();
         if (!userId) {

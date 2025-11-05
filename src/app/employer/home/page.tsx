@@ -28,9 +28,7 @@ const HomeScreen = () => {
         const checkEmployerRole = async () => {
             try {
                 const response = await fetch("/api/employerAuth", {
-                    method: "POST",
-                    headers: { "Content-Type": "application/json" },
-                    body: JSON.stringify({ userId }),
+                    method: "GET",
                 });
                 if(response.status === 300){
                     router.push("/employee/pending-approval");
