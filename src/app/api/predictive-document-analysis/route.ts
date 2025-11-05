@@ -10,16 +10,10 @@ import {
     CACHE_CONFIG,
     ERROR_TYPES,
     HTTP_STATUS,
-    type AnalysisType
+    type AnalysisType,
+    type ErrorType
 } from "~/lib/constants";
 
-type PostBody = {
-    documentId: number;
-    analysisType?: AnalysisType;
-    includeRelatedDocs?: boolean;
-    timeoutMs?: number;
-    forceRefresh?: boolean;
-};
 import { validateRequestBody, PredictiveAnalysisSchema } from "~/lib/validation";
 
 type PdfChunk = {
@@ -101,11 +95,14 @@ export async function POST(request: Request) {
 
         const {
             documentId,
-            analysisType = 'general',
-            includeRelatedDocs = false,
-            timeoutMs = TIMEOUT_LIMITS.DEFAULT_MS,
-            forceRefresh = false
-        } = body;
+            analysisType,
+            includeRelatedDocs,
+            timeoutMs,
+            forceRefresh
+        } = validation.data;
+
+        const typedAnalysisType: AnalysisType = analysisType ?? "general";
+        const typedIncludeRelatedDocs: boolean = includeRelatedDocs ?? false;
 
         // Input validation
         if (typeof documentId !== 'number' || documentId <= 0) {
@@ -116,7 +113,7 @@ export async function POST(request: Request) {
             }, { status: HTTP_STATUS.BAD_REQUEST });
         }
 
-        if (analysisType && !ANALYSIS_TYPES.includes(analysisType)) {
+        if (!ANALYSIS_TYPES.includes(typedAnalysisType)) {
             return NextResponse.json({
                 success: false,
                 message: `Invalid analysisType. Must be one of: ${ANALYSIS_TYPES.join(', ')}`,
@@ -133,7 +130,7 @@ export async function POST(request: Request) {
         }
 
         if (!forceRefresh) {
-            const cachedResult = await getCachedAnalysis(documentId, analysisType!, includeRelatedDocs!);
+            const cachedResult = await getCachedAnalysis(documentId, typedAnalysisType, typedIncludeRelatedDocs);
 
             if (cachedResult) {
                 return NextResponse.json({
@@ -198,8 +195,8 @@ export async function POST(request: Request) {
         }
 
         const specification = {
-            type: analysisType!,
-            includeRelatedDocs: includeRelatedDocs!,
+            type: typedAnalysisType,
+            includeRelatedDocs: typedIncludeRelatedDocs,
             existingDocuments,
             title: docDetails.title,
             category: docDetails.category
@@ -218,7 +215,7 @@ export async function POST(request: Request) {
 
         const fullResult = {
             documentId,
-            analysisType,
+            analysisType: typedAnalysisType,
             summary: {
                 totalMissingDocuments: analysisResult.missingDocuments.length,
                 highPriorityItems: analysisResult.missingDocuments.filter(doc => doc.priority === 'high').length,
@@ -233,7 +230,7 @@ export async function POST(request: Request) {
             }
         } as PredictiveAnalysisOutput;
 
-        await storeAnalysisResult(documentId, analysisType!, includeRelatedDocs!, fullResult);
+        await storeAnalysisResult(documentId, typedAnalysisType, typedIncludeRelatedDocs, fullResult);
 
         return NextResponse.json({
             success: true,
@@ -243,9 +240,9 @@ export async function POST(request: Request) {
     } catch (error: unknown) {
         console.error("Predictive Document Analysis Error:", error);
 
-        let status = HTTP_STATUS.INTERNAL_SERVER_ERROR;
+        let status: number = HTTP_STATUS.INTERNAL_SERVER_ERROR;
         let message = "Failed to perform predictive document analysis";
-        let errorType = ERROR_TYPES.UNKNOWN;
+        let errorType: ErrorType = ERROR_TYPES.UNKNOWN;
 
         if (error instanceof Error) {
             if (error.message.includes('timed out') || error.message.includes('timeout')) {

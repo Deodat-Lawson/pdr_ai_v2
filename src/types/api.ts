@@ -104,14 +104,14 @@ export interface PredictiveAnalysisRequest {
   forceRefresh?: boolean;
 }
 
-export interface PredictiveAnalysisResponse extends SuccessResponse<{
+export type PredictiveAnalysisResponse = SuccessResponse<{
   documentId: number;
   analysisType: string;
   summary: AnalysisSummary;
   analysis: PredictiveAnalysisResult;
   metadata: AnalysisMetadata;
   fromCache?: boolean;
-}> {}
+}>;
 
 // Document Types
 export interface Document {
@@ -146,11 +146,11 @@ export interface ChatRequest {
   style?: 'professional' | 'casual' | 'technical' | 'summary';
 }
 
-export interface ChatResponse extends SuccessResponse<{
+export type ChatResponse = SuccessResponse<{
   response: string;
   messageId: string;
   documentId?: number;
-}> {}
+}>;
 
 // User Types
 export interface User {

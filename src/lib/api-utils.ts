@@ -70,7 +70,7 @@ export function createValidationError(
   return createErrorResponse(
     message,
     ERROR_TYPES.VALIDATION,
-    HTTP_STATUS.BAD_REQUEST,
+    HTTP_STATUS.INTERNAL_SERVER_ERROR,
     error
   );
 }
@@ -85,7 +85,7 @@ export function createNotFoundError(
   return createErrorResponse(
     message,
     ERROR_TYPES.VALIDATION,
-    HTTP_STATUS.NOT_FOUND,
+    HTTP_STATUS.INTERNAL_SERVER_ERROR,
     error
   );
 }
@@ -100,7 +100,7 @@ export function createTimeoutError(
   return createErrorResponse(
     message,
     ERROR_TYPES.TIMEOUT,
-    HTTP_STATUS.TIMEOUT,
+    HTTP_STATUS.INTERNAL_SERVER_ERROR,
     error
   );
 }
@@ -115,7 +115,7 @@ export function createDatabaseError(
   return createErrorResponse(
     message,
     ERROR_TYPES.DATABASE,
-    HTTP_STATUS.SERVICE_UNAVAILABLE,
+    HTTP_STATUS.INTERNAL_SERVER_ERROR,
     error
   );
 }
@@ -130,7 +130,7 @@ export function createExternalServiceError(
   return createErrorResponse(
     message,
     ERROR_TYPES.EXTERNAL_SERVICE,
-    HTTP_STATUS.BAD_GATEWAY,
+    HTTP_STATUS.INTERNAL_SERVER_ERROR,
     error
   );
 }
@@ -182,7 +182,7 @@ export function handleApiError(error: unknown): NextResponse<ErrorResponse> {
     "An unexpected error occurred. Please try again.",
     ERROR_TYPES.UNKNOWN,
     HTTP_STATUS.INTERNAL_SERVER_ERROR,
-    error
+    error instanceof Error ? error : new Error("An unexpected error occurred")
   );
 }
 
