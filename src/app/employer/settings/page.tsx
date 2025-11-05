@@ -95,9 +95,7 @@ const SettingsPage = () => {
             try {
                 // 1) Verify the user is an employer
                 const response = await fetch("/api/employerAuth", {
-                    method: "POST",
-                    headers: { "Content-Type": "application/json" },
-                    body: JSON.stringify({ userId }),
+                    method: "GET",
                 });
 
                 if (response.status === 300) {
@@ -111,9 +109,7 @@ const SettingsPage = () => {
 
                 // 2) Fetch company info
                 const companyResponse = await fetch("/api/fetchCompany", {
-                    method: "POST",
-                    headers: { "Content-Type": "application/json" },
-                    body: JSON.stringify({ userId }),
+                    method: "GET",
                 });
 
                 if (!companyResponse.ok) {
@@ -155,7 +151,6 @@ const SettingsPage = () => {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({
-                    userId,
                     name: companyName,
                     employerPasskey,
                     employeePasskey,
@@ -163,14 +158,18 @@ const SettingsPage = () => {
                 }),
             });
 
-            if (!response.ok) {
-                throw new Error("Error updating settings");
+            const result: { success?: boolean; message?: string } | null = await response
+                .json()
+                .catch(() => null) as { success?: boolean; message?: string } | null;
+
+            if (!response.ok || result?.success !== true) {
+                throw new Error(result?.message ?? "Error updating settings");
             }
 
-            showPopup("Company settings saved!");
+            showPopup(result?.message ?? "Company settings saved!");
         } catch (error) {
             console.error(error);
-            showPopup("Failed to update settings. Please try again.");
+            showPopup(error instanceof Error ? error.message : "Failed to update settings. Please try again.");
         } finally {
             setIsSaving(false);
         }

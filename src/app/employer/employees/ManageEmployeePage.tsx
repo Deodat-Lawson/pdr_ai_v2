@@ -24,9 +24,7 @@ const ManageEmployeesPage: React.FC = () => {
     const loadEmployees = useCallback(async () => {
         try {
             const res = await fetch("/api/getAllEmployees", {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ userId }),
+                method: "GET",
             });
 
             const rawData: unknown = await res.json();
@@ -46,7 +44,7 @@ const ManageEmployeesPage: React.FC = () => {
         } catch (error) {
             console.error("Error loading employees:", error);
         }
-    }, [userId]);
+    }, []);
 
     useEffect(() => {
         if (!isLoaded || !userId) return;

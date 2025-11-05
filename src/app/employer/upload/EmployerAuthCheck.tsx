@@ -29,9 +29,7 @@ const EmployerAuthCheck: React.FC<PropsWithChildren<EmployerAuthCheckProps>> = (
         const checkEmployerRole = async () => {
             try {
                 const response = await fetch("/api/employerAuth", {
-                    method: "POST",
-                    headers: { "Content-Type": "application/json" },
-                    body: JSON.stringify({ userId }),
+                    method: "GET",
                 });
                 if (!response.ok) {
                     alert("Authentication failed! You are not an employer.");

@@ -190,9 +190,7 @@ const DocumentViewer: React.FC = () => {
         const checkEmployeeRole = async () => {
             try {
                 const response = await fetch("/api/employeeAuth", {
-                    method: "POST",
-                    headers: { "Content-Type": "application/json" },
-                    body: JSON.stringify({ userId }),
+                    method: "GET",
                 });
 
                 if (response.status === 300) {

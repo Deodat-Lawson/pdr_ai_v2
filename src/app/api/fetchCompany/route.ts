@@ -6,7 +6,7 @@ import * as console from "console";
 import { auth } from "@clerk/nextjs/server";
 
 
-export async function POST(request: Request) {
+export async function GET() {
     try {
         const { userId } = await auth();
         if (!userId) {

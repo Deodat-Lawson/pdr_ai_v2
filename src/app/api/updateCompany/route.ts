@@ -1,54 +1,98 @@
 import { NextResponse } from "next/server";
+import { eq } from "drizzle-orm";
+import { auth } from "@clerk/nextjs/server";
+
 import { db } from "../../../server/db/index";
 import { company, users } from "../../../server/db/schema";
-import { eq } from "drizzle-orm";
-import * as console from "console";
+import { validateRequestBody, UpdateCompanySchema } from "~/lib/validation";
 
-type PostBody = {
-    userId: string;
-    name: string;
-    employerPasskey: string;
-    employeePasskey: string;
-    numberOfEmployees: string;
-}
-
+const AUTHORIZED_ROLES = new Set(["employer", "owner"]);
 
 export async function POST(request: Request) {
-    try {
-        const { userId, name, employerPasskey, employeePasskey, numberOfEmployees  } = (await request.json()) as PostBody;
+  try {
+    const { userId } = await auth();
 
-        const [userInfo] = await db
-            .select()
-            .from(users)
-            .where(eq(users.userId, userId));
-
-        if (!userInfo) {
-            return NextResponse.json(
-                { error: "Invalid user." },
-                { status: 400 }
-            );
-        }
-
-        const companyId = userInfo.companyId;
-
-        await db //update company
-            .update(company)
-            .set({
-                name: name,
-                employerpasskey: employerPasskey,
-                employeepasskey: employeePasskey,
-                numberOfEmployees: numberOfEmployees ?? '0',
-            })
-            .where(eq(company.id, Number(companyId)))
-            .returning({ id: company.id });
-
-        // Return as JSON
-        return NextResponse.json( { status: 200 });
-    } catch (error: unknown) {
-        console.error("Error fetching documents:", error);
-        return NextResponse.json(
-            { error: "Unable to fetch documents" },
-            { status: 500 }
-        );
+    if (!userId) {
+      return NextResponse.json(
+        {
+          success: false,
+          message: "Unauthorized",
+        },
+        { status: 401 }
+      );
     }
+
+    const validation = await validateRequestBody(request, UpdateCompanySchema);
+    if (!validation.success) {
+      return validation.response;
+    }
+    const { name, employerPasskey, employeePasskey, numberOfEmployees } = validation.data;
+
+    const [userRecord] = await db
+      .select({
+        id: users.id,
+        companyId: users.companyId,
+        role: users.role,
+      })
+      .from(users)
+      .where(eq(users.userId, userId));
+
+    if (!userRecord) {
+      return NextResponse.json(
+        {
+          success: false,
+          message: "Unauthorized",
+        },
+        { status: 401 }
+      );
+    }
+
+    if (!AUTHORIZED_ROLES.has(userRecord.role)) {
+      return NextResponse.json(
+        {
+          success: false,
+          message: "Forbidden",
+        },
+        { status: 403 }
+      );
+    }
+
+    const updateResult = await db
+      .update(company)
+      .set({
+        name,
+        employerpasskey: employerPasskey,
+        employeepasskey: employeePasskey,
+        numberOfEmployees,
+      })
+      .where(eq(company.id, Number(userRecord.companyId)))
+      .returning({ id: company.id });
+
+    if (!updateResult || updateResult.length === 0) {
+      return NextResponse.json(
+        {
+          success: false,
+          message: "Unable to update company record.",
+        },
+        { status: 404 }
+      );
+    }
+
+    return NextResponse.json(
+      {
+        success: true,
+        message: "Company settings updated.",
+      },
+      { status: 200 }
+    );
+  } catch (error) {
+    console.error("Error updating company settings:", error);
+    return NextResponse.json(
+      {
+        success: false,
+        message: "Unable to update company settings.",
+      },
+      { status: 500 }
+    );
+  }
 }
