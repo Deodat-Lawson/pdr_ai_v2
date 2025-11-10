@@ -64,7 +64,7 @@ export async function POST(request: Request) {
         }
 
         let textContent: string;
-        let ocrMetadata: any = null;
+        let ocrMetadata: Record<string, unknown> | null = null;
 
         if (enableOCR && env.DATALAB_API_KEY) {
             // OCR PATH: Use Datalab Marker API
@@ -85,7 +85,7 @@ export async function POST(request: Request) {
                 ocrMetadata = {
                     page_count: ocrResult.page_count,
                     processed_at: new Date().toISOString(),
-                    metadata: ocrResult.metadata,
+                    ...(ocrResult.metadata && { metadata: ocrResult.metadata }),
                 };
 
                 console.log(`OCR processing completed. Extracted ${textContent.length} characters.`);

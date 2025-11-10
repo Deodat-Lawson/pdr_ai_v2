@@ -24,9 +24,9 @@ export interface OCRResult {
   success: boolean;
   output_format: string;
   markdown?: string;
-  json?: any;
+  json?: unknown;
   html?: string;
-  metadata?: any;
+  metadata?: Record<string, unknown>;
   error?: string;
   page_count?: number;
 }
@@ -34,7 +34,7 @@ export interface OCRResult {
 export interface OCRProcessResult {
   content: string;
   page_count?: number;
-  metadata?: any;
+  metadata?: Record<string, unknown>;
 }
 
 /**
@@ -91,7 +91,7 @@ export async function submitPDFForOCR(
       throw new Error(`OCR API request failed: ${response.status} - ${errorText}`);
     }
 
-    const data = await response.json() as any;
+    const data = await response.json() as { request_id: string; request_check_url: string };
 
     return {
       success: true,
@@ -120,8 +120,8 @@ export async function submitPDFForOCR(
 export async function pollOCRCompletion(
   checkUrl: string,
   apiKey: string,
-  maxPolls: number = 60,
-  pollInterval: number = 5000
+  maxPolls = 60,
+  pollInterval = 5000
 ): Promise<OCRResult> {
   let attempts = 0;
 
@@ -138,14 +138,23 @@ export async function pollOCRCompletion(
         throw new Error(`Polling failed: ${response.status}`);
       }
 
-      const data = await response.json() as any;
+      const data = await response.json() as {
+        status: string;
+        output_format?: string;
+        markdown?: string;
+        json?: unknown;
+        html?: string;
+        metadata?: Record<string, unknown>;
+        page_count?: number;
+        error?: string;
+      };
 
       // Check if processing is complete
       if (data.status === 'complete') {
         return {
           status: 'complete',
           success: true,
-          output_format: data.output_format,
+          output_format: data.output_format ?? '',
           markdown: data.markdown,
           json: data.json,
           html: data.html,
@@ -160,7 +169,7 @@ export async function pollOCRCompletion(
           status: 'failed',
           success: false,
           output_format: '',
-          error: data.error || 'OCR processing failed',
+          error: data.error ?? 'OCR processing failed',
         };
       }
 
@@ -203,7 +212,7 @@ export async function processPDFWithOCR(
   const submitResult = await submitPDFForOCR(fileUrl, apiKey, options);
 
   if (!submitResult.success || !submitResult.request_check_url) {
-    throw new Error(submitResult.error || 'Failed to submit PDF for OCR processing');
+    throw new Error(submitResult.error ?? 'Failed to submit PDF for OCR processing');
   }
 
   console.log(`OCR request submitted. Request ID: ${submitResult.request_id}`);
@@ -217,17 +226,17 @@ export async function processPDFWithOCR(
   );
 
   if (!ocrResult.success || ocrResult.status !== 'complete') {
-    throw new Error(ocrResult.error || 'OCR processing failed');
+    throw new Error(ocrResult.error ?? 'OCR processing failed');
   }
 
   // Extract content based on output format
   let content = '';
   if (options.output_format === 'markdown' || !options.output_format) {
-    content = ocrResult.markdown || '';
+    content = ocrResult.markdown ?? '';
   } else if (options.output_format === 'html') {
-    content = ocrResult.html || '';
+    content = ocrResult.html ?? '';
   } else if (options.output_format === 'json') {
-    content = JSON.stringify(ocrResult.json || {});
+    content = JSON.stringify(ocrResult.json ?? {});
   }
 
   if (!content) {
