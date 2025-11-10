@@ -14,6 +14,8 @@ import { PDFLoader } from "@langchain/community/document_loaders/fs/pdf";
 import { RecursiveCharacterTextSplitter } from "@langchain/textsplitters";
 import { OpenAIEmbeddings } from "@langchain/openai";
 import type { Document } from "langchain/document";
+import { processPDFWithOCR } from "../services/ocrService";
+import { env } from "~/env";
 
 interface PDFMetadata {
     loc?: {
@@ -41,7 +43,7 @@ export async function POST(request: Request) {
             return validation.response;
         }
 
-        const { userId, documentName, documentUrl, documentCategory } = validation.data;
+        const { userId, documentName, documentUrl, documentCategory, enableOCR } = validation.data;
 
         const [userInfo] = await db
             .select()
@@ -56,31 +58,80 @@ export async function POST(request: Request) {
             throw new UploadError("Embedding service is not configured.", 500);
         }
 
-        const response = await fetch(documentUrl);
-        if (!response.ok) {
-            throw new UploadError(`Unable to fetch PDF from ${documentUrl}`, 502);
+        // Check if OCR is enabled and API key is available
+        if (enableOCR && !env.DATALAB_API_KEY) {
+            throw new UploadError("OCR service is not configured. Please contact administrator.", 500);
         }
 
-        const pdfArrayBuffer = await response.arrayBuffer();
-        if (pdfArrayBuffer.byteLength === 0) {
-            throw new UploadError("The downloaded PDF file is empty.", 400);
+        let textContent: string;
+        let ocrMetadata: any = null;
+
+        if (enableOCR && env.DATALAB_API_KEY) {
+            // OCR PATH: Use Datalab Marker API
+            console.log("Processing document with OCR...");
+            
+            try {
+                const ocrResult = await processPDFWithOCR(
+                    documentUrl,
+                    env.DATALAB_API_KEY,
+                    {
+                        output_format: 'markdown',
+                        use_llm: true,
+                        force_ocr: false,
+                    }
+                );
+                
+                textContent = ocrResult.content;
+                ocrMetadata = {
+                    page_count: ocrResult.page_count,
+                    processed_at: new Date().toISOString(),
+                    metadata: ocrResult.metadata,
+                };
+
+                console.log(`OCR processing completed. Extracted ${textContent.length} characters.`);
+            } catch (ocrError) {
+                console.error("OCR processing failed:", ocrError);
+                throw new UploadError(
+                    `OCR processing failed: ${ocrError instanceof Error ? ocrError.message : 'Unknown error'}`,
+                    500
+                );
+            }
+        } else {
+            // DEFAULT PATH: Use PDFLoader
+            console.log("Processing document with standard PDF extraction...");
+            
+            const response = await fetch(documentUrl);
+            if (!response.ok) {
+                throw new UploadError(`Unable to fetch PDF from ${documentUrl}`, 502);
+            }
+
+            const pdfArrayBuffer = await response.arrayBuffer();
+            if (pdfArrayBuffer.byteLength === 0) {
+                throw new UploadError("The downloaded PDF file is empty.", 400);
+            }
+            const pdfBuffer = Buffer.from(pdfArrayBuffer);
+
+            tempFilePath = path.join(os.tmpdir(), `${TEMP_FILE_PREFIX}${randomUUID()}.pdf`);
+            await fs.writeFile(tempFilePath, pdfBuffer);
+
+            const loader = new PDFLoader(tempFilePath);
+            const docs = await loader.load();
+            if (docs.length === 0) {
+                throw new UploadError("No readable content found in the provided PDF.", 422);
+            }
+
+            textContent = docs.map(doc => doc.pageContent).join('\n\n');
         }
-        const pdfBuffer = Buffer.from(pdfArrayBuffer);
 
-        tempFilePath = path.join(os.tmpdir(), `${TEMP_FILE_PREFIX}${randomUUID()}.pdf`);
-        await fs.writeFile(tempFilePath, pdfBuffer);
-
-        const loader = new PDFLoader(tempFilePath);
-        const docs = await loader.load();
-        if (docs.length === 0) {
-            throw new UploadError("No readable content found in the provided PDF.", 422);
-        }
-
+        // Split text into chunks (unified for both paths)
         const textSplitter = new RecursiveCharacterTextSplitter({
             chunkSize: 1000,
             chunkOverlap: 200,
         });
-        const allSplits = (await textSplitter.splitDocuments(docs)) as Document<PDFMetadata>[];
+        
+        // Create documents from text content
+        const documents = [{ pageContent: textContent, metadata: {} }];
+        const allSplits = (await textSplitter.splitDocuments(documents)) as Document<PDFMetadata>[];
 
         if (allSplits.length === 0) {
             throw new UploadError("Unable to split document into chunks.", 422);
@@ -124,6 +175,9 @@ export async function POST(request: Request) {
                     category: documentCategory,
                     title: documentName,
                     companyId: userInfo.companyId,
+                    ocrEnabled: enableOCR ?? false,
+                    ocrProcessed: enableOCR ? true : false,
+                    ocrMetadata: ocrMetadata,
                 })
                 .returning();
 
@@ -151,6 +205,7 @@ export async function POST(request: Request) {
             {
                 message: "Document created and embeddings stored successfully",
                 document: createdDocument,
+                ocrProcessed: enableOCR ?? false,
             },
             { status: 201 }
         );
