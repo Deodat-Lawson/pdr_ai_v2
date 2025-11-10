@@ -11,6 +11,7 @@ import { DocumentsSidebar } from "./DocumentsSidebar";
 import { DocumentContent } from "./DocumentContent";
 import { type ViewMode, type errorType } from "~/app/employer/documents/types";
 import { type QAHistoryEntry } from "./ChatHistory";
+import clsx from "clsx";
 
 const SYSTEM_PROMPTS = {
   concise: "Concise & Direct",
@@ -113,6 +114,10 @@ interface PredictiveAnalysisResponse {
   fromCache?: boolean;
 }
 
+const MAIN_SIDEBAR_COLLAPSED_WIDTH = 80;
+const MAIN_SIDEBAR_MIN_EXPANDED_WIDTH = 280;
+const MAIN_SIDEBAR_MAX_WIDTH = 560;
+
 const DocumentViewer: React.FC = () => {
   const router = useRouter();
   const { isLoaded, userId } = useAuth();
@@ -135,6 +140,11 @@ const DocumentViewer: React.FC = () => {
   const [predictiveAnalysis, setPredictiveAnalysis] = useState<PredictiveAnalysisResponse | null>(null);
   const [isPredictiveLoading, setIsPredictiveLoading] = useState(false);
   const [predictiveError, setPredictiveError] = useState("");
+  
+  const [mainSidebarWidth, setMainSidebarWidth] = useState(384); // initial expanded width
+  const [isDraggingMainSidebar, setIsDraggingMainSidebar] = useState(false);
+  const [isMainSidebarCollapsed, setIsMainSidebarCollapsed] = useState(false);
+  const [mainSidebarExpandedWidth, setMainSidebarExpandedWidth] = useState(384);
 
   const saveToDatabase = async (entry: QAHistoryEntry) => {
     try {
@@ -247,8 +257,7 @@ const DocumentViewer: React.FC = () => {
 
   useEffect(() => {
     if (!userId) return;
-    
-    // If in Q&A history mode and no document selected, fetch all history
+
     if (viewMode === "with-ai-qa-history" && !selectedDoc) {
       const fetchAllHistory = async () => {
         try {
@@ -274,7 +283,6 @@ const DocumentViewer: React.FC = () => {
       return;
     }
 
-    // Fetch history for specific document
     if (!selectedDoc?.id) return;
 
     const fetchHistory = async () => {
@@ -349,6 +357,76 @@ const DocumentViewer: React.FC = () => {
     fetchPredictiveAnalysis(selectedDoc.id, false).catch(console.error);
   }, [viewMode, selectedDoc, fetchPredictiveAnalysis]);
 
+  // Handle main sidebar resize with smooth dragging
+  useEffect(() => {
+    if (!isDraggingMainSidebar) return;
+
+    let animationFrameId: number;
+
+    const handleMouseMove = (e: MouseEvent) => {
+      if (animationFrameId) {
+        cancelAnimationFrame(animationFrameId);
+      }
+
+      animationFrameId = requestAnimationFrame(() => {
+        const pointerX = e.clientX;
+        const clampedWidth = Math.max(
+          MAIN_SIDEBAR_COLLAPSED_WIDTH,
+          Math.min(MAIN_SIDEBAR_MAX_WIDTH, pointerX)
+        );
+
+        if (clampedWidth <= MAIN_SIDEBAR_MIN_EXPANDED_WIDTH) {
+          if (!isMainSidebarCollapsed) {
+            setIsMainSidebarCollapsed(true);
+          }
+          setMainSidebarWidth(MAIN_SIDEBAR_COLLAPSED_WIDTH);
+        } else {
+          if (isMainSidebarCollapsed) {
+            setIsMainSidebarCollapsed(false);
+          }
+          setMainSidebarExpandedWidth(clampedWidth);
+          setMainSidebarWidth(clampedWidth);
+        }
+      });
+    };
+
+    const handleMouseUp = () => {
+      setIsDraggingMainSidebar(false);
+      if (animationFrameId) {
+        cancelAnimationFrame(animationFrameId);
+      }
+    };
+
+    document.addEventListener('mousemove', handleMouseMove);
+    document.addEventListener('mouseup', handleMouseUp);
+    document.body.style.cursor = 'ew-resize';
+    document.body.style.userSelect = 'none';
+
+    return () => {
+      document.removeEventListener('mousemove', handleMouseMove);
+      document.removeEventListener('mouseup', handleMouseUp);
+      document.body.style.cursor = '';
+      document.body.style.userSelect = '';
+      if (animationFrameId) {
+        cancelAnimationFrame(animationFrameId);
+      }
+    };
+  }, [isDraggingMainSidebar, isMainSidebarCollapsed]);
+
+  const handleSidebarCollapseChange = (collapsed: boolean) => {
+    if (collapsed) {
+      setMainSidebarExpandedWidth(prev =>
+        Math.max(prev, MAIN_SIDEBAR_MIN_EXPANDED_WIDTH)
+      );
+      setIsMainSidebarCollapsed(true);
+      setMainSidebarWidth(MAIN_SIDEBAR_COLLAPSED_WIDTH);
+    } else {
+      setIsMainSidebarCollapsed(false);
+      const restoredWidth = Math.max(mainSidebarExpandedWidth, MAIN_SIDEBAR_MIN_EXPANDED_WIDTH);
+      setMainSidebarWidth(Math.min(restoredWidth, MAIN_SIDEBAR_MAX_WIDTH));
+    }
+  };
+
   const handleAiSearch = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!aiQuestion.trim()) return;
@@ -365,9 +443,12 @@ const DocumentViewer: React.FC = () => {
     setReferencePages([]);
     setIsAiLoading(true);
 
+    const currentQuestion = aiQuestion;
+    setAiQuestion("");
+
     try {
       const requestBody: RequestBody = {
-        question: aiQuestion,
+        question: currentQuestion,
         style: aiStyle,
         searchScope,
       };
@@ -395,11 +476,13 @@ const DocumentViewer: React.FC = () => {
         setReferencePages(uniquePages);
         // Only save to history for document-specific searches
         if (searchScope === "document" && selectedDoc) {
-          await saveToHistory(aiQuestion, data.summarizedAnswer, uniquePages);
+          await saveToHistory(currentQuestion, data.summarizedAnswer, uniquePages);
         }
       }
     } catch (error: unknown) {
       setAiError("Timeout or fetch error: Please try again later." + (error as Error).toString());
+      // Restore question on error
+      setAiQuestion(currentQuestion);
     } finally {
       setIsAiLoading(false);
     }
@@ -472,21 +555,49 @@ const DocumentViewer: React.FC = () => {
 
   return (
     <div className={styles.container}>
-      <DocumentsSidebar
-        categories={categories}
-        searchTerm={searchTerm}
-        setSearchTerm={setSearchTerm}
-        selectedDoc={selectedDoc}
-        setSelectedDoc={(doc) => {
-          setSelectedDoc(doc);
-          setPdfPageNumber(1);
-          setAiAnswer("");
-          setReferencePages([]);
+      <div
+        style={{ width: `${mainSidebarWidth}px` }}
+        className={clsx(
+          "flex-shrink-0 relative",
+          styles.draggableSidebar,
+          isDraggingMainSidebar && styles.dragging
+        )}
+      >
+        <DocumentsSidebar
+          categories={categories}
+          searchTerm={searchTerm}
+          setSearchTerm={setSearchTerm}
+          selectedDoc={selectedDoc}
+          setSelectedDoc={(doc) => {
+            setSelectedDoc(doc);
+            setPdfPageNumber(1);
+            setAiAnswer("");
+            setReferencePages([]);
+          }}
+          viewMode={viewMode}
+          setViewMode={setViewMode}
+          toggleCategory={toggleCategory}
+          deleteDocument={deleteDocument}
+          collapsed={isMainSidebarCollapsed}
+          onCollapseChange={handleSidebarCollapseChange}
+          isDragging={isDraggingMainSidebar}
+        />
+      </div>
+
+      {/* Resize Handle for Main Sidebar */}
+      <div
+        className={clsx(
+          styles.resizeHandle,
+          "flex-shrink-0",
+          isDraggingMainSidebar && styles.dragging
+        )}
+        onMouseDown={() => {
+          if (!isMainSidebarCollapsed) {
+            setMainSidebarExpandedWidth(Math.max(mainSidebarWidth, MAIN_SIDEBAR_MIN_EXPANDED_WIDTH));
+          }
+          setIsDraggingMainSidebar(true);
         }}
-        viewMode={viewMode}
-        setViewMode={setViewMode}
-        toggleCategory={toggleCategory}
-        deleteDocument={deleteDocument}
+        style={{ minHeight: "100vh" }}
       />
 
       <main className={styles.mainContent}>

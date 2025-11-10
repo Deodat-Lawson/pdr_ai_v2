@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import Link from "next/link";
 import {
     FileText,
@@ -19,6 +19,7 @@ import {
 import styles from "~/styles/Employer/DocumentViewer.module.css";
 import { type ViewMode } from "./types";
 import { ThemeToggle } from "~/app/_components/ThemeToggle";    
+import clsx from "clsx";
 
 interface DocumentType {
     id: number;
@@ -44,6 +45,9 @@ interface DocumentsSidebarProps {
     setViewMode: React.Dispatch<React.SetStateAction<ViewMode>>;
     toggleCategory?: (categoryName: string) => void;
     deleteDocument?: (docId: number) => void;
+    collapsed?: boolean;
+    onCollapseChange?: (collapsed: boolean) => void;
+    isDragging?: boolean;
 }
 
 interface ViewModeConfig {
@@ -85,13 +89,28 @@ export const DocumentsSidebar: React.FC<DocumentsSidebarProps> = ({
     setViewMode,
     toggleCategory,
     deleteDocument,
+    collapsed,
+    onCollapseChange,
+    isDragging = false,
 }) => {
     const [hoveredTooltip, setHoveredTooltip] = useState<string | null>(null);
-    const [isCollapsed, setIsCollapsed] = useState(false);
+    const [internalCollapsed, setInternalCollapsed] = useState(false);
     const [isSearchFocused, setIsSearchFocused] = useState(false);
 
+    useEffect(() => {
+        if (collapsed !== undefined) {
+            setInternalCollapsed(collapsed);
+        }
+    }, [collapsed]);
+
+    const isCollapsed = collapsed ?? internalCollapsed;
+
     const toggleSidebar = () => {
-        setIsCollapsed(!isCollapsed);
+        const nextCollapsed = !isCollapsed;
+        if (collapsed === undefined) {
+            setInternalCollapsed(nextCollapsed);
+        }
+        onCollapseChange?.(nextCollapsed);
     };
 
     const handleCategoryClick = (categoryName: string) => {
@@ -108,26 +127,25 @@ export const DocumentsSidebar: React.FC<DocumentsSidebarProps> = ({
     };
 
     return (
-        <aside className={`${styles.sidebar} ${isCollapsed ? styles.collapsed : ""}`}>
-            {/* Collapse Toggle Button */}
-            <button 
-                className={styles.toggleButton}
-                onClick={toggleSidebar}
-                aria-label={isCollapsed ? "Expand sidebar" : "Collapse sidebar"}
-            >
-                <ChevronLeft 
-                    className={`${styles.toggleIcon} ${isCollapsed ? "rotate-180" : ""}`}
-                />
-            </button>
-
+        <aside
+            className={clsx(
+                styles.sidebar,
+                styles.draggableSidebar,
+                isCollapsed && styles.collapsed,
+                isDragging && styles.dragging,
+            )}
+        >
             {/* Sidebar Header Section */}
             <div className={styles.sidebarHeader}>
                 {/* Logo and Actions Row */}
                 <div className={styles.logoRow}>
+                    {/* Logo */}
                     <div className={styles.logoContainer}>
                         <Brain className={styles.logoIcon} />
                         <span className={styles.logoText}>PDR AI</span>
                     </div>
+                    
+                    {/* Action Buttons */}
                     <div className={styles.headerActions}>
                         <ThemeToggle />
                         <Link href="/employer/home">
@@ -135,6 +153,15 @@ export const DocumentsSidebar: React.FC<DocumentsSidebarProps> = ({
                                 <Home className={styles.iconButtonIcon} />
                             </button>
                         </Link>
+                        <button 
+                            className={styles.iconButton}
+                            onClick={toggleSidebar}
+                            aria-label={isCollapsed ? "Expand sidebar" : "Collapse sidebar"}
+                        >
+                            <ChevronLeft 
+                                className={`${styles.iconButtonIcon} transition-transform duration-300 ${isCollapsed ? "rotate-180" : ""}`}
+                            />
+                        </button>
                     </div>
                 </div>
 
@@ -186,7 +213,6 @@ export const DocumentsSidebar: React.FC<DocumentsSidebarProps> = ({
             </div>
 
             <nav className={styles.docList}>
-                {/* Show "All Documents" option when in AI Q&A mode */}
                 {(viewMode === "with-ai-qa" || viewMode === "with-ai-qa-history") && !isCollapsed && (
                     <div className={styles.categoryGroup}>
                         <div 

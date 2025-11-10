@@ -1,9 +1,10 @@
 "use client";
 
-import React, { useState } from "react";
-import { Brain, Clock, FileSearch, AlertTriangle, CheckCircle, AlertCircle, RefreshCw, Check } from "lucide-react";
+import React, { useState, useEffect, useRef } from "react";
+import { Brain, Clock, FileSearch, AlertTriangle, CheckCircle, AlertCircle, RefreshCw, Check, ChevronLeft, ChevronRight, FileText } from "lucide-react";
 import styles from "~/styles/Employer/DocumentViewer.module.css";
 import { type ViewMode } from "./types";
+import clsx from "clsx";
 
 // Import the QAHistory component AND the QAHistoryEntry interface
 import QAHistory, { type QAHistoryEntry } from "./ChatHistory";
@@ -136,6 +137,135 @@ export const DocumentContent: React.FC<DocumentContentProps> = ({
   // State for query mode: 'simple' for one-time query, 'chat' for conversation
   const [queryMode, setQueryMode] = useState<'simple' | 'chat'>('simple');
 
+  // Ref for chat history auto-scroll
+  const chatHistoryRef = useRef<HTMLDivElement>(null);
+  // Ref for chat input auto-resize
+  const chatInputRef = useRef<HTMLTextAreaElement>(null);
+  // AI Chat persona/expertise selector
+  type AiPersona = 'learning-coach' | 'financial-expert' | 'legal-expert' | 'math-reasoning';
+  const [aiPersona, setAiPersona] = useState<AiPersona>('learning-coach');
+
+  // States for resizable sidebars
+  const [rightSidebarWidth, setRightSidebarWidth] = useState(400);
+  const [isRightSidebarCollapsed, setIsRightSidebarCollapsed] = useState(false);
+  const [isDraggingRight, setIsDraggingRight] = useState(false);
+  const [leftSidebarWidth, setLeftSidebarWidth] = useState(400);
+  const [isLeftSidebarCollapsed, setIsLeftSidebarCollapsed] = useState(false);
+  const [isDraggingLeft, setIsDraggingLeft] = useState(false);
+
+  // Auto-scroll to bottom of chat when new messages arrive
+  useEffect(() => {
+    if (queryMode === 'chat' && chatHistoryRef.current) {
+      chatHistoryRef.current.scrollTop = chatHistoryRef.current.scrollHeight;
+    }
+  }, [qaHistory, aiLoading, queryMode]);
+
+  // Auto-resize chat input as user types
+  useEffect(() => {
+    if (queryMode !== 'chat') return;
+    const el = chatInputRef.current;
+    if (!el) return;
+    el.style.height = 'auto';
+    // Cap growth to 256px (~16rem), beyond that it will scroll
+    el.style.height = `${Math.min(el.scrollHeight, 256)}px`;
+  }, [aiQuestion, queryMode]);
+
+  // Handle right sidebar resize with smooth dragging
+  useEffect(() => {
+    if (!isDraggingRight) return;
+
+    let animationFrameId: number;
+
+    const handleMouseMove = (e: MouseEvent) => {
+      if (animationFrameId) {
+        cancelAnimationFrame(animationFrameId);
+      }
+
+      animationFrameId = requestAnimationFrame(() => {
+        const newWidth = window.innerWidth - e.clientX;
+        
+        // Collapse if dragged too narrow
+        if (newWidth < 150) {
+          setIsRightSidebarCollapsed(true);
+          setIsDraggingRight(false);
+        } else {
+          setIsRightSidebarCollapsed(false);
+          setRightSidebarWidth(Math.max(250, Math.min(600, newWidth)));
+        }
+      });
+    };
+
+    const handleMouseUp = () => {
+      setIsDraggingRight(false);
+      if (animationFrameId) {
+        cancelAnimationFrame(animationFrameId);
+      }
+    };
+
+    document.addEventListener('mousemove', handleMouseMove);
+    document.addEventListener('mouseup', handleMouseUp);
+    document.body.style.cursor = 'ew-resize';
+    document.body.style.userSelect = 'none';
+
+    return () => {
+      document.removeEventListener('mousemove', handleMouseMove);
+      document.removeEventListener('mouseup', handleMouseUp);
+      document.body.style.cursor = '';
+      document.body.style.userSelect = '';
+      if (animationFrameId) {
+        cancelAnimationFrame(animationFrameId);
+      }
+    };
+  }, [isDraggingRight]);
+
+  // Handle left sidebar resize (for chat mode) with smooth dragging
+  useEffect(() => {
+    if (!isDraggingLeft) return;
+
+    let animationFrameId: number;
+
+    const handleMouseMove = (e: MouseEvent) => {
+      if (animationFrameId) {
+        cancelAnimationFrame(animationFrameId);
+      }
+
+      animationFrameId = requestAnimationFrame(() => {
+        const newWidth = e.clientX;
+        
+        // Collapse if dragged too narrow
+        if (newWidth < 150) {
+          setIsLeftSidebarCollapsed(true);
+          setIsDraggingLeft(false);
+        } else {
+          setIsLeftSidebarCollapsed(false);
+          setLeftSidebarWidth(Math.max(250, Math.min(600, newWidth)));
+        }
+      });
+    };
+
+    const handleMouseUp = () => {
+      setIsDraggingLeft(false);
+      if (animationFrameId) {
+        cancelAnimationFrame(animationFrameId);
+      }
+    };
+
+    document.addEventListener('mousemove', handleMouseMove);
+    document.addEventListener('mouseup', handleMouseUp);
+    document.body.style.cursor = 'ew-resize';
+    document.body.style.userSelect = 'none';
+
+    return () => {
+      document.removeEventListener('mousemove', handleMouseMove);
+      document.removeEventListener('mouseup', handleMouseUp);
+      document.body.style.cursor = '';
+      document.body.style.userSelect = '';
+      if (animationFrameId) {
+        cancelAnimationFrame(animationFrameId);
+      }
+    };
+  }, [isDraggingLeft]);
+
   if (!selectedDoc && viewMode !== "with-ai-qa" && viewMode !== "with-ai-qa-history") {
     return (
       <div className={styles.noDocSelected}>
@@ -256,60 +386,196 @@ export const DocumentContent: React.FC<DocumentContentProps> = ({
     </div>
   );
 
-  return (
-    <>
-      <div className={styles.docHeader}>
-        <h1 className={styles.docTitle}>
-          {selectedDoc ? selectedDoc.title : "All Documents"}
-        </h1>
+  // Render the Simple Query layout (Document main + Query sidebar)
+  const renderSimpleQueryLayout = () => (
+    <div className={clsx(styles.splitLayoutContainer, "gap-6")}>
+      {/* Main Document Viewer */}
+      <div className={clsx(styles.splitMainPanel, "flex-1 flex flex-col")}>
+        {selectedDoc ? (
+          <div className="flex-1 bg-white/80 dark:bg-slate-800/90 backdrop-blur-sm rounded-2xl shadow-xl p-6 border border-gray-100 dark:border-purple-500/30 transition-all duration-300">
+            <iframe
+              key={pdfPageNumber}
+              src={getPdfSrcWithPage(selectedDoc.url, pdfPageNumber)}
+              className="w-full h-full border-0 rounded-xl"
+              title={selectedDoc.title}
+            />
+          </div>
+        ) : (
+          <div className="flex-1 flex items-center justify-center bg-white/80 dark:bg-slate-800/90 backdrop-blur-sm rounded-2xl shadow-xl border border-gray-100 dark:border-purple-500/30 transition-all duration-300">
+            <p className="text-gray-500 dark:text-gray-400 text-lg">Select a document to view</p>
+          </div>
+        )}
       </div>
 
-      {/* AI Q&A Section */}
-      {viewMode === "with-ai-qa" && (
-        <div className={styles.summaryContainer}>
-          <div className={styles.summaryHeader}>
-            <Brain className={styles.summaryIcon} />
-            <h2 className={styles.summaryTitle}>AI Q&A</h2>
+      {!isRightSidebarCollapsed && (
+        <>
+          <div
+            className={clsx(
+              styles.resizeHandle,
+              "flex-shrink-0",
+              isDraggingRight && styles.dragging
+            )}
+            onMouseDown={() => setIsDraggingRight(true)}
+          />
+
+          <div
+            className={clsx(
+              styles.sidebar,
+              styles.sidebarRight,
+              styles.draggableSidebar,
+              "sticky top-0",
+              isDraggingRight && styles.dragging
+            )}
+            style={{ width: `${rightSidebarWidth}px`, maxHeight: "100vh" }}
+          >
+            <div className={styles.sidebarHeader}>
+              <div className="flex items-center gap-3">
+                <Brain className="w-9 h-9 text-purple-600 dark:text-purple-400 p-1.5 bg-gradient-to-br from-purple-100 to-indigo-100 dark:from-purple-900/30 dark:to-indigo-900/20 rounded-xl" />
+                <div>
+                  <h2 className="text-lg font-bold text-gray-900 dark:text-white">Simple Query</h2>
+                </div>
+              </div>
+      </div>
+
+            <div className={clsx(styles.sidebarBody, "space-y-5")}>
+              <form onSubmit={handleAiSearch} className="space-y-4">
+                <div className="flex flex-col space-y-3 bg-white/60 dark:bg-slate-700/50 rounded-xl p-4 border border-gray-200/70 dark:border-purple-500/20">
+                  <label className="text-sm font-semibold text-gray-700 dark:text-gray-300 tracking-wide uppercase">Search Scope</label>
+                  <div className="flex flex-col space-y-2">
+                    <label className="flex items-center cursor-pointer group">
+                      <input
+                        type="radio"
+                        value="document"
+                        checked={searchScope === "document"}
+                        onChange={(e) => setSearchScope(e.target.value as "document" | "company")}
+                        className="mr-3 text-purple-600 focus:ring-purple-500 w-4 h-4"
+                      />
+                      <span className="text-sm text-gray-700 dark:text-gray-300 group-hover:text-purple-600 dark:group-hover:text-purple-400 transition-colors">
+                        Current Document
+                      </span>
+                    </label>
+                    <label className="flex items-center cursor-pointer group">
+                      <input
+                        type="radio"
+                        value="company"
+                        checked={searchScope === "company"}
+                        onChange={(e) => setSearchScope(e.target.value as "document" | "company")}
+                        className="mr-3 text-purple-600 focus:ring-purple-500 w-4 h-4"
+                        disabled={!companyId}
+                      />
+                      <span className={clsx(
+                        "text-sm transition-colors",
+                        !companyId
+                          ? "text-gray-400 cursor-not-allowed"
+                          : "text-gray-700 dark:text-gray-300 group-hover:text-purple-600 dark:group-hover:text-purple-400"
+                      )}>
+                        All Company Docs
+                      </span>
+                    </label>
+                  </div>
           </div>
 
-          {/* Query Mode Toggle */}
-          <div className="mb-4">
-            <div className="flex gap-2 p-1 bg-gray-100 dark:bg-slate-800 rounded-lg w-fit">
+                <div className="flex flex-col space-y-2">
+                  <label className="text-sm font-semibold text-gray-700 dark:text-gray-300 tracking-wide uppercase">Response Style</label>
+                  <select
+                    value={aiStyle}
+                    onChange={(e) => setAiStyle(e.target.value)}
+                    className="border-2 border-gray-200 dark:border-slate-600 bg-white dark:bg-slate-700 dark:text-white rounded-xl p-3 w-full focus:ring-2 focus:ring-purple-500 focus:border-purple-500 transition-all duration-200 font-medium"
+                  >
+                    {Object.entries(styleOptions).map(([key, label]) => (
+                      <option key={key} value={key}>
+                        {label}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
+                <textarea
+                  placeholder={
+                    searchScope === "company" 
+                      ? "Ask about all company docs..." 
+                      : selectedDoc 
+                        ? `Ask about "${selectedDoc.title}"...`
+                        : "Select a document first..."
+                  }
+                  value={aiQuestion}
+                  onChange={(e) => setAiQuestion(e.target.value)}
+                  rows={4}
+                  className="border-2 border-gray-200 dark:border-slate-600 bg-white dark:bg-slate-700 dark:text-white dark:placeholder-gray-400 rounded-xl p-3 w-full focus:ring-2 focus:ring-purple-500 focus:border-purple-500 resize-none transition-all duration-200 font-medium"
+                />
               <button
-                type="button"
-                onClick={() => setQueryMode('simple')}
-                className={`px-4 py-2 rounded-md font-medium text-sm transition-all duration-200 ${
-                  queryMode === 'simple'
-                    ? 'bg-white dark:bg-slate-700 text-purple-600 dark:text-purple-400 shadow-md'
-                    : 'text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-200'
-                }`}
-              >
-                💬 Simple Query
+                  type="submit"
+                  disabled={aiLoading || (searchScope === "document" && !selectedDoc) || (searchScope === "company" && !companyId)}
+                  className="bg-gradient-to-r from-purple-600 to-indigo-600 text-white px-6 py-3 rounded-xl font-semibold hover:from-purple-700 hover:to-indigo-700 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:ring-offset-2 transition-all duration-200 transform hover:-translate-y-0.5 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:translate-y-0 shadow-lg hover:shadow-xl flex items-center justify-center"
+                >
+                  {aiLoading ? (
+                    <span className="flex items-center justify-center">
+                      <svg className="animate-spin -ml-1 mr-3 h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                      </svg>
+                      Asking AI...
+                    </span>
+                  ) : "Ask AI"}
               </button>
+              </form>
+
+              {aiError && <p className="text-red-500 text-sm font-medium">{aiError}</p>}
+
+              {aiAnswer && (
+                <div className="bg-gradient-to-r from-gray-50 to-purple-50 dark:from-slate-700 dark:to-purple-900/20 rounded-xl p-4 border border-gray-200 dark:border-purple-500/30 space-y-3">
+                  <p className="text-gray-700 dark:text-gray-300 text-sm whitespace-pre-wrap leading-relaxed">{aiAnswer}</p>
+
+                  {referencePages.length > 0 && (
+                    <div className="pt-3 border-t border-gray-300 dark:border-slate-600 space-y-2">
+                      <p className="font-semibold text-gray-700 dark:text-gray-300 text-sm uppercase tracking-wide">Reference Pages</p>
+                      <div className="flex flex-wrap gap-2">
+                        {referencePages.map((page) => (
               <button
-                type="button"
-                onClick={() => setQueryMode('chat')}
-                className={`px-4 py-2 rounded-md font-medium text-sm transition-all duration-200 ${
-                  queryMode === 'chat'
-                    ? 'bg-white dark:bg-slate-700 text-purple-600 dark:text-purple-400 shadow-md'
-                    : 'text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-200'
-                }`}
-              >
-                🤖 AI Chat
+                            key={page}
+                            onClick={() => setPdfPageNumber(page)}
+                            className="inline-flex items-center bg-purple-100 dark:bg-purple-900/50 text-purple-700 dark:text-purple-300 px-3 py-1.5 rounded-lg hover:bg-purple-200 dark:hover:bg-purple-900/70 transition-all duration-200 text-xs font-medium shadow-sm hover:shadow-md"
+                          >
+                            Page {page}
               </button>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                </div>
+              )}
             </div>
-            <p className="text-xs text-gray-500 dark:text-gray-400 mt-2">
-              {queryMode === 'simple' 
-                ? '✓ Quick one-time questions with focused answers' 
-                : '✓ Interactive conversation mode with context retention'}
-            </p>
           </div>
+        </>
+      )}
 
-          <form onSubmit={handleAiSearch} className="flex flex-col space-y-3">
-            <div className="flex flex-col space-y-2">
-              <label className="text-sm font-medium text-gray-700 dark:text-gray-300">Search Scope:</label>
-              <div className="flex space-x-4">
-                <label className="flex items-center">
+      {/* Reopen Button for Collapsed Right Sidebar */}
+      {isRightSidebarCollapsed && (
+              <button
+          onClick={() => setIsRightSidebarCollapsed(false)}
+          className={clsx(styles.reopenButton, "right-4 top-1/2 -translate-y-1/2 rounded-l-lg")}
+          title="Open Query Panel"
+        >
+          <Brain className="w-5 h-5" />
+          <span className="text-sm font-medium">Query</span>
+              </button>
+      )}
+    </div>
+  );
+
+  // Render the AI Chat layout (Chat main + Document right navbar)
+  const renderAiChatLayout = () => (
+    <div className={clsx(styles.splitLayoutContainer, "gap-0")}>
+      {/* Main Chat Content */}
+      <div className="flex-1 flex flex-col min-h-0">
+        
+        <div className="flex-1 bg-white/80 dark:bg-slate-800/90 backdrop-blur-sm rounded-2xl shadow-xl p-6 border border-gray-100 dark:border-purple-500/30 flex flex-col min-h-0 overflow-hidden">
+          <div className="mb-4 pb-4 border-b border-gray-200 dark:border-slate-600 flex-shrink-0">
+            <div className="flex flex-wrap gap-4 items-end">
+              <div className="flex-1 space-y-2">
+                <label className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide"> Context Scope</label>
+                <div className="flex gap-4 flex-wrap">
+                  <label className="flex items-center cursor-pointer group">
                   <input
                     type="radio"
                     value="document"
@@ -317,11 +583,11 @@ export const DocumentContent: React.FC<DocumentContentProps> = ({
                     onChange={(e) => setSearchScope(e.target.value as "document" | "company")}
                     className="mr-2 text-purple-600 focus:ring-purple-500"
                   />
-                  <span className="text-sm text-gray-700 dark:text-gray-300">
-                    Current Document {selectedDoc ? `(${selectedDoc.title})` : ""}
+                    <span className="text-sm text-gray-700 dark:text-gray-300 group-hover:text-purple-600 dark:group-hover:text-purple-400">
+                      Current Document
                   </span>
                 </label>
-                <label className="flex items-center">
+                  <label className="flex items-center cursor-pointer group">
                   <input
                     type="radio"
                     value="company"
@@ -330,19 +596,21 @@ export const DocumentContent: React.FC<DocumentContentProps> = ({
                     className="mr-2 text-purple-600 focus:ring-purple-500"
                     disabled={!companyId}
                   />
-                  <span className={`text-sm ${!companyId ? 'text-gray-400' : 'text-gray-700 dark:text-gray-300'}`}>
-                    All Company Documents
+                    <span className={clsx(
+                      "text-sm transition-colors",
+                      !companyId ? "text-gray-400 cursor-not-allowed" : "text-gray-700 dark:text-gray-300 group-hover:text-purple-600 dark:group-hover:text-purple-400"
+                    )}>
+                      All Company Docs
                   </span>
                 </label>
               </div>
             </div>
-            
-            <div className="flex flex-col space-y-2">
-              <label className="text-sm font-medium text-gray-700 dark:text-gray-300">Response Style:</label>
+              <div className="w-48">
+                <label className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide block mb-2">Style</label>
               <select
                 value={aiStyle}
                 onChange={(e) => setAiStyle(e.target.value)}
-                className="border border-gray-300 dark:border-slate-600 dark:bg-slate-800 dark:text-white rounded p-2 w-full focus:ring-2 focus:ring-purple-500 focus:border-purple-500"
+                  className="border border-gray-300 dark:border-slate-600 dark:bg-slate-700 dark:text-white rounded-lg p-2 w-full focus:ring-2 focus:ring-purple-500 text-sm"
               >
                 {Object.entries(styleOptions).map(([key, label]) => (
                   <option key={key} value={key}>
@@ -351,58 +619,237 @@ export const DocumentContent: React.FC<DocumentContentProps> = ({
                 ))}
               </select>
             </div>
-            <input
-              type="text"
+            <div className="w-60">
+              <label className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide block mb-2">Expertise</label>
+              <select
+                value={aiPersona}
+                onChange={(e) => setAiPersona(e.target.value as AiPersona)}
+                className="border border-gray-300 dark:border-slate-600 dark:bg-slate-700 dark:text-white rounded-lg p-2 w-full focus:ring-2 focus:ring-purple-500 text-sm"
+              >
+                <option value="learning-coach">Learning Coach</option>
+                <option value="financial-expert">Financial Expert</option>
+                <option value="legal-expert">Legal Expert</option>
+                <option value="math-reasoning">Math Reasoning</option>
+              </select>
+            </div>
+            </div>
+          </div>
+
+          <div ref={chatHistoryRef} className={clsx(styles.chatHistoryContainer, "flex-1 min-h-0 overflow-y-auto mb-4")}>
+            {qaHistory.length === 0 && !aiAnswer && !aiLoading && (
+              <div className="flex items-center justify-center h-full text-center">
+                <div>
+                  <Brain className="w-16 h-16 text-purple-300 dark:text-purple-600 mx-auto mb-4" />
+                  <p className="text-gray-500 dark:text-gray-400">Start a conversation with the AI assistant</p>
+                  <p className="text-sm text-gray-400 dark:text-gray-500 mt-2">Ask questions about your documents</p>
+                </div>
+              </div>
+            )}
+            
+            {qaHistory.map((entry) => (
+              <div key={entry.id} className="space-y-2">
+                <div className="flex justify-end">
+                  <div className="bg-gradient-to-r from-purple-600 to-indigo-600 text-white rounded-2xl px-4 py-3 max-w-[80%] shadow-md">
+                    <p className="text-sm leading-relaxed">{entry.question}</p>
+                  </div>
+                </div>
+                <div className="flex justify-start">
+                  <div className="bg-gray-100 dark:bg-slate-700 text-gray-800 dark:text-gray-200 rounded-2xl px-4 py-3 max-w-[80%] shadow-sm">
+                    <p className="text-sm whitespace-pre-wrap leading-relaxed">{entry.response}</p>
+                    {entry.pages.length > 0 && (
+                      <div className="mt-2 pt-2 border-t border-gray-300 dark:border-slate-600">
+                        <div className="flex flex-wrap gap-1.5">
+                          {entry.pages.map((page) => (
+                            <button
+                              key={page}
+                              onClick={() => setPdfPageNumber(page)}
+                              className="inline-flex items-center bg-purple-100 dark:bg-purple-900/50 text-purple-700 dark:text-purple-300 px-2 py-1 rounded-full text-xs font-medium hover:bg-purple-200 dark:hover:bg-purple-900/70 transition-all duration-200"
+                            >
+                              p{page}
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              </div>
+            ))}
+            
+            {aiLoading && (
+              <div className="flex justify-start">
+                <div className="bg-gray-100 dark:bg-slate-700 rounded-2xl px-4 py-3 shadow-sm">
+                  <div className="flex items-center space-x-2">
+                    <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-purple-600"></div>
+                    <span className="text-sm text-gray-600 dark:text-gray-400">AI is thinking...</span>
+                  </div>
+                </div>
+              </div>
+            )}
+          </div>
+
+          <div className="flex-shrink-0">
+            <form onSubmit={handleAiSearch} className="flex gap-2">
+              <textarea
+                ref={chatInputRef}
               placeholder={
                 searchScope === "company" 
-                  ? "Ask a question about all your company documents..." 
+                    ? "Ask about all company documents..." 
                   : selectedDoc 
-                    ? `Ask a question about "${selectedDoc.title}"...`
-                    : "Select a document to ask questions..."
+                      ? `Ask about "${selectedDoc.title}"...`
+                      : "Select a document to start chatting..."
               }
               value={aiQuestion}
               onChange={(e) => setAiQuestion(e.target.value)}
-              className="border border-gray-300 dark:border-slate-600 dark:bg-slate-800 dark:text-white dark:placeholder-gray-400 rounded p-2 w-full focus:ring-2 focus:ring-purple-500 focus:border-purple-500"
+                onInput={() => {
+                  const el = chatInputRef.current;
+                  if (!el) return;
+                  el.style.height = 'auto';
+                  el.style.height = `${Math.min(el.scrollHeight, 256)}px`;
+                }}
+                rows={1}
+                className="flex-1 border border-gray-300 dark:border-slate-600 dark:bg-slate-700 dark:text-white dark:placeholder-gray-400 rounded-lg px-4 py-3 focus:ring-2 focus:ring-purple-500 focus:border-purple-500 leading-relaxed resize-y min-h-12 max-h-64 overflow-y-auto"
             />
             <button
               type="submit"
               disabled={aiLoading || (searchScope === "document" && !selectedDoc) || (searchScope === "company" && !companyId)}
-              className="bg-purple-600 text-white px-4 py-2 rounded hover:bg-purple-700 focus:outline-none focus:ring-2 focus:ring-purple-500 transition-colors disabled:opacity-50"
-            >
-              {aiLoading 
-                ? "Asking AI..." 
-                : searchScope === "company" 
-                  ? "Search All Documents" 
-                  : "Ask AI"
-              }
+                className="bg-gradient-to-r from-purple-600 to-indigo-600 text-white px-6 py-3 rounded-lg hover:from-purple-700 hover:to-indigo-700 focus:outline-none focus:ring-2 focus:ring-purple-500 transition-colors disabled:opacity-50 font-semibold shadow-md"
+              >
+                Send
             </button>
           </form>
+            {aiError && <p className="text-red-500 mt-2 text-sm">{aiError}</p>}
+          </div>
+        </div>
+      </div>
 
-          {aiError && <p className="text-red-500 mt-2">{aiError}</p>}
+      {/* Right Document Navbar */}
+      {!isRightSidebarCollapsed && (
+        <>
+          {/* Resize Handle */}
+          <div
+            className={clsx(
+              styles.resizeHandle,
+              "flex-shrink-0",
+              isDraggingRight && styles.dragging
+            )}
+            onMouseDown={() => setIsDraggingRight(true)}
+          />
 
-          {aiAnswer && (
-            <div className="bg-gray-100 dark:bg-slate-800 rounded p-3 mt-2">
-              <p className="text-gray-700 dark:text-gray-300 whitespace-pre-wrap">{aiAnswer}</p>
-
-              {referencePages.length > 0 && (
-                <div className="mt-4">
-                  <p className="font-semibold text-gray-700 dark:text-gray-300 mb-2">Reference Pages:</p>
-                  <div className="flex flex-wrap gap-2">
-                    {referencePages.map((page) => (
-                      <button
-                        key={page}
-                        onClick={() => setPdfPageNumber(page)}
-                        className="inline-block bg-purple-100 dark:bg-purple-900/50 text-purple-700 dark:text-purple-300 px-3 py-1 rounded-md hover:bg-purple-200 dark:hover:bg-purple-900/70 transition-colors"
-                      >
-                        Page {page}
-                      </button>
-                    ))}
+          <div
+            className={clsx(
+              styles.sidebar,
+              styles.sidebarRight,
+              styles.draggableSidebar,
+              "sticky top-0",
+              isDraggingRight && styles.dragging
+            )}
+            style={{ width: `${rightSidebarWidth}px`, maxHeight: "100vh" }}
+          >
+            {/* Header with collapse button */}
+            <div className={styles.sidebarHeader}>
+              <div className="flex items-center justify-between w-full">
+                <div className="flex items-center gap-3 flex-1 min-w-0">
+                  <FileSearch className="w-9 h-9 flex-shrink-0 text-purple-600 dark:text-purple-400 p-1.5 bg-gradient-to-br from-purple-100 to-indigo-100 dark:from-purple-900/30 dark:to-indigo-900/20 rounded-xl" />
+                  <div className="min-w-0 flex-1">
+                    <h2 className="text-lg font-bold text-gray-900 dark:text-white truncate">Preview Document</h2>
                   </div>
+                </div>
+                      <button
+                  onClick={() => setIsRightSidebarCollapsed(true)}
+                  className="ml-2 p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-slate-700 transition-colors flex-shrink-0"
+                  aria-label="Collapse sidebar"
+                >
+                  <ChevronRight className="w-5 h-5 text-gray-500 dark:text-gray-400" />
+                      </button>
+              </div>
+            </div>
+
+            {/* Document Content */}
+            <div className={clsx(styles.sidebarBody, "space-y-4")}>
+              {selectedDoc ? (
+                <>
+                  {/* PDF Viewer */}
+                  <div className="rounded-2xl border-2 border-gray-200 dark:border-purple-500/30 overflow-hidden shadow-xl bg-white dark:bg-slate-800">
+                    <div className="bg-gradient-to-r from-gray-50 to-purple-50 dark:from-slate-800 dark:to-purple-900/20 px-4 py-2 border-b border-gray-200 dark:border-purple-500/30">
+                      <p className="text-xs font-medium text-gray-600 dark:text-gray-400">
+                        Page {pdfPageNumber}
+                      </p>
+                    </div>
+                    <iframe
+                      key={pdfPageNumber}
+                      src={getPdfSrcWithPage(selectedDoc.url, pdfPageNumber)}
+                      className="w-full h-[calc(100vh-20rem)] border-0"
+                      title={selectedDoc.title}
+                    />
+                  </div>
+                </>
+              ) : (
+                <div className="flex flex-col items-center justify-center h-[60vh] bg-gradient-to-br from-gray-50 to-purple-50 dark:from-slate-800 dark:to-purple-900/20 border-2 border-dashed border-gray-300 dark:border-purple-500/30 rounded-2xl text-center p-6">
+                  <FileText className="w-16 h-16 text-gray-300 dark:text-gray-600 mb-4" />
+                  <p className="text-gray-600 dark:text-gray-400 font-medium mb-2">No Document Selected</p>
+                  <p className="text-sm text-gray-500 dark:text-gray-500">
+                    Choose a document from the main library to preview it while chatting
+                  </p>
                 </div>
               )}
             </div>
+          </div>
+        </>
+      )}
+
+      {/* Reopen Button */}
+      {isRightSidebarCollapsed && (
+        <button
+          onClick={() => setIsRightSidebarCollapsed(false)}
+          className={clsx(
+            styles.reopenButton,
+            "right-4 top-1/2 -translate-y-1/2 rounded-l-lg flex-col"
           )}
+          title="Open Document Viewer"
+        >
+          <FileSearch className="w-5 h-5 mb-1" />
+          <span className="text-xs font-medium">Docs</span>
+        </button>
+      )}
+    </div>
+  );
+
+  return (
+    <>
+      {/* Mode Toggle - Show only in AI Q&A mode */}
+      {viewMode === "with-ai-qa" && (
+        <div className={styles.modeToggleWrapper}>
+          <div className={styles.modeToggle}>
+                      <button
+              type="button"
+              onClick={() => setQueryMode('simple')}
+              className={clsx(
+                styles.modeToggleButton,
+                queryMode === 'simple' && styles.modeToggleButtonActive
+              )}
+            >
+              Simple Query
+                      </button>
+            <button
+              type="button"
+              onClick={() => setQueryMode('chat')}
+              className={clsx(
+                styles.modeToggleButton,
+                queryMode === 'chat' && styles.modeToggleButtonActive
+              )}
+            >
+              AI Chat
+            </button>
+            </div>
         </div>
+      )}
+
+      {/* AI Q&A Section - Render based on query mode */}
+      {viewMode === "with-ai-qa" && (
+        <>
+          {queryMode === 'simple' ? renderSimpleQueryLayout() : renderAiChatLayout()}
+        </>
       )}
 
       {/* Q&A History Section */}
@@ -423,9 +870,23 @@ export const DocumentContent: React.FC<DocumentContentProps> = ({
         </div>
       )}
 
+      {/* Document Header for document-only mode */}
+      {viewMode === "document-only" && (
+        <div className={styles.docHeader}>
+          <h1 className={styles.docTitle}>
+            {selectedDoc ? selectedDoc.title : "All Documents"}
+          </h1>
+        </div>
+      )}
+
       {/* Predictive Analysis Section */}
       {viewMode === "predictive-analysis" && (
         <div className="mt-6">
+          <div className={styles.docHeader}>
+            <h1 className={styles.docTitle}>
+              {selectedDoc ? selectedDoc.title : "All Documents"}
+            </h1>
+          </div>
           <div className={styles.summaryHeader}>
             <FileSearch className={styles.summaryIcon} />
             <h2 className={styles.summaryTitle}>Predictive Document Analysis</h2>
@@ -582,8 +1043,8 @@ export const DocumentContent: React.FC<DocumentContentProps> = ({
         </div>
       )}
 
-      {/* PDF Viewer - Only show when a document is selected */}
-      {selectedDoc && (
+      {/* PDF Viewer - Only show when in document-only or predictive-analysis mode */}
+      {selectedDoc && (viewMode === "document-only" || viewMode === "predictive-analysis") && (
         <div className={styles.pdfContainer}>
           <iframe
             key={pdfPageNumber}
