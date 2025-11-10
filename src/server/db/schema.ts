@@ -57,6 +57,9 @@ export const document = pgTable('document', {
     category: varchar("category", {  length: 256 }).notNull(),
     title: varchar("title", {  length: 256 }).notNull(),
     companyId: varchar("company id", {  length: 256 }).notNull(),
+    ocrEnabled: boolean("ocr_enabled").default(false),
+    ocrProcessed: boolean("ocr_processed").default(false),
+    ocrMetadata: jsonb("ocr_metadata"),
     createdAt: timestamp("created_at", { withTimezone: true })
         .default(sql`CURRENT_TIMESTAMP`)
         .notNull(),

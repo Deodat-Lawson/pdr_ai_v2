@@ -13,6 +13,7 @@ interface UploadFormData {
     uploadDate: string;
     fileUrl: string | null;
     fileName: string;
+    enableOCR: boolean;
 }
 
 interface UploadFormProps {
@@ -30,6 +31,7 @@ const UploadForm: React.FC<UploadFormProps> = ({ categories }) => {
         uploadDate: new Date().toISOString().split("T")[0]!,
         fileUrl: null,
         fileName: "",
+        enableOCR: false,
     });
 
     const [errors, setErrors] = useState<Partial<UploadFormData>>({});
@@ -42,6 +44,11 @@ const UploadForm: React.FC<UploadFormProps> = ({ categories }) => {
         const { name, value } = e.target;
         setFormData((prev) => ({ ...prev, [name]: value }));
         setErrors((prev) => ({ ...prev, [name]: undefined }));
+    };
+
+    const handleCheckboxChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+        const { name, checked } = e.target;
+        setFormData((prev) => ({ ...prev, [name]: checked }));
     };
 
     const validateForm = (): boolean => {
@@ -76,6 +83,7 @@ const UploadForm: React.FC<UploadFormProps> = ({ categories }) => {
                     documentName: formData.title,
                     documentCategory: formData.category,
                     documentUrl: formData.fileUrl,
+                    enableOCR: formData.enableOCR,
                 }),
             });
 
@@ -188,6 +196,23 @@ const UploadForm: React.FC<UploadFormProps> = ({ categories }) => {
                             className={styles.input}
                         />
                     </div>
+                </div>
+
+                {/* OCR Processing */}
+                <div className={styles.formGroup}>
+                    <label className={styles.checkboxLabel}>
+                        <input
+                            type="checkbox"
+                            name="enableOCR"
+                            checked={formData.enableOCR}
+                            onChange={handleCheckboxChange}
+                            className={styles.checkbox}
+                        />
+                        <span>Enable OCR Processing</span>
+                    </label>
+                    <p className={styles.helpText}>
+                        Extract text from scanned documents or images using advanced OCR technology
+                    </p>
                 </div>
             </div>
 

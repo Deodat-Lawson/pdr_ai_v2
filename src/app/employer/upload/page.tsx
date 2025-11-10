@@ -28,7 +28,7 @@ const Page: React.FC = () => {
     const fetchCategories = useCallback(async () => {
         try {
             const res = await fetch("/api/Categories/GetCategories", {
-                method: "POST",
+                method: "GET",
                 headers: { "Content-Type": "application/json" },
             });
             if (!res.ok) {

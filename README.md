@@ -15,6 +15,7 @@ A Next.js application that uses advanced AI technology to analyze, interpret, an
 
 ### 📄 **Professional Document Analysis**
 - Advanced AI algorithms analyze documents and extract key information
+- **OCR Processing**: Optional advanced OCR using Datalab Marker API for scanned documents and images
 - **AI-Powered Chat**: Interactive chat interface for document-specific questions and insights
 - **Role-Based Authentication**: Separate interfaces for employees and employers using Clerk
 - **Document Management**: Upload, organize, and manage documents with category support
@@ -50,6 +51,117 @@ The system provides comprehensive analysis including:
 - **Page References**: Exact page numbers where missing documents are mentioned
 
 ## 📖 Usage Examples
+
+### OCR Processing for Scanned Documents
+
+PDR AI includes optional advanced OCR (Optical Character Recognition) capabilities for processing scanned documents, images, and PDFs with poor text extraction:
+
+#### When to Use OCR
+- **Scanned Documents**: Physical documents that have been scanned to PDF
+- **Image-based PDFs**: PDFs that contain images of text rather than actual text
+- **Poor Quality Documents**: Documents with low-quality text that standard extraction can't read
+- **Handwritten Content**: Documents with handwritten notes or forms (with AI assistance)
+- **Mixed Content**: Documents combining text, images, tables, and diagrams
+
+#### How It Works
+
+**Backend Infrastructure:**
+1. **Environment Configuration**: Set `DATALAB_API_KEY` in your `.env` file (optional)
+2. **Database Schema**: Tracks OCR status with fields:
+   - `ocrEnabled`: Boolean flag indicating if OCR was requested
+   - `ocrProcessed`: Boolean flag indicating if OCR completed successfully
+   - `ocrMetadata`: JSON field storing OCR processing details (page count, processing time, etc.)
+
+3. **OCR Service Module** (`src/app/api/services/ocrService.ts`):
+   - Complete Datalab Marker API integration
+   - Asynchronous submission and polling architecture
+   - Configurable processing options (force_ocr, use_llm, output_format)
+   - Comprehensive error handling and retry logic
+   - Timeout management (5 minutes default)
+
+4. **Upload API Enhancement** (`src/app/api/uploadDocument/route.ts`):
+   - **Dual-path processing**:
+     - OCR Path: Uses Datalab Marker API when `enableOCR=true`
+     - Standard Path: Uses traditional PDFLoader for regular PDFs
+   - Unified chunking and embedding pipeline
+   - Stores OCR metadata with document records
+
+**Frontend Integration:**
+1. **Upload Form UI**: OCR checkbox appears when `DATALAB_API_KEY` is configured
+2. **Form Validation**: Schema validates `enableOCR` field
+3. **User Guidance**: Help text explains when to use OCR
+4. **Dark Theme Support**: Custom checkbox styling for both light and dark modes
+
+#### Processing Flow
+
+```typescript
+// Standard PDF Upload (enableOCR: false or not set)
+1. Download PDF from URL
+2. Extract text using PDFLoader
+3. Split into chunks
+4. Generate embeddings
+5. Store in database
+
+// OCR-Enhanced Upload (enableOCR: true)
+1. Download PDF from URL
+2. Submit to Datalab Marker API
+3. Poll for completion (up to 5 minutes)
+4. Receive markdown/HTML/JSON output
+5. Split into chunks
+6. Generate embeddings
+7. Store in database with OCR metadata
+```
+
+#### OCR Configuration Options
+
+```typescript
+interface OCROptions {
+  force_ocr?: boolean;        // Force OCR even if text exists
+  use_llm?: boolean;          // Use AI for better accuracy
+  output_format?: 'markdown' | 'json' | 'html';  // Output format
+  strip_existing_ocr?: boolean;  // Remove existing OCR layer
+}
+```
+
+#### Using the OCR Feature
+
+1. **Configure API Key** (one-time setup):
+   ```env
+   DATALAB_API_KEY=your_datalab_api_key
+   ```
+
+2. **Upload Document with OCR**:
+   - Navigate to the employer upload page
+   - Select your document
+   - Check the "Enable OCR Processing" checkbox
+   - Upload the document
+   - System will process with OCR and notify when complete
+
+3. **Monitor Processing**:
+   - OCR processing typically takes 1-3 minutes
+   - Progress is tracked in backend logs
+   - Document becomes available once processing completes
+
+#### OCR vs Standard Processing
+
+| Feature | Standard Processing | OCR Processing |
+|---------|-------------------|----------------|
+| **Best For** | Digital PDFs with embedded text | Scanned documents, images |
+| **Processing Time** | < 10 seconds | 1-3 minutes |
+| **Accuracy** | High for digital text | High for scanned/image text |
+| **Cost** | Free (OpenAI embeddings only) | Requires Datalab API credits |
+| **Handwriting Support** | No | Yes (with AI assistance) |
+| **Table Extraction** | Basic | Advanced |
+| **Image Analysis** | No | Yes |
+
+#### Error Handling
+
+The OCR system includes comprehensive error handling:
+- API connection failures
+- Timeout management (5-minute limit)
+- Retry logic for transient errors
+- Graceful fallback messages
+- Detailed error logging
 
 ### Predictive Document Analysis
 
@@ -182,6 +294,7 @@ const response = await fetch('/api/LangChain', {
 - **Authentication**: [Clerk](https://clerk.com/)
 - **Database**: PostgreSQL with [Drizzle ORM](https://orm.drizzle.team/)
 - **AI Integration**: [OpenAI](https://openai.com/) + [LangChain](https://langchain.com/)
+- **OCR Processing**: [Datalab Marker API](https://www.datalab.to/) (optional)
 - **File Upload**: [UploadThing](https://uploadthing.com/)
 - **Styling**: [Tailwind CSS](https://tailwindcss.com/)
 - **Package Manager**: [pnpm](https://pnpm.io/)
@@ -247,6 +360,11 @@ LANGCHAIN_API_KEY=your_langchain_api_key
 # Optional: Required for enhanced web search capabilities in document analysis
 # Used for finding related documents and external resources
 TAVILY_API_KEY=your_tavily_api_key
+
+# Datalab Marker API (get from https://www.datalab.to/)
+# Optional: Required for advanced OCR processing of scanned documents
+# Enables OCR checkbox in document upload interface
+DATALAB_API_KEY=your_datalab_api_key
 
 # UploadThing (get from https://uploadthing.com/)
 # Required for file uploads (PDF documents)
@@ -316,6 +434,13 @@ pnpm db:push
 2. Generate an API key from your dashboard
 3. Add `TAVILY_API_KEY` to your `.env` file
 4. Used for enhanced web search capabilities in document analysis features
+
+#### Datalab Marker API - Optional
+1. Create account at [Datalab](https://www.datalab.to/)
+2. Navigate to the API section and generate an API key
+3. Add `DATALAB_API_KEY` to your `.env` file
+4. Enables advanced OCR processing for scanned documents and images in PDFs
+5. When configured, an OCR checkbox will appear in the document upload interface
 
 #### UploadThing
 1. Create account at [UploadThing](https://uploadthing.com/)
@@ -421,6 +546,7 @@ Vercel is the recommended platform for Next.js applications:
      - `LANGCHAIN_TRACING_V2=true` (optional, for LangSmith tracing)
      - `LANGCHAIN_API_KEY` (optional, required if `LANGCHAIN_TRACING_V2=true`)
      - `TAVILY_API_KEY` (optional, for enhanced web search)
+     - `DATALAB_API_KEY` (optional, for OCR processing)
      - `NEXT_PUBLIC_CLERK_SIGN_IN_FORCE_REDIRECT_URL` (optional)
      - `NEXT_PUBLIC_CLERK_SIGN_UP_FORCE_REDIRECT_URL` (optional)
      - `NEXT_PUBLIC_CLERK_SIGN_OUT_FORCE_REDIRECT_URL` (optional)
@@ -621,11 +747,15 @@ src/
 │   │   ├── predictive-document-analysis/  # Predictive analysis endpoints
 │   │   │   ├── route.ts   # Main analysis API
 │   │   │   └── agent.ts   # AI analysis agent
+│   │   ├── services/      # Backend services
+│   │   │   └── ocrService.ts  # OCR processing service
+│   │   ├── uploadDocument/  # Document upload endpoint
 │   │   ├── LangChain/     # AI chat functionality
 │   │   └── ...            # Other API endpoints
 │   ├── employee/          # Employee dashboard pages
 │   ├── employer/          # Employer dashboard pages
-│   │   └── documents/     # Document viewer with predictive analysis
+│   │   ├── documents/     # Document viewer with predictive analysis
+│   │   └── upload/        # Document upload with OCR option
 │   ├── signup/            # Authentication pages
 │   └── _components/       # Shared components
 ├── server/
@@ -637,6 +767,8 @@ Key directories:
 - `/employee` - Employee interface for document viewing and chat
 - `/employer` - Employer interface for management and uploads
 - `/api/predictive-document-analysis` - Core predictive analysis functionality
+- `/api/services` - Reusable backend services (OCR, etc.)
+- `/api/uploadDocument` - Document upload with OCR support
 - `/api` - Backend API endpoints for all functionality
 - `/server/db` - Database schema and configuration
 ```
@@ -646,7 +778,12 @@ Key directories:
 ### Predictive Document Analysis
 - `POST /api/predictive-document-analysis` - Analyze documents for missing content and recommendations
 - `GET /api/fetchDocument` - Retrieve document content for analysis
-- `POST /api/uploadDocument` - Upload documents for processing
+
+### Document Upload & Processing
+- `POST /api/uploadDocument` - Upload documents for processing (supports OCR via `enableOCR` parameter)
+  - Standard path: Uses PDFLoader for digital PDFs
+  - OCR path: Uses Datalab Marker API for scanned documents
+  - Returns document metadata including OCR processing status
 
 ### AI Chat & Q&A
 - `POST /api/LangChain` - AI-powered document Q&A
@@ -687,6 +824,7 @@ Key directories:
 | `LANGCHAIN_TRACING_V2` | Enable LangSmith tracing for LangChain operations. Set to `true` to enable. Get API key from [LangSmith](https://smith.langchain.com/) | ❌ | `true` or `false` |
 | `LANGCHAIN_API_KEY` | LangChain API key for LangSmith tracing and monitoring. Required if `LANGCHAIN_TRACING_V2=true`. Get from [LangSmith](https://smith.langchain.com/) | ❌ | `lsv2_...` |
 | `TAVILY_API_KEY` | Tavily Search API key for enhanced web search in document analysis. Get from [Tavily](https://tavily.com/) | ❌ | `tvly-...` |
+| `DATALAB_API_KEY` | Datalab Marker API key for advanced OCR processing of scanned documents. Get from [Datalab](https://www.datalab.to/) | ❌ | `your_datalab_key` |
 | `UPLOADTHING_SECRET` | UploadThing secret key for file uploads. Get from [UploadThing Dashboard](https://uploadthing.com/) | ✅ | `sk_live_...` |
 | `UPLOADTHING_APP_ID` | UploadThing application ID. Get from [UploadThing Dashboard](https://uploadthing.com/) | ✅ | `your_app_id` |
 | `NODE_ENV` | Environment mode. Must be one of: `development`, `test`, `production` | ✅ | `development` |
@@ -700,6 +838,7 @@ Key directories:
 - **AI Features**: `OPENAI_API_KEY` (used for embeddings, chat, and document analysis)
 - **AI Observability**: `LANGCHAIN_TRACING_V2`, `LANGCHAIN_API_KEY` (for LangSmith tracing and monitoring)
 - **Search Features**: `TAVILY_API_KEY` (for enhanced web search in document analysis)
+- **OCR Processing**: `DATALAB_API_KEY` (for advanced OCR of scanned documents)
 - **File Uploads**: `UPLOADTHING_SECRET`, `UPLOADTHING_APP_ID`
 - **Build Configuration**: `NODE_ENV`, `SKIP_ENV_VALIDATION`
 
@@ -719,6 +858,13 @@ Key directories:
 - Clear Next.js cache: `rm -rf .next`
 - Reinstall dependencies: `rm -rf node_modules && pnpm install`
 - Check TypeScript errors: `pnpm typecheck`
+
+### OCR Processing Issues
+- **OCR checkbox not appearing**: Verify `DATALAB_API_KEY` is set in your `.env` file
+- **OCR processing timeout**: Documents taking longer than 5 minutes will timeout; try with smaller documents first
+- **OCR processing failed**: Check API key validity and Datalab service status
+- **Poor OCR quality**: Enable `use_llm: true` option in OCR configuration for AI-enhanced accuracy
+- **Cost concerns**: OCR uses Datalab API credits; use only for scanned/image-based documents
 
 ## 🤝 Contributing
 
