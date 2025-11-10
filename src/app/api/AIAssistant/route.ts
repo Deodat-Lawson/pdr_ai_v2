@@ -14,6 +14,7 @@ import {
 } from "./services";
 import { validateRequestBody, QuestionSchema } from "~/lib/validation";
 import { auth } from "@clerk/nextjs/server";
+import { qaRequestCounter, qaRequestDuration } from "~/server/metrics/registry";
 
 
 type PdfChunkRow = Record<string, unknown> & {
@@ -71,15 +72,24 @@ const qaAnnOptimizer = new ANNOptimizer({
 
 export async function POST(request: Request) {
     const startTime = Date.now();
+    const endTimer = qaRequestDuration.startTimer();
+    let retrievalMethod = "not_started";
+
+    const recordResult = (result: "success" | "error" | "empty") => {
+        qaRequestCounter.inc({ result, retrieval: retrievalMethod });
+        endTimer({ result, retrieval: retrievalMethod });
+    };
 
     try {
         const validation = await validateRequestBody(request, QuestionSchema);
         if (!validation.success) {
+            recordResult("error");
             return validation.response;
         }
 
         const { userId } = await auth();
         if (!userId) {
+            recordResult("error");
             return NextResponse.json({
                 success: false,
                 message: "Unauthorized"
@@ -90,6 +100,7 @@ export async function POST(request: Request) {
 
         // Additional business logic validation
         if (searchScope === "company" && !companyId) {
+            recordResult("error");
             return NextResponse.json({
                 success: false,
                 message: "companyId is required for company-wide search"
@@ -97,6 +108,7 @@ export async function POST(request: Request) {
         }
 
         if (searchScope === "document" && !documentId) {
+            recordResult("error");
             return NextResponse.json({
                 success: false,
                 message: "documentId is required for document search"
@@ -109,7 +121,7 @@ export async function POST(request: Request) {
         });
 
         let documents: SearchResult[] = [];
-        let retrievalMethod = searchScope === "company" ? 'company_ensemble_rrf' : 'document_ensemble_rrf';
+        retrievalMethod = searchScope === "company" ? 'company_ensemble_rrf' : 'document_ensemble_rrf';
 
         try {
             if (searchScope === "company" && companyId) {
@@ -219,6 +231,7 @@ export async function POST(request: Request) {
         }
 
         if (documents.length === 0) {
+            recordResult("empty");
             return NextResponse.json({
                 success: false,
                 message: "No relevant content found for the given question and document.",
@@ -252,6 +265,8 @@ export async function POST(request: Request) {
 
         const totalTime = Date.now() - startTime;
 
+        recordResult("success");
+
         return NextResponse.json({
             success: true,
             summarizedAnswer: summarizedAnswer.content,
@@ -265,6 +280,7 @@ export async function POST(request: Request) {
 
     } catch (error) {
         console.error("❌ [Q&A-ANN] Error in Q&A processing:", error);
+        recordResult("error");
         return NextResponse.json(
             { 
                 success: false, 

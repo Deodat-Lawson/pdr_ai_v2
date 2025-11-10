@@ -13,7 +13,12 @@ import {
     type AnalysisType,
     type ErrorType
 } from "~/lib/constants";
-
+import {
+    predictiveAnalysisAiCalls,
+    predictiveAnalysisCacheHits,
+    predictiveAnalysisDuration,
+    predictiveAnalysisRequests
+} from "~/server/metrics/registry";
 import { validateRequestBody, PredictiveAnalysisSchema } from "~/lib/validation";
 
 type PdfChunk = {
@@ -87,9 +92,17 @@ async function getDocumentDetails(documentId: number) : Promise<DocumentDetails 
 }
 
 export async function POST(request: Request) {
+    const endTimer = predictiveAnalysisDuration.startTimer();
+    let cachedLabel: "true" | "false" = "false";
+    const recordResult = (result: "success" | "error") => {
+        predictiveAnalysisRequests.inc({ result, cached: cachedLabel });
+        endTimer({ result, cached: cachedLabel });
+    };
+
     try {
         const validation = await validateRequestBody(request, PredictiveAnalysisSchema);
         if (!validation.success) {
+            recordResult("error");
             return validation.response;
         }
 
@@ -106,6 +119,7 @@ export async function POST(request: Request) {
 
         // Input validation
         if (typeof documentId !== 'number' || documentId <= 0) {
+            recordResult("error");
             return NextResponse.json({
                 success: false,
                 message: "Invalid documentId. Must be a positive number.",
@@ -114,6 +128,7 @@ export async function POST(request: Request) {
         }
 
         if (!ANALYSIS_TYPES.includes(typedAnalysisType)) {
+            recordResult("error");
             return NextResponse.json({
                 success: false,
                 message: `Invalid analysisType. Must be one of: ${ANALYSIS_TYPES.join(', ')}`,
@@ -122,6 +137,7 @@ export async function POST(request: Request) {
         }
 
         if (timeoutMs && (timeoutMs < TIMEOUT_LIMITS.MIN_MS || timeoutMs > TIMEOUT_LIMITS.MAX_MS)) {
+            recordResult("error");
             return NextResponse.json({
                 success: false,
                 message: `Invalid timeoutMs. Must be between ${TIMEOUT_LIMITS.MIN_MS} and ${TIMEOUT_LIMITS.MAX_MS}`,
@@ -133,6 +149,9 @@ export async function POST(request: Request) {
             const cachedResult = await getCachedAnalysis(documentId, typedAnalysisType, typedIncludeRelatedDocs);
 
             if (cachedResult) {
+                cachedLabel = "true";
+                predictiveAnalysisCacheHits.inc();
+                recordResult("success");
                 return NextResponse.json({
                     success: true,
                     ...cachedResult,
@@ -143,6 +162,7 @@ export async function POST(request: Request) {
 
         const docDetails = await getDocumentDetails(documentId);
         if (!docDetails) {
+            recordResult("error");
             return NextResponse.json({
                 success: false,
                 message: "Document not found.",
@@ -161,6 +181,7 @@ export async function POST(request: Request) {
             .orderBy(pdfChunks.id);
 
         if (chunksResults.length === 0) {
+            recordResult("error");
             return NextResponse.json({
                 success: false,
                 message: "No chunks found for the given documentId.",
@@ -212,6 +233,7 @@ export async function POST(request: Request) {
             timeoutMs,
             20
         );
+        predictiveAnalysisAiCalls.observe(chunks.length);
 
         const fullResult = {
             documentId,
@@ -231,6 +253,8 @@ export async function POST(request: Request) {
         } as PredictiveAnalysisOutput;
 
         await storeAnalysisResult(documentId, typedAnalysisType, typedIncludeRelatedDocs, fullResult);
+
+        recordResult("success");
 
         return NextResponse.json({
             success: true,
@@ -267,6 +291,8 @@ export async function POST(request: Request) {
                 errorType = ERROR_TYPES.VALIDATION;
             }
         }
+
+        recordResult("error");
 
         return NextResponse.json({
             success: false,
