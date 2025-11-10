@@ -14,6 +14,7 @@ export const env = createEnv({
     OPENAI_API_KEY: z.string().min(1),
     CLERK_SECRET_KEY: z.string().min(1),
     UPLOADTHING_TOKEN: z.string().min(1),
+    DATALAB_API_KEY: z.string().min(1).optional(),
   },
 
   /**
@@ -35,6 +36,7 @@ export const env = createEnv({
     OPENAI_API_KEY: process.env.OPENAI_API_KEY,
     CLERK_SECRET_KEY: process.env.CLERK_SECRET_KEY,
     UPLOADTHING_TOKEN: process.env.UPLOADTHING_TOKEN,
+    DATALAB_API_KEY: process.env.DATALAB_API_KEY,
     NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY: process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY,
   },
   /**
