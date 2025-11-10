@@ -45,6 +45,17 @@ export async function POST(request: Request) {
 
         const { userId, documentName, documentUrl, documentCategory, enableOCR } = validation.data;
 
+        // Validate URL is from a trusted domain (SSRF protection)
+        const url = new URL(documentUrl);
+        const allowedHosts = ['utfs.io', 'uploadthing.com'];
+        const isAllowedHost = allowedHosts.some(host => 
+            url.hostname === host || url.hostname.endsWith(`.${host}`)
+        );
+        
+        if (!isAllowedHost) {
+            throw new UploadError("Document URL must be from a trusted upload service.", 400);
+        }
+
         const [userInfo] = await db
             .select()
             .from(users)
@@ -60,7 +71,7 @@ export async function POST(request: Request) {
 
         // Check if OCR is enabled and API key is available
         if (enableOCR && !env.DATALAB_API_KEY) {
-            throw new UploadError("OCR service is not configured. Please contact administrator.", 500);
+            throw new UploadError("OCR service is not configured. Please upload without OCR or contact administrator.", 500);
         }
 
         let textContent: string;
@@ -91,8 +102,11 @@ export async function POST(request: Request) {
                 console.log(`OCR processing completed. Extracted ${textContent.length} characters.`);
             } catch (ocrError) {
                 console.error("OCR processing failed:", ocrError);
+                // Log detailed error server-side, return generic error to client
+                const errorDetails = ocrError instanceof Error ? ocrError.message : 'Unknown error';
+                console.error("OCR error details:", errorDetails);
                 throw new UploadError(
-                    `OCR processing failed: ${ocrError instanceof Error ? ocrError.message : 'Unknown error'}`,
+                    "OCR processing failed. Please try again or upload without OCR.",
                     500
                 );
             }

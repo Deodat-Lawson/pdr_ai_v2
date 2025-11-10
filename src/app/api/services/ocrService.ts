@@ -5,6 +5,21 @@ import fetch from "node-fetch";
  * Provides functions to submit PDFs for OCR processing and poll for results
  */
 
+// Timeout for API requests (60 seconds)
+const API_REQUEST_TIMEOUT = 60000;
+
+/**
+ * Create a fetch request with timeout
+ */
+function fetchWithTimeout(url: string, options: any, timeout: number = API_REQUEST_TIMEOUT): Promise<Response> {
+  return Promise.race([
+    fetch(url, options),
+    new Promise<never>((_, reject) =>
+      setTimeout(() => reject(new Error('Request timeout')), timeout)
+    )
+  ]) as Promise<Response>;
+}
+
 export interface OCROptions {
   force_ocr?: boolean;
   use_llm?: boolean;
@@ -12,11 +27,27 @@ export interface OCROptions {
   strip_existing_ocr?: boolean;
 }
 
+export interface OCRApiSubmitResponse {
+  request_id: string;
+  request_check_url: string;
+}
+
 export interface OCRSubmitResponse {
   success: boolean;
   request_id: string;
   request_check_url: string;
   error?: string;
+}
+
+export interface OCRApiPollResponse {
+  status: 'complete' | 'processing' | 'failed';
+  output_format?: string;
+  markdown?: string;
+  json?: any;
+  html?: string;
+  metadata?: any;
+  error?: string;
+  page_count?: number;
 }
 
 export interface OCRResult {
@@ -51,7 +82,7 @@ export async function submitPDFForOCR(
 ): Promise<OCRSubmitResponse> {
   try {
     // Download the PDF file first
-    const fileResponse = await fetch(fileUrl);
+    const fileResponse = await fetchWithTimeout(fileUrl, {}, 30000);
     if (!fileResponse.ok) {
       throw new Error(`Failed to download PDF from URL: ${fileResponse.status}`);
     }
@@ -77,7 +108,7 @@ export async function submitPDFForOCR(
       formData.append('strip_existing_ocr', String(options.strip_existing_ocr));
     }
 
-    const response = await fetch('https://www.datalab.to/api/v1/marker', {
+    const response = await fetchWithTimeout('https://www.datalab.to/api/v1/marker', {
       method: 'POST',
       headers: {
         'X-Api-Key': apiKey,
@@ -88,10 +119,11 @@ export async function submitPDFForOCR(
 
     if (!response.ok) {
       const errorText = await response.text();
-      throw new Error(`OCR API request failed: ${response.status} - ${errorText}`);
+      console.error('Datalab API error response:', errorText);
+      throw new Error(`OCR API request failed with status ${response.status}`);
     }
 
-    const data = await response.json() as any;
+    const data = await response.json() as OCRApiSubmitResponse;
 
     return {
       success: true,
@@ -127,25 +159,26 @@ export async function pollOCRCompletion(
 
   while (attempts < maxPolls) {
     try {
-      const response = await fetch(checkUrl, {
+      const response = await fetchWithTimeout(checkUrl, {
         method: 'GET',
         headers: {
           'X-Api-Key': apiKey,
         },
-      });
+      }, 30000);
 
       if (!response.ok) {
-        throw new Error(`Polling failed: ${response.status}`);
+        console.error(`Polling failed with status: ${response.status}`);
+        throw new Error(`Polling failed with status ${response.status}`);
       }
 
-      const data = await response.json() as any;
+      const data = await response.json() as OCRApiPollResponse;
 
       // Check if processing is complete
       if (data.status === 'complete') {
         return {
           status: 'complete',
           success: true,
-          output_format: data.output_format,
+          output_format: data.output_format || 'markdown',
           markdown: data.markdown,
           json: data.json,
           html: data.html,
