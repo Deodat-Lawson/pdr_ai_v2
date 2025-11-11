@@ -3,7 +3,7 @@ import { ChatOpenAI } from "@langchain/openai";
 import { SystemMessage, HumanMessage } from "@langchain/core/messages";
 import { OpenAIEmbeddings } from "@langchain/openai";
 import { db } from "~/server/db/index";
-import { sql } from "drizzle-orm";
+import { eq, sql } from "drizzle-orm";
 import ANNOptimizer from "../predictive-document-analysis/services/annOptimizer";
 import {
     companyEnsembleSearch,
@@ -14,6 +14,7 @@ import {
 } from "./services";
 import { validateRequestBody, QuestionSchema } from "~/lib/validation";
 import { auth } from "@clerk/nextjs/server";
+import { users, document } from "~/server/db/schema";
 
 
 type PdfChunkRow = Record<string, unknown> & {
@@ -69,6 +70,8 @@ const qaAnnOptimizer = new ANNOptimizer({
     efSearch: 200
 });
 
+const COMPANY_SCOPE_ROLES = new Set(["employer", "owner"]);
+
 export async function POST(request: Request) {
     const startTime = Date.now();
 
@@ -103,6 +106,70 @@ export async function POST(request: Request) {
             }, { status: 400 });
         }
 
+        const [requestingUser] = await db
+            .select()
+            .from(users)
+            .where(eq(users.userId, userId))
+            .limit(1);
+
+        if (!requestingUser) {
+            return NextResponse.json({
+                success: false,
+                message: "Invalid user."
+            }, { status: 401 });
+        }
+
+        const userCompanyId = requestingUser.companyId;
+        const numericCompanyId = Number.parseInt(userCompanyId, 10);
+
+        if (Number.isNaN(numericCompanyId)) {
+            return NextResponse.json({
+                success: false,
+                message: "User is not associated with a valid company."
+            }, { status: 403 });
+        }
+
+        if (searchScope === "company") {
+            if (!COMPANY_SCOPE_ROLES.has(requestingUser.role)) {
+                return NextResponse.json({
+                    success: false,
+                    message: "Only employer accounts can run company-wide searches."
+                }, { status: 403 });
+            }
+
+            if (companyId !== undefined && companyId !== numericCompanyId) {
+                return NextResponse.json({
+                    success: false,
+                    message: "Company mismatch detected for the current user."
+                }, { status: 403 });
+            }
+        }
+
+        if (searchScope === "document" && documentId) {
+            const [targetDocument] = await db
+                .select({
+                    id: document.id,
+                    companyId: document.companyId
+                })
+                .from(document)
+                .where(eq(document.id, documentId))
+                .limit(1);
+
+            if (!targetDocument) {
+                return NextResponse.json({
+                    success: false,
+                    message: "Document not found."
+                }, { status: 404 });
+            }
+
+            if (targetDocument.companyId !== userCompanyId) {
+                return NextResponse.json({
+                    success: false,
+                    message: "You do not have access to this document."
+                }, { status: 403 });
+            }
+        }
+
         const embeddings = new OpenAIEmbeddings({
             model: "text-embedding-ada-002",
             openAIApiKey: process.env.OPENAI_API_KEY,
@@ -112,15 +179,15 @@ export async function POST(request: Request) {
         let retrievalMethod = searchScope === "company" ? 'company_ensemble_rrf' : 'document_ensemble_rrf';
 
         try {
-            if (searchScope === "company" && companyId) {
+            if (searchScope === "company") {
                 const companyOptions: CompanyEnsembleOptions = {
                     weights: [0.4, 0.6],
                     topK: 10,
-                    companyId
+                    companyId: numericCompanyId
                 };
                 
                 documents = await companyEnsembleSearch(
-                    companyId,
+                    numericCompanyId,
                     question,
                     embeddings,
                     companyOptions
@@ -150,7 +217,7 @@ export async function POST(request: Request) {
         } catch (ensembleError) {
             console.warn(`⚠️ [Q&A-Ensemble] Ensemble search failed, falling back to simpler methods:`, ensembleError);
             
-            if (searchScope === "company" && companyId) {
+            if (searchScope === "company") {
                 retrievalMethod = 'company_fallback_failed';
                 documents = [];
             } else if (searchScope === "document" && documentId) {
