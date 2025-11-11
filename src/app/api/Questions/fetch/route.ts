@@ -1,31 +1,80 @@
 import { NextResponse } from "next/server";
-import { db } from "~/server/db/index";
-import { ChatHistory } from "~/server/db/schema";
-import {and, eq} from "drizzle-orm";
+import { auth } from "@clerk/nextjs/server";
+import { and, eq } from "drizzle-orm";
 
-type PostBody = {
-    userId: string;
-    documentId: string;
-};
+import { db } from "~/server/db/index";
+import { ChatHistory, users, document } from "~/server/db/schema";
+import { validateRequestBody, ChatHistoryFetchSchema } from "~/lib/validation";
 
 export async function POST(request: Request) {
     try {
-        // Parse the request body for userId
-        const { userId, documentId } = (await request.json()) as PostBody;
+        const validation = await validateRequestBody(request, ChatHistoryFetchSchema);
+        if (!validation.success) {
+            return validation.response;
+        }
 
-        // Retrieve all chat history records for the specified user
+        const { documentId } = validation.data;
+
+        const { userId } = await auth();
+        if (!userId) {
+            return NextResponse.json({
+                success: false,
+                message: "Unauthorized"
+            }, { status: 401 });
+        }
+
+        const [requestingUser] = await db
+            .select()
+            .from(users)
+            .where(eq(users.userId, userId))
+            .limit(1);
+
+        if (!requestingUser) {
+            return NextResponse.json({
+                success: false,
+                message: "Invalid user."
+            }, { status: 401 });
+        }
+
+        const [targetDocument] = await db
+            .select()
+            .from(document)
+            .where(eq(document.id, documentId))
+            .limit(1);
+
+        if (!targetDocument) {
+            return NextResponse.json({
+                success: false,
+                message: "Document not found."
+            }, { status: 404 });
+        }
+
+        if (targetDocument.companyId !== requestingUser.companyId) {
+            return NextResponse.json({
+                success: false,
+                message: "You do not have access to this document."
+            }, { status: 403 });
+        }
+
         const userChatHistory = await db
             .select()
             .from(ChatHistory)
-            .where(and(eq(ChatHistory.UserId, userId), eq(ChatHistory.documentId, documentId)));
+            .where(
+                and(
+                    eq(ChatHistory.UserId, userId),
+                    eq(ChatHistory.documentId, targetDocument.id.toString())
+                )
+            );
 
-        // Return the results
         return NextResponse.json({
             success: true,
             chatHistory: userChatHistory,
         });
     } catch (error: unknown) {
         console.error(error);
-        return NextResponse.json({ error }, { status: 500 });
+        return NextResponse.json({
+            success: false,
+            error: error instanceof Error ? error.message : "Unknown error"
+        }, { status: 500 });
     }
 }
