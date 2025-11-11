@@ -250,17 +250,15 @@ export const DocumentsSidebar: React.FC<DocumentsSidebarProps> = ({
                             <span className={styles.categoryName}>{category.name}</span>
                         </div>
 
-                        {/* Category Documents */}
                         {category.isOpen && (
                             <div className={styles.categoryDocs}>
                                 {category.documents.map((doc) => (
                                     <div 
                                         key={doc.id} 
-                                        className={`${styles.docButton} group ${
+                                        className={`${styles.docButton} ${
                                             selectedDoc && selectedDoc.id === doc.id ? styles.selected : ""
                                         }`}
                                     >
-                                        {/* Document Button */}
                                         <button
                                             onClick={() => setSelectedDoc(doc)}
                                             className={styles.docItem}
@@ -269,17 +267,17 @@ export const DocumentsSidebar: React.FC<DocumentsSidebarProps> = ({
                                             <span className={styles.docName}>{doc.title}</span>
                                         </button>
                                         
-                                        {/* Delete Button (appears on hover) */}
                                         {!isCollapsed && deleteDocument && (
                                             <button
                                                 onClick={(e) => handleDeleteDocument(doc.id, e)}
-                                                className={`${styles.deleteButton} group-hover:opacity-100`}
+                                                className={styles.deleteButton}
                                                 title="Delete document"
                                                 aria-label={`Delete document ${doc.title}`}
                                             >
                                                 <Trash2 className={styles.trashIcon} />
                                             </button>
                                         )}
+                                        
                                     </div>
                                 ))}
                             </div>

@@ -1,6 +1,7 @@
 // Example model schema from the Drizzle docs
 // https://orm.drizzle.team/docs/sql-schema-declaration
 import {relations, sql} from "drizzle-orm";
+import type { InferSelectModel } from 'drizzle-orm';
 import {
     index, text,
     integer, pgTableCreator, serial,
@@ -8,8 +9,11 @@ import {
     varchar,
     jsonb,
     boolean,
+    primaryKey,
+    foreignKey,
 } from "drizzle-orm/pg-core";
 import { pgVector } from "~/server/db/pgVector";
+
 
 
 /**
@@ -145,6 +149,151 @@ export const pdfChunksRelations = relations(pdfChunks, ({ one }) => ({
     document: one(document, {
         fields: [pdfChunks.documentId],
         references: [document.id],
+    }),
+}));
+
+export const aiChatbotChat = pgTable('ai_chatbot_chat', {
+    id: varchar("id", { length: 256 }).primaryKey().notNull(),
+    createdAt: timestamp("created_at", { withTimezone: true })
+        .default(sql`CURRENT_TIMESTAMP`)
+        .notNull(),
+    title: text("title").notNull(),
+    userId: varchar("user_id", { length: 256 })
+        .notNull()
+        .references(() => users.id, { onDelete: "cascade" }),
+    visibility: varchar("visibility", { length: 20, enum: ['public', 'private'] })
+        .notNull()
+        .default('private'),
+});
+
+export const aiChatbotMessage = pgTable('ai_chatbot_message', {
+    id: varchar("id", { length: 256 }).primaryKey().notNull(),
+    chatId: varchar("chat_id", { length: 256 })
+        .notNull()
+        .references(() => aiChatbotChat.id, { onDelete: "cascade" }),
+    role: varchar("role", { length: 50 }).notNull(),
+    content: jsonb("content").notNull(),
+    createdAt: timestamp("created_at", { withTimezone: true })
+        .default(sql`CURRENT_TIMESTAMP`)
+        .notNull(),
+});
+
+export const aiChatbotVote = pgTable(
+    'ai_chatbot_vote',
+    {
+        chatId: varchar("chat_id", { length: 256 })
+            .notNull()
+            .references(() => aiChatbotChat.id, { onDelete: "cascade" }),
+        messageId: varchar("message_id", { length: 256 })
+            .notNull()
+            .references(() => aiChatbotMessage.id, { onDelete: "cascade" }),
+        isUpvoted: boolean("is_upvoted").notNull(),
+        createdAt: timestamp("created_at", { withTimezone: true })
+            .default(sql`CURRENT_TIMESTAMP`)
+            .notNull(),
+    },
+    (table) => ({
+        pk: primaryKey({ columns: [table.chatId, table.messageId] }),
+    })
+);
+
+export const aiChatbotDocument = pgTable(
+    'ai_chatbot_document',
+    {
+        id: varchar("id", { length: 256 }).notNull(),
+        createdAt: timestamp("created_at", { withTimezone: true })
+            .default(sql`CURRENT_TIMESTAMP`)
+            .notNull(),
+        title: text("title").notNull(),
+        content: text("content"),
+        kind: varchar("kind", { length: 20, enum: ['text', 'code', 'image', 'sheet'] })
+            .notNull()
+            .default('text'),
+        userId: varchar("user_id", { length: 256 })
+            .notNull()
+            .references(() => users.id, { onDelete: "cascade" }),
+    },
+    (table) => ({
+        pk: primaryKey({ columns: [table.id, table.createdAt] }),
+    })
+);
+
+export const aiChatbotSuggestion = pgTable(
+    'ai_chatbot_suggestion',
+    {
+        id: varchar("id", { length: 256 }).primaryKey().notNull(),
+        documentId: varchar("document_id", { length: 256 }).notNull(),
+        documentCreatedAt: timestamp("document_created_at", { withTimezone: true }).notNull(),
+        originalText: text("original_text").notNull(),
+        suggestedText: text("suggested_text").notNull(),
+        description: text("description"),
+        isResolved: boolean("is_resolved").notNull().default(false),
+        userId: varchar("user_id", { length: 256 })
+            .notNull()
+            .references(() => users.id, { onDelete: "cascade" }),
+        createdAt: timestamp("created_at", { withTimezone: true })
+            .default(sql`CURRENT_TIMESTAMP`)
+            .notNull(),
+    },
+    (table) => ({
+        documentRef: foreignKey({
+            columns: [table.documentId, table.documentCreatedAt],
+            foreignColumns: [aiChatbotDocument.id, aiChatbotDocument.createdAt],
+        }),
+    })
+);
+
+// AI Chatbot Relations
+export const aiChatbotUserRelations = relations(users, ({ many }) => ({
+    chats: many(aiChatbotChat),
+    documents: many(aiChatbotDocument),
+    suggestions: many(aiChatbotSuggestion),
+}));
+
+export const aiChatbotChatRelations = relations(aiChatbotChat, ({ one, many }) => ({
+    user: one(users, {
+        fields: [aiChatbotChat.userId],
+        references: [users.id],
+    }),
+    messages: many(aiChatbotMessage),
+    votes: many(aiChatbotVote),
+}));
+
+export const aiChatbotMessageRelations = relations(aiChatbotMessage, ({ one, many }) => ({
+    chat: one(aiChatbotChat, {
+        fields: [aiChatbotMessage.chatId],
+        references: [aiChatbotChat.id],
+    }),
+    votes: many(aiChatbotVote),
+}));
+
+export const aiChatbotVoteRelations = relations(aiChatbotVote, ({ one }) => ({
+    chat: one(aiChatbotChat, {
+        fields: [aiChatbotVote.chatId],
+        references: [aiChatbotChat.id],
+    }),
+    message: one(aiChatbotMessage, {
+        fields: [aiChatbotVote.messageId],
+        references: [aiChatbotMessage.id],
+    }),
+}));
+
+export const aiChatbotDocumentRelations = relations(aiChatbotDocument, ({ one, many }) => ({
+    user: one(users, {
+        fields: [aiChatbotDocument.userId],
+        references: [users.id],
+    }),
+    suggestions: many(aiChatbotSuggestion),
+}));
+
+export const aiChatbotSuggestionRelations = relations(aiChatbotSuggestion, ({ one }) => ({
+    user: one(users, {
+        fields: [aiChatbotSuggestion.userId],
+        references: [users.id],
+    }),
+    document: one(aiChatbotDocument, {
+        fields: [aiChatbotSuggestion.documentId, aiChatbotSuggestion.documentCreatedAt],
+        references: [aiChatbotDocument.id, aiChatbotDocument.createdAt],
     }),
 }));
 

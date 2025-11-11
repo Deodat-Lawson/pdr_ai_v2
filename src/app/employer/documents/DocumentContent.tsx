@@ -563,9 +563,78 @@ export const DocumentContent: React.FC<DocumentContentProps> = ({
     </div>
   );
 
-  // Render the AI Chat layout (Chat main + Document right navbar)
+  // Render the AI Chat layout (Left ChatHistory sidebar + Chat main + Document right navbar)
   const renderAiChatLayout = () => (
     <div className={clsx(styles.splitLayoutContainer, "gap-0")}>
+      {/* Left Chat History Sidebar */}
+      {!isLeftSidebarCollapsed && (
+        <>
+          <div
+            className={clsx(
+              styles.sidebar,
+              "sticky top-0",
+              isDraggingLeft && styles.dragging
+            )}
+            style={{ width: `${leftSidebarWidth}px`, maxHeight: "100vh" }}
+          >
+            {/* Header with collapse button */}
+            <div className={styles.sidebarHeader}>
+              <div className="flex items-center justify-between w-full">
+                <div className="flex items-center gap-3 flex-1 min-w-0">
+                  <Clock className="w-9 h-9 flex-shrink-0 text-purple-600 dark:text-purple-400 p-1.5 bg-gradient-to-br from-purple-100 to-indigo-100 dark:from-purple-900/30 dark:to-indigo-900/20 rounded-xl" />
+                  <div className="min-w-0 flex-1">
+                    <h2 className="text-lg font-bold text-gray-900 dark:text-white truncate">Chat History</h2>
+                  </div>
+                </div>
+                <button
+                  onClick={() => setIsLeftSidebarCollapsed(true)}
+                  className="flex-shrink-0 p-2 hover:bg-gray-100 dark:hover:bg-slate-700 rounded-lg transition-colors"
+                  title="Collapse sidebar"
+                >
+                  <ChevronLeft className="w-5 h-5 text-gray-600 dark:text-gray-400" />
+                </button>
+              </div>
+            </div>
+
+            {/* Chat History Content */}
+            <div className="flex-1 overflow-y-auto p-4">
+              <QAHistory
+                history={qaHistory}
+                onQuestionSelect={(question) => setAiQuestion(question)}
+                selectedDoc={selectedDoc}
+                setPdfPageNumber={setPdfPageNumber}
+                documentTitle={selectedDoc?.title ?? "All Documents"}
+              />
+            </div>
+          </div>
+
+          {/* Resize Handle for Left Sidebar */}
+          <div
+            className={clsx(
+              styles.resizeHandle,
+              "flex-shrink-0",
+              isDraggingLeft && styles.dragging
+            )}
+            onMouseDown={() => setIsDraggingLeft(true)}
+          />
+        </>
+      )}
+
+      {/* Reopen Button for Left Sidebar */}
+      {isLeftSidebarCollapsed && (
+        <button
+          onClick={() => setIsLeftSidebarCollapsed(false)}
+          className={clsx(
+            styles.reopenButton,
+            "left-4 top-1/2 -translate-y-1/2 rounded-r-lg flex-col"
+          )}
+          title="Open Chat History"
+        >
+          <Clock className="w-5 h-5 mb-1" />
+          <span className="text-xs font-medium">History</span>
+        </button>
+      )}
+
       {/* Main Chat Content */}
       <div className="flex-1 flex flex-col min-h-0">
         
@@ -708,7 +777,8 @@ export const DocumentContent: React.FC<DocumentContentProps> = ({
                   el.style.height = `${Math.min(el.scrollHeight, 256)}px`;
                 }}
                 rows={1}
-                className="flex-1 border border-gray-300 dark:border-slate-600 dark:bg-slate-700 dark:text-white dark:placeholder-gray-400 rounded-lg px-4 py-3 focus:ring-2 focus:ring-purple-500 focus:border-purple-500 leading-relaxed resize-y min-h-12 max-h-64 overflow-y-auto"
+                style={{ overflow: aiQuestion.length > 0 && chatInputRef.current && chatInputRef.current.scrollHeight > 256 ? 'auto' : 'hidden' }}
+                className="flex-1 border border-gray-300 dark:border-slate-600 dark:bg-slate-700 dark:text-white dark:placeholder-gray-400 rounded-lg px-4 py-3 focus:ring-2 focus:ring-purple-500 focus:border-purple-500 leading-relaxed resize-none min-h-12 max-h-64"
             />
             <button
               type="submit"
