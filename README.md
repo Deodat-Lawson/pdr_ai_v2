@@ -795,6 +795,9 @@ Key directories:
 - `POST /api/deleteDocument` - Remove documents
 - `GET /api/Categories/GetCategories` - Get document categories
 
+### Observability
+- `GET /api/metrics` - Prometheus-compatible metrics stream (see `docs/observability.md` for dashboard ideas)
+
 ## 🔐 User Roles & Permissions
 
 ### Employee
