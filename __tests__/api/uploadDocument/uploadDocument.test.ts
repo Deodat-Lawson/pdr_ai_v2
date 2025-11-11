@@ -17,6 +17,12 @@ jest.mock("~/server/db/index", () => ({
   },
 }));
 
+jest.mock("~/env", () => ({
+  env: {
+    DATALAB_API_KEY: undefined,
+  },
+}));
+
 const mockFetch = jest.fn();
 
 jest.mock("node-fetch", () => ({
@@ -149,6 +155,84 @@ describe("POST /api/uploadDocument", () => {
     expect(mockUnlink).toHaveBeenCalledTimes(1);
     expect(mockUnlink.mock.calls[0][0]).toContain("pdr-ai-upload-");
     expect(db.transaction).toHaveBeenCalledTimes(1);
+  });
+
+  it("persists chunk page numbers from the source documents", async () => {
+    (validateRequestBody as jest.Mock).mockResolvedValue({
+      success: true,
+      data: {
+        userId: "user-1",
+        documentName: "Example Document",
+        documentUrl: "https://example.com/doc.pdf",
+        documentCategory: "policies",
+      },
+    });
+
+    const mockWhere = jest.fn().mockResolvedValue([
+      { userId: "user-1", companyId: "9" },
+    ]);
+
+    const mockFrom = jest.fn().mockReturnValue({ where: mockWhere });
+    (db.select as jest.Mock).mockReturnValue({ from: mockFrom });
+
+    const pdfBuffer = Buffer.from("%PDF test content");
+    mockFetch.mockResolvedValue({
+      ok: true,
+      arrayBuffer: async () => pdfBuffer,
+    });
+
+    mockLoad.mockResolvedValue([
+      { pageContent: "Page 1 content", metadata: { loc: { pageNumber: 1 } } },
+      { pageContent: "Page 2 content", metadata: { loc: { pageNumber: 2 } } },
+    ]);
+
+    mockSplitDocuments.mockResolvedValue([
+      { pageContent: "Chunk A", metadata: { loc: { pageNumber: 1 } } },
+      { pageContent: "Chunk B", metadata: { loc: { pageNumber: 2 } } },
+    ]);
+
+    mockEmbedDocuments.mockResolvedValue([[0.1], [0.2]]);
+
+    const insertedDocument = {
+      id: 77,
+      url: "https://example.com/doc.pdf",
+      category: "policies",
+      title: "Example Document",
+      companyId: "9",
+      createdAt: new Date(),
+      updatedAt: new Date(),
+    };
+
+    let capturedChunks: Array<{ page: number }> = [];
+
+    (db.transaction as jest.Mock).mockImplementation(async (callback: (tx: any) => Promise<void>) => {
+      const insertDocumentValues = jest.fn().mockReturnValue({
+        returning: jest.fn().mockResolvedValue([insertedDocument]),
+      });
+
+      const insertChunksValues = jest.fn().mockImplementation(async (rows: Array<{ page: number }>) => {
+        capturedChunks = rows;
+      });
+
+      const tx = {
+        insert: jest
+          .fn()
+          .mockReturnValueOnce({ values: insertDocumentValues })
+          .mockReturnValueOnce({ values: insertChunksValues }),
+      };
+
+      await callback(tx);
+    });
+
+    const request = new Request("http://localhost/api/uploadDocument", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({}),
+    });
+
+    const response = await POST(request);
+    expect(response.status).toBe(201);
+    expect(capturedChunks.map((chunk) => chunk.page)).toEqual([1, 2]);
   });
 
   it("cleans up temporary file when processing fails", async () => {
