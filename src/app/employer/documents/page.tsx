@@ -433,7 +433,7 @@ const DocumentViewer: React.FC = () => {
 
       setDocuments(prev => prev.filter(doc => doc.id !== docId));
       
-      if (selectedDoc && selectedDoc.id === docId) {
+      if (selectedDoc?.id === docId) {
         setSelectedDoc(null);
         setAiAnswer("");
         setReferencePages([]);
