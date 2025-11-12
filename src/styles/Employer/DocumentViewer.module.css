@@ -958,21 +958,40 @@
     }
 }
 
-/* Resize Handle Styles - Enhanced */
+/* Resize Handle Styles - Enhanced with smoother transitions */
 .resizeHandle {
-    @apply w-1 cursor-ew-resize bg-gray-300 transition-all duration-150;
-    @apply hover:bg-purple-400;
+    @apply w-1 cursor-ew-resize bg-gray-300;
+    @apply transition-all duration-200 ease-out;
     z-index: 40; /* Below toggle button but above content */
+    position: relative;
+}
+
+.resizeHandle::before {
+    content: '';
+    position: absolute;
+    left: 50%;
+    top: 0;
+    bottom: 0;
+    width: 0;
+    background: transparent;
+    transform: translateX(-50%);
+    transition: width 0.2s ease-out, background-color 0.2s ease-out;
 }
 
 .resizeHandle:hover {
-    @apply w-1.5 shadow-lg;
-    box-shadow: 0 0 10px rgba(147, 51, 234, 0.3);
+    @apply bg-purple-400 w-1.5;
+    box-shadow: 0 0 12px rgba(147, 51, 234, 0.4);
+}
+
+.resizeHandle:hover::before {
+    width: 100%;
+    background: rgba(147, 51, 234, 0.1);
 }
 
 .resizeHandle:active {
     @apply bg-purple-500 w-2;
-    box-shadow: 0 0 15px rgba(147, 51, 234, 0.5);
+    box-shadow: 0 0 18px rgba(147, 51, 234, 0.6);
+    transition: width 0.1s ease-out, background-color 0.1s ease-out, box-shadow 0.1s ease-out;
 }
 
 [data-theme="dark"] .resizeHandle {
@@ -981,12 +1000,16 @@
 
 [data-theme="dark"] .resizeHandle:hover {
     @apply bg-purple-500;
-    box-shadow: 0 0 10px rgba(168, 85, 247, 0.4);
+    box-shadow: 0 0 12px rgba(168, 85, 247, 0.5);
+}
+
+[data-theme="dark"] .resizeHandle:hover::before {
+    background: rgba(168, 85, 247, 0.15);
 }
 
 [data-theme="dark"] .resizeHandle:active {
     @apply bg-purple-400;
-    box-shadow: 0 0 15px rgba(168, 85, 247, 0.6);
+    box-shadow: 0 0 18px rgba(168, 85, 247, 0.7);
 }
 
 /* Reopen Sidebar Buttons */
@@ -1040,12 +1063,15 @@
 /* Smooth width transitions during drag */
 .draggableSidebar {
     transition: none; /* Disable transition during drag for immediate feedback */
+    will-change: width; /* Optimize for smooth resizing */
 }
 
 .dragging {
     transition: none !important;
+    user-select: none; /* Prevent text selection during drag */
+    -webkit-user-select: none;
 }
 
 .draggableSidebar:not(.dragging) {
-    transition: width 0.15s ease-out;
+    transition: width 0.2s cubic-bezier(0.4, 0, 0.2, 1);
 }

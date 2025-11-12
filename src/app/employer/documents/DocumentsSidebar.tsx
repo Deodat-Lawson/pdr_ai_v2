@@ -57,21 +57,21 @@ interface ViewModeConfig {
 }
 
 const viewModeConfigs: ViewModeConfig[] = [
-    {
-        mode: "document-only",
-        icon: Eye,
-        tooltip: "Document Only"
-    },
+    // {
+    //     mode: "document-only",
+    //     icon: Eye,
+    //     tooltip: "Document Only"
+    // },
     {
         mode: "with-ai-qa",
         icon: MessageCircle,
         tooltip: "AI Q&A"
     },
-    {
-        mode: "with-ai-qa-history",
-        icon: History,
-        tooltip: "Q&A History"
-    },
+    // {
+    //     mode: "with-ai-qa-history",
+    //     icon: History,
+    //     tooltip: "Q&A History"
+    // },
     {
         mode: "predictive-analysis",
         icon: BarChart3,
@@ -93,7 +93,6 @@ export const DocumentsSidebar: React.FC<DocumentsSidebarProps> = ({
     onCollapseChange,
     isDragging = false,
 }) => {
-    const [hoveredTooltip, setHoveredTooltip] = useState<string | null>(null);
     const [internalCollapsed, setInternalCollapsed] = useState(false);
     const [isSearchFocused, setIsSearchFocused] = useState(false);
 
@@ -181,33 +180,48 @@ export const DocumentsSidebar: React.FC<DocumentsSidebarProps> = ({
             </div>
 
             {/* View Mode Selection Section */}
-            <div className={styles.viewModeContainer}>
-                <div className={styles.viewModeHeader}>
-                    <span className={styles.viewModeTitle}>View Options</span>
-                </div>
-                <div className={styles.viewModeButtons}>
+            <div className={clsx(
+                "border-b border-gray-200 dark:border-slate-700 transition-all duration-200",
+                isCollapsed ? "px-2 py-3" : "px-4 py-4"
+            )}>
+                {!isCollapsed && (
+                    <div className="mb-3">
+                        <span className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">View Options</span>
+                    </div>
+                )}
+                <div className={clsx(
+                    "transition-all duration-200",
+                    isCollapsed ? "flex flex-col gap-2" : "grid grid-cols-1 sm:grid-cols-2 gap-2.5"
+                )}>
                     {viewModeConfigs.map(({ mode, icon: Icon, tooltip }) => (
-                        <div
+                        <button
                             key={mode}
-                            className={styles.tooltipContainer}
-                            onMouseEnter={() => setHoveredTooltip(mode)}
-                            onMouseLeave={() => setHoveredTooltip(null)}
-                        >
-                            <button
-                                className={`${styles.viewModeButton} ${viewMode === mode ? styles.activeViewMode : ""
-                                    }`}
-                                onClick={() => setViewMode(mode)}
-                                aria-label={tooltip}
-                            >
-                                <Icon className={styles.viewModeIcon} />
-                            </button>
-                            {hoveredTooltip === mode && !isCollapsed && (
-                                <div className={styles.tooltip}>
-                                    <span className={styles.tooltipText}>{tooltip}</span>
-                                    <div className={styles.tooltipArrow}></div>
-                                </div>
+                            className={clsx(
+                                "rounded-xl flex items-center transition-all duration-300 transform",
+                                isCollapsed 
+                                    ? "w-full justify-center p-2.5" 
+                                    : "relative w-full justify-start px-4 py-3 gap-3 overflow-hidden",
+                                viewMode === mode
+                                    ? "bg-gradient-to-r from-purple-600 to-indigo-600 text-white shadow-lg shadow-purple-500/30 scale-105"
+                                    : "bg-white dark:bg-slate-800 text-gray-700 dark:text-gray-300 border border-gray-200 dark:border-slate-700 hover:border-purple-300 dark:hover:border-purple-700 hover:bg-purple-50 dark:hover:bg-purple-900/20 hover:scale-[1.02]"
                             )}
-                        </div>
+                            onClick={() => setViewMode(mode)}
+                            aria-label={tooltip}
+                        >
+                            <Icon className={clsx(
+                                "transition-all duration-300",
+                                isCollapsed ? "w-5 h-5" : "w-4 h-4",
+                                viewMode === mode ? "scale-110" : ""
+                            )} />
+                            {!isCollapsed && (
+                                <span className={clsx(
+                                    "text-xs font-semibold transition-colors",
+                                    viewMode === mode ? "text-white" : "text-gray-700 dark:text-gray-300"
+                                )}>
+                                    {tooltip}
+                                </span>
+                            )}
+                        </button>
                     ))}
                 </div>
             </div>

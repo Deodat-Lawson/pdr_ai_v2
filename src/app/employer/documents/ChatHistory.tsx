@@ -97,9 +97,9 @@ const QAHistory: React.FC<QAHistoryProps> = ({
                                         Reference Pages:
                                     </p>
                                     <div className="flex flex-wrap gap-2">
-                                        {item.pages.map((page) => (
+                                        {item.pages.map((page, idx) => (
                                             <button
-                                                key={page}
+                                                key={`${item.id}-page-${page}-${idx}`}
                                                 onClick={() => setPdfPageNumber(page)}
                                                 className="inline-block bg-purple-100 dark:bg-purple-900/50 text-purple-700 dark:text-purple-300 px-2 py-1 rounded-md text-sm hover:bg-purple-200 dark:hover:bg-purple-900/70 transition-colors"
                                             >

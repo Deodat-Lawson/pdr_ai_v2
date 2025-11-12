@@ -8,6 +8,10 @@ import clsx from "clsx";
 
 // Import the QAHistory component AND the QAHistoryEntry interface
 import QAHistory, { type QAHistoryEntry } from "./ChatHistory";
+// Import agent chatbot components
+import { useAgentChatbot } from "./hooks/useAgentChatbot";
+import { ChatSelector } from "./components/ChatSelector";
+import { AgentChatInterface } from "./components/AgentChatInterface";
 
 interface DocumentType {
   id: number;
@@ -102,6 +106,8 @@ interface DocumentContentProps {
   searchScope: "document" | "company";
   setSearchScope: React.Dispatch<React.SetStateAction<"document" | "company">>;
   companyId: number | null;
+  userId: string | null;
+  onCollapseMainSidebar?: () => void;
 }
 
 export const DocumentContent: React.FC<DocumentContentProps> = ({
@@ -127,7 +133,9 @@ export const DocumentContent: React.FC<DocumentContentProps> = ({
   onSelectDocument,
   searchScope,
   setSearchScope,
-  companyId
+  companyId,
+  userId,
+  onCollapseMainSidebar
 }) => {
   // States for modals
   const [showMissingModal, setShowMissingModal] = useState(false);
@@ -141,17 +149,55 @@ export const DocumentContent: React.FC<DocumentContentProps> = ({
   const chatHistoryRef = useRef<HTMLDivElement>(null);
   // Ref for chat input auto-resize
   const chatInputRef = useRef<HTMLTextAreaElement>(null);
+  // Ref to track previous query mode to detect transitions
+  const prevQueryModeRef = useRef<'simple' | 'chat'>('simple');
+  // Track if sidebar has been auto-collapsed for this chat session
+  const hasAutoCollapsedRef = useRef(false);
+  // Agent Chatbot state
+  const { createChat, getChats, getMessages, getChat, updateChat } = useAgentChatbot();
+  const [currentChatId, setCurrentChatId] = useState<string | null>(null);
   // AI Chat persona/expertise selector
-  type AiPersona = 'learning-coach' | 'financial-expert' | 'legal-expert' | 'math-reasoning';
-  const [aiPersona, setAiPersona] = useState<AiPersona>('learning-coach');
+  type AiPersona = 'general' | 'learning-coach' | 'financial-expert' | 'legal-expert' | 'math-reasoning';
+  const [aiPersona, setAiPersona] = useState<AiPersona>('general');
+  const [showExpertiseModal, setShowExpertiseModal] = useState(false);
+  const [pendingChatTitle, setPendingChatTitle] = useState('');
+  
+  // Load messages and chat settings when chat is selected
+  useEffect(() => {
+    if (currentChatId && queryMode === 'chat') {
+      getMessages(currentChatId).then((msgs) => {
+        // Messages are handled by AgentChatInterface component
+      }).catch(console.error);
+      
+      // Load chat settings from database
+      getChat(currentChatId).then((chatData) => {
+        if (chatData?.chat) {
+          const chat = chatData.chat;
+          if (chat.aiStyle) {
+            setAiStyle(chat.aiStyle);
+            console.log('🔄 Restored style from database:', chat.aiStyle);
+          }
+          if (chat.aiPersona) {
+            setAiPersona(chat.aiPersona as AiPersona);
+            console.log('🔄 Restored persona from database:', chat.aiPersona);
+          }
+        }
+      }).catch(console.error);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [currentChatId, queryMode]);
 
   // States for resizable sidebars
   const [rightSidebarWidth, setRightSidebarWidth] = useState(400);
   const [isRightSidebarCollapsed, setIsRightSidebarCollapsed] = useState(false);
   const [isDraggingRight, setIsDraggingRight] = useState(false);
+  const [rightDragStartX, setRightDragStartX] = useState(0);
+  const [rightDragStartWidth, setRightDragStartWidth] = useState(400);
   const [leftSidebarWidth, setLeftSidebarWidth] = useState(400);
   const [isLeftSidebarCollapsed, setIsLeftSidebarCollapsed] = useState(false);
   const [isDraggingLeft, setIsDraggingLeft] = useState(false);
+  const [leftDragStartX, setLeftDragStartX] = useState(0);
+  const [leftDragStartWidth, setLeftDragStartWidth] = useState(400);
 
   // Auto-scroll to bottom of chat when new messages arrive
   useEffect(() => {
@@ -170,6 +216,31 @@ export const DocumentContent: React.FC<DocumentContentProps> = ({
     el.style.height = `${Math.min(el.scrollHeight, 256)}px`;
   }, [aiQuestion, queryMode]);
 
+  // Auto-collapse main sidebar only once when switching from Simple Query to AI Chat
+  useEffect(() => {
+    // Only collapse when transitioning from 'simple' to 'chat' mode AND hasn't been collapsed yet
+    if (
+      viewMode === 'with-ai-qa' && 
+      queryMode === 'chat' && 
+      prevQueryModeRef.current === 'simple' &&
+      !hasAutoCollapsedRef.current &&
+      onCollapseMainSidebar
+    ) {
+      // Use a small timeout to ensure smooth transition
+      const timeoutId = setTimeout(() => {
+        onCollapseMainSidebar();
+        hasAutoCollapsedRef.current = true; // Mark as collapsed
+      }, 100);
+      return () => clearTimeout(timeoutId);
+    }
+    // Update the previous query mode ref
+    prevQueryModeRef.current = queryMode;
+    // Reset auto-collapse flag when switching back to simple mode
+    if (queryMode === 'simple') {
+      hasAutoCollapsedRef.current = false;
+    }
+  }, [queryMode, viewMode, onCollapseMainSidebar]);
+
   // Handle right sidebar resize with smooth dragging
   useEffect(() => {
     if (!isDraggingRight) return;
@@ -182,7 +253,10 @@ export const DocumentContent: React.FC<DocumentContentProps> = ({
       }
 
       animationFrameId = requestAnimationFrame(() => {
-        const newWidth = window.innerWidth - e.clientX;
+        // Calculate delta from initial drag position
+        // Negative delta when dragging left (expanding sidebar), positive when dragging right (shrinking)
+        const deltaX = rightDragStartX - e.clientX;
+        const newWidth = rightDragStartWidth + deltaX;
         
         // Collapse if dragged too narrow
         if (newWidth < 150) {
@@ -216,7 +290,7 @@ export const DocumentContent: React.FC<DocumentContentProps> = ({
         cancelAnimationFrame(animationFrameId);
       }
     };
-  }, [isDraggingRight]);
+  }, [isDraggingRight, rightDragStartX, rightDragStartWidth]);
 
   // Handle left sidebar resize (for chat mode) with smooth dragging
   useEffect(() => {
@@ -230,7 +304,10 @@ export const DocumentContent: React.FC<DocumentContentProps> = ({
       }
 
       animationFrameId = requestAnimationFrame(() => {
-        const newWidth = e.clientX;
+        // Calculate delta from initial drag position
+        // Positive delta when dragging right (expanding sidebar), negative when dragging left (shrinking)
+        const deltaX = e.clientX - leftDragStartX;
+        const newWidth = leftDragStartWidth + deltaX;
         
         // Collapse if dragged too narrow
         if (newWidth < 150) {
@@ -264,7 +341,7 @@ export const DocumentContent: React.FC<DocumentContentProps> = ({
         cancelAnimationFrame(animationFrameId);
       }
     };
-  }, [isDraggingLeft]);
+  }, [isDraggingLeft, leftDragStartX, leftDragStartWidth]);
 
   if (!selectedDoc && viewMode !== "with-ai-qa" && viewMode !== "with-ai-qa-history") {
     return (
@@ -415,7 +492,11 @@ export const DocumentContent: React.FC<DocumentContentProps> = ({
               "flex-shrink-0",
               isDraggingRight && styles.dragging
             )}
-            onMouseDown={() => setIsDraggingRight(true)}
+            onMouseDown={(e) => {
+              setRightDragStartX(e.clientX);
+              setRightDragStartWidth(rightSidebarWidth);
+              setIsDraggingRight(true);
+            }}
           />
 
           <div
@@ -530,9 +611,9 @@ export const DocumentContent: React.FC<DocumentContentProps> = ({
                     <div className="pt-3 border-t border-gray-300 dark:border-slate-600 space-y-2">
                       <p className="font-semibold text-gray-700 dark:text-gray-300 text-sm uppercase tracking-wide">Reference Pages</p>
                       <div className="flex flex-wrap gap-2">
-                        {referencePages.map((page) => (
+                        {referencePages.map((page, idx) => (
               <button
-                            key={page}
+                            key={`ref-page-${page}-${idx}`}
                             onClick={() => setPdfPageNumber(page)}
                             className="inline-flex items-center bg-purple-100 dark:bg-purple-900/50 text-purple-700 dark:text-purple-300 px-3 py-1.5 rounded-lg hover:bg-purple-200 dark:hover:bg-purple-900/70 transition-all duration-200 text-xs font-medium shadow-sm hover:shadow-md"
                           >
@@ -596,15 +677,23 @@ export const DocumentContent: React.FC<DocumentContentProps> = ({
               </div>
             </div>
 
-            {/* Chat History Content */}
+            {/* Chat History Content - Agent Chatbot Chats */}
             <div className="flex-1 overflow-y-auto p-4">
-              <QAHistory
-                history={qaHistory}
-                onQuestionSelect={(question) => setAiQuestion(question)}
-                selectedDoc={selectedDoc}
-                setPdfPageNumber={setPdfPageNumber}
-                documentTitle={selectedDoc?.title ?? "All Documents"}
-              />
+              {userId && (
+                <ChatSelector
+                  userId={userId}
+                  currentChatId={currentChatId}
+                  onSelectChat={setCurrentChatId}
+                  onNewChat={async () => {
+                    if (!userId) return;
+                    const title = selectedDoc 
+                      ? `Chat about ${selectedDoc.title}` 
+                      : 'General AI Chat';
+                    setPendingChatTitle(title);
+                    setShowExpertiseModal(true);
+                  }}
+                />
+              )}
             </div>
           </div>
 
@@ -615,7 +704,11 @@ export const DocumentContent: React.FC<DocumentContentProps> = ({
               "flex-shrink-0",
               isDraggingLeft && styles.dragging
             )}
-            onMouseDown={() => setIsDraggingLeft(true)}
+            onMouseDown={(e) => {
+              setLeftDragStartX(e.clientX);
+              setLeftDragStartWidth(leftSidebarWidth);
+              setIsDraggingLeft(true);
+            }}
           />
         </>
       )}
@@ -635,161 +728,227 @@ export const DocumentContent: React.FC<DocumentContentProps> = ({
         </button>
       )}
 
-      {/* Main Chat Content */}
+      {/* Main Chat Content - Agent Chatbot Interface */}
       <div className="flex-1 flex flex-col min-h-0">
-        
-        <div className="flex-1 bg-white/80 dark:bg-slate-800/90 backdrop-blur-sm rounded-2xl shadow-xl p-6 border border-gray-100 dark:border-purple-500/30 flex flex-col min-h-0 overflow-hidden">
-          <div className="mb-4 pb-4 border-b border-gray-200 dark:border-slate-600 flex-shrink-0">
+        <div className="flex-1 bg-white/80 dark:bg-slate-800/90 backdrop-blur-sm rounded-2xl shadow-xl border border-gray-100 dark:border-purple-500/30 flex flex-col min-h-0 overflow-hidden">
+          {/* Settings Bar - Sticky but with proper spacing */}
+          <div className="sticky top-0 z-10 px-6 pt-6 pb-4 border-b border-gray-200 dark:border-slate-600 flex-shrink-0 bg-white/95 dark:bg-slate-800/95 backdrop-blur-sm mb-0">
             <div className="flex flex-wrap gap-4 items-end">
               <div className="flex-1 space-y-2">
-                <label className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide"> Context Scope</label>
+                <label className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide">Context Scope</label>
                 <div className="flex gap-4 flex-wrap">
                   <label className="flex items-center cursor-pointer group">
-                  <input
-                    type="radio"
-                    value="document"
-                    checked={searchScope === "document"}
-                    onChange={(e) => setSearchScope(e.target.value as "document" | "company")}
-                    className="mr-2 text-purple-600 focus:ring-purple-500"
-                  />
+                    <input
+                      type="radio"
+                      value="document"
+                      checked={searchScope === "document"}
+                      onChange={(e) => setSearchScope(e.target.value as "document" | "company")}
+                      className="mr-2 text-purple-600 focus:ring-purple-500"
+                    />
                     <span className="text-sm text-gray-700 dark:text-gray-300 group-hover:text-purple-600 dark:group-hover:text-purple-400">
                       Current Document
-                  </span>
-                </label>
+                    </span>
+                  </label>
                   <label className="flex items-center cursor-pointer group">
-                  <input
-                    type="radio"
-                    value="company"
-                    checked={searchScope === "company"}
-                    onChange={(e) => setSearchScope(e.target.value as "document" | "company")}
-                    className="mr-2 text-purple-600 focus:ring-purple-500"
-                    disabled={!companyId}
-                  />
+                    <input
+                      type="radio"
+                      value="company"
+                      checked={searchScope === "company"}
+                      onChange={(e) => setSearchScope(e.target.value as "document" | "company")}
+                      className="mr-2 text-purple-600 focus:ring-purple-500"
+                      disabled={!companyId}
+                    />
                     <span className={clsx(
                       "text-sm transition-colors",
                       !companyId ? "text-gray-400 cursor-not-allowed" : "text-gray-700 dark:text-gray-300 group-hover:text-purple-600 dark:group-hover:text-purple-400"
                     )}>
                       All Company Docs
-                  </span>
-                </label>
+                    </span>
+                  </label>
+                </div>
               </div>
-            </div>
               <div className="w-48">
                 <label className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide block mb-2">Style</label>
-              <select
-                value={aiStyle}
-                onChange={(e) => setAiStyle(e.target.value)}
+                <select
+                  value={aiStyle}
+                  onChange={async (e) => {
+                    const newStyle = e.target.value as 'concise' | 'detailed' | 'academic' | 'bullet-points';
+                    setAiStyle(newStyle);
+                    // Update settings in database for current chat
+                    if (currentChatId) {
+                      await updateChat(currentChatId, { aiStyle: newStyle });
+                      console.log('💾 Updated style in database for chat:', currentChatId, newStyle);
+                    }
+                  }}
                   className="border border-gray-300 dark:border-slate-600 dark:bg-slate-700 dark:text-white rounded-lg p-2 w-full focus:ring-2 focus:ring-purple-500 text-sm"
-              >
-                {Object.entries(styleOptions).map(([key, label]) => (
-                  <option key={key} value={key}>
-                    {label}
-                  </option>
-                ))}
-              </select>
-            </div>
-            <div className="w-60">
-              <label className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide block mb-2">Expertise</label>
-              <select
-                value={aiPersona}
-                onChange={(e) => setAiPersona(e.target.value as AiPersona)}
-                className="border border-gray-300 dark:border-slate-600 dark:bg-slate-700 dark:text-white rounded-lg p-2 w-full focus:ring-2 focus:ring-purple-500 text-sm"
-              >
-                <option value="learning-coach">Learning Coach</option>
-                <option value="financial-expert">Financial Expert</option>
-                <option value="legal-expert">Legal Expert</option>
-                <option value="math-reasoning">Math Reasoning</option>
-              </select>
-            </div>
+                >
+                  {Object.entries(styleOptions).map(([key, label]) => (
+                    <option key={key} value={key}>
+                      {label}
+                    </option>
+                  ))}
+                </select>
+              </div>
+              <div className="w-60">
+                <label className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide block mb-2">Expertise</label>
+                <select
+                  value={aiPersona}
+                  onChange={async (e) => {
+                    const newPersona = e.target.value as AiPersona;
+                    setAiPersona(newPersona);
+                    // Update settings in database for current chat
+                    if (currentChatId) {
+                      await updateChat(currentChatId, { aiPersona: newPersona });
+                      console.log('💾 Updated persona in database for chat:', currentChatId, newPersona);
+                    }
+                  }}
+                  className="border border-gray-300 dark:border-slate-600 dark:bg-slate-700 dark:text-white rounded-lg p-2 w-full focus:ring-2 focus:ring-purple-500 text-sm"
+                >
+                  <option value="general">General</option>
+                  <option value="learning-coach">Learning Coach</option>
+                  <option value="financial-expert">Financial Expert</option>
+                  <option value="legal-expert">Legal Expert</option>
+                  <option value="math-reasoning">Math Reasoning</option>
+                </select>
+              </div>
             </div>
           </div>
 
-          <div ref={chatHistoryRef} className={clsx(styles.chatHistoryContainer, "flex-1 min-h-0 overflow-y-auto mb-4")}>
-            {qaHistory.length === 0 && !aiAnswer && !aiLoading && (
-              <div className="flex items-center justify-center h-full text-center">
-                <div>
-                  <Brain className="w-16 h-16 text-purple-300 dark:text-purple-600 mx-auto mb-4" />
-                  <p className="text-gray-500 dark:text-gray-400">Start a conversation with the AI assistant</p>
-                  <p className="text-sm text-gray-400 dark:text-gray-500 mt-2">Ask questions about your documents</p>
-                </div>
-              </div>
-            )}
-            
-            {qaHistory.map((entry) => (
-              <div key={entry.id} className="space-y-2">
-                <div className="flex justify-end">
-                  <div className="bg-gradient-to-r from-purple-600 to-indigo-600 text-white rounded-2xl px-4 py-3 max-w-[80%] shadow-md">
-                    <p className="text-sm leading-relaxed">{entry.question}</p>
-                  </div>
-                </div>
-                <div className="flex justify-start">
-                  <div className="bg-gray-100 dark:bg-slate-700 text-gray-800 dark:text-gray-200 rounded-2xl px-4 py-3 max-w-[80%] shadow-sm">
-                    <p className="text-sm whitespace-pre-wrap leading-relaxed">{entry.response}</p>
-                    {entry.pages.length > 0 && (
-                      <div className="mt-2 pt-2 border-t border-gray-300 dark:border-slate-600">
-                        <div className="flex flex-wrap gap-1.5">
-                          {entry.pages.map((page) => (
-                            <button
-                              key={page}
-                              onClick={() => setPdfPageNumber(page)}
-                              className="inline-flex items-center bg-purple-100 dark:bg-purple-900/50 text-purple-700 dark:text-purple-300 px-2 py-1 rounded-full text-xs font-medium hover:bg-purple-200 dark:hover:bg-purple-900/70 transition-all duration-200"
-                            >
-                              p{page}
-                            </button>
-                          ))}
+          {/* Chat Configuration Modal */}
+          {showExpertiseModal && (
+            <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
+              <div className="bg-white dark:bg-slate-800 rounded-xl shadow-2xl w-full max-w-lg p-6 border border-gray-200 dark:border-slate-700">
+                <h2 className="text-xl font-bold text-gray-900 dark:text-white mb-4">Configure Your Chat</h2>
+                <p className="text-sm text-gray-600 dark:text-gray-400 mb-6">
+                  Customize how the AI responds to your questions by selecting expertise and style preferences.
+                </p>
+                
+                {/* Expertise Selection */}
+                <div className="mb-6">
+                  <label className="text-sm font-semibold text-gray-700 dark:text-gray-300 block mb-3">Expertise</label>
+                  <div className="space-y-2">
+                    {(['general', 'learning-coach', 'financial-expert', 'legal-expert', 'math-reasoning'] as AiPersona[]).map((persona) => (
+                      <label
+                        key={persona}
+                        className={clsx(
+                          "flex items-center p-3 border-2 rounded-lg cursor-pointer transition-all",
+                          aiPersona === persona
+                            ? "border-purple-600 dark:border-purple-500 bg-purple-50 dark:bg-purple-900/30"
+                            : "border-transparent dark:border-slate-700 hover:bg-gray-50 dark:hover:bg-slate-700/50"
+                        )}
+                      >
+                        <input
+                          type="radio"
+                          value={persona}
+                          checked={aiPersona === persona}
+                          onChange={(e) => setAiPersona(e.target.value as AiPersona)}
+                          className="mr-3 text-purple-600 dark:text-purple-400 focus:ring-purple-500"
+                        />
+                        <div>
+                          <p className="font-medium text-gray-900 dark:text-white capitalize">
+                            {persona.replace('-', ' ')}
+                          </p>
+                          <p className="text-xs text-gray-500 dark:text-gray-400">
+                            {persona === 'general' && 'General purpose assistance'}
+                            {persona === 'learning-coach' && 'Helps you learn and understand concepts'}
+                            {persona === 'financial-expert' && 'Specialized in financial analysis'}
+                            {persona === 'legal-expert' && 'Expert in legal matters and compliance'}
+                            {persona === 'math-reasoning' && 'Advanced mathematical problem solving'}
+                          </p>
                         </div>
-                      </div>
-                    )}
+                      </label>
+                    ))}
                   </div>
                 </div>
-              </div>
-            ))}
-            
-            {aiLoading && (
-              <div className="flex justify-start">
-                <div className="bg-gray-100 dark:bg-slate-700 rounded-2xl px-4 py-3 shadow-sm">
-                  <div className="flex items-center space-x-2">
-                    <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-purple-600"></div>
-                    <span className="text-sm text-gray-600 dark:text-gray-400">AI is thinking...</span>
-                  </div>
-                </div>
-              </div>
-            )}
-          </div>
 
-          <div className="flex-shrink-0">
-            <form onSubmit={handleAiSearch} className="flex gap-2">
-              <textarea
-                ref={chatInputRef}
-              placeholder={
-                searchScope === "company" 
-                    ? "Ask about all company documents..." 
-                  : selectedDoc 
-                      ? `Ask about "${selectedDoc.title}"...`
-                      : "Select a document to start chatting..."
-              }
-              value={aiQuestion}
-              onChange={(e) => setAiQuestion(e.target.value)}
-                onInput={() => {
-                  const el = chatInputRef.current;
-                  if (!el) return;
-                  el.style.height = 'auto';
-                  el.style.height = `${Math.min(el.scrollHeight, 256)}px`;
-                }}
-                rows={1}
-                style={{ overflow: aiQuestion.length > 0 && chatInputRef.current && chatInputRef.current.scrollHeight > 256 ? 'auto' : 'hidden' }}
-                className="flex-1 border border-gray-300 dark:border-slate-600 dark:bg-slate-700 dark:text-white dark:placeholder-gray-400 rounded-lg px-4 py-3 focus:ring-2 focus:ring-purple-500 focus:border-purple-500 leading-relaxed resize-none min-h-12 max-h-64"
+                {/* Style Selection */}
+                <div className="mb-6">
+                  <label className="text-sm font-semibold text-gray-700 dark:text-gray-300 block mb-3">Response Style</label>
+                  <select
+                    value={aiStyle}
+                    onChange={(e) => setAiStyle(e.target.value)}
+                    className="w-full border-2 border-gray-300 dark:border-slate-600 dark:bg-slate-700 dark:text-white rounded-lg px-4 py-2.5 focus:ring-2 focus:ring-purple-500 focus:border-purple-500 text-sm"
+                  >
+                    {Object.entries(styleOptions).map(([key, label]) => (
+                      <option key={key} value={key}>
+                        {label}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
+                <div className="flex gap-3">
+                  <button
+                    onClick={async () => {
+                      if (!userId) return;
+                      const chat = await createChat({
+                        userId,
+                        title: pendingChatTitle,
+                        agentMode: 'interactive',
+                        visibility: 'private',
+                        aiStyle: aiStyle as 'concise' | 'detailed' | 'academic' | 'bullet-points',
+                        aiPersona: aiPersona,
+                      });
+                      if (chat) {
+                        setCurrentChatId(chat.id);
+                        // Settings are already saved in the database via createChat
+                        console.log('💾 Created chat with settings:', { style: aiStyle, persona: aiPersona });
+                      }
+                      setShowExpertiseModal(false);
+                    }}
+                    className="flex-1 px-4 py-2.5 bg-gradient-to-r from-purple-600 to-indigo-600 text-white rounded-lg hover:from-purple-700 hover:to-indigo-700 transition-colors font-medium"
+                  >
+                    Start Chat
+                  </button>
+                  <button
+                    onClick={() => setShowExpertiseModal(false)}
+                    className="px-4 py-2.5 border-2 border-gray-300 dark:border-slate-600 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-50 dark:hover:bg-slate-700 transition-colors font-medium"
+                  >
+                    Cancel
+                  </button>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* Agent Chatbot Interface */}
+          {userId && currentChatId ? (
+            <AgentChatInterface
+              chatId={currentChatId}
+              userId={userId}
+              selectedDocTitle={selectedDoc?.title}
+              searchScope={searchScope}
+              selectedDocId={selectedDoc?.id}
+              companyId={companyId}
+              aiStyle={aiStyle}
+              aiPersona={aiPersona}
+              onPageClick={setPdfPageNumber}
+              onAIResponse={(response) => {
+                // Handle AI response if needed
+              }}
             />
-            <button
-              type="submit"
-              disabled={aiLoading || (searchScope === "document" && !selectedDoc) || (searchScope === "company" && !companyId)}
-                className="bg-gradient-to-r from-purple-600 to-indigo-600 text-white px-6 py-3 rounded-lg hover:from-purple-700 hover:to-indigo-700 focus:outline-none focus:ring-2 focus:ring-purple-500 transition-colors disabled:opacity-50 font-semibold shadow-md"
-              >
-                Send
-            </button>
-          </form>
-            {aiError && <p className="text-red-500 mt-2 text-sm">{aiError}</p>}
-          </div>
+          ) : (
+            <div className="flex-1 flex items-center justify-center">
+              <div className="text-center">
+                <Brain className="w-16 h-16 text-purple-300 dark:text-purple-600 mx-auto mb-4" />
+                <p className="text-gray-500 dark:text-gray-400 mb-2">Select or create a chat to get started</p>
+                {userId && (
+                  <button
+                    onClick={() => {
+                      const title = selectedDoc 
+                        ? `Chat about ${selectedDoc.title}` 
+                        : 'General AI Chat';
+                      setPendingChatTitle(title);
+                      setShowExpertiseModal(true);
+                    }}
+                    className="mt-4 px-4 py-2 bg-gradient-to-r from-purple-600 to-indigo-600 text-white rounded-lg hover:from-purple-700 hover:to-indigo-700 transition-colors"
+                  >
+                    Create New Chat
+                  </button>
+                )}
+              </div>
+            </div>
+          )}
         </div>
       </div>
 
@@ -803,7 +962,11 @@ export const DocumentContent: React.FC<DocumentContentProps> = ({
               "flex-shrink-0",
               isDraggingRight && styles.dragging
             )}
-            onMouseDown={() => setIsDraggingRight(true)}
+            onMouseDown={(e) => {
+              setRightDragStartX(e.clientX);
+              setRightDragStartWidth(rightSidebarWidth);
+              setIsDraggingRight(true);
+            }}
           />
 
           <div
