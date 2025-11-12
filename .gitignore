@@ -44,3 +44,5 @@ yarn-error.log*
 
 # idea files
 .idea
+/.localFiles
+.windsurf/rules/markdowncreation.md

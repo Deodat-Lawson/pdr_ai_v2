@@ -98,6 +98,7 @@ export const UploadDocumentSchema = z.object({
   documentName: z.string().min(1, "Document name is required").max(256, "Document name is too long").trim(),
   documentUrl: z.string().url("Document URL must be a valid URL").max(2048, "Document URL is too long").trim(),
   documentCategory: z.string().min(1, "Document category is required").max(256, "Document category is too long").trim(),
+  enableOCR: z.boolean().optional(),
 });
 
 export const UpdateCompanySchema = z.object({

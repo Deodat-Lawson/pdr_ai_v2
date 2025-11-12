@@ -8,6 +8,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- **OCR Processing Feature** - Advanced optical character recognition for scanned documents
+  - New OCR service module (`src/app/api/services/ocrService.ts`) with Datalab Marker API integration
+  - Asynchronous submission and polling architecture for OCR processing
+  - Configurable OCR options (force_ocr, use_llm, output_format, strip_existing_ocr)
+  - Comprehensive error handling and retry logic with 5-minute timeout
+  - Database schema enhancements: `ocrEnabled`, `ocrProcessed`, `ocrMetadata` fields
+  - Frontend OCR checkbox in document upload interface with help text
+  - Custom styling for OCR checkbox with dark theme support
+  - Optional `DATALAB_API_KEY` environment variable for OCR functionality
 - Enhanced environment variable validation in `src/env.js` with comprehensive schema for all required variables
 - New constants file (`src/lib/constants.ts`) for centralized configuration management
 - API utilities (`src/lib/api-utils.ts`) for standardized error handling and response patterns
@@ -15,6 +24,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Missing environment variables in `.env.example` file with proper documentation
 
 ### Enhanced
+- **Document Upload API** (`src/app/api/uploadDocument/route.ts`):
+  - Dual-path processing architecture: OCR path for scanned documents, standard path for digital PDFs
+  - Unified chunking and embedding pipeline for both processing methods
+  - Stores OCR metadata with document records for tracking and analytics
+  - Support for `enableOCR` parameter in upload requests
+  - Improved type safety with proper TypeScript interfaces
+
 - **Predictive Document Analysis API** (`src/app/api/predictive-document-analysis/route.ts`):
   - Improved input validation with detailed error messages
   - Enhanced error handling with specific error types and HTTP status codes
@@ -35,6 +51,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Development experience with better IntelliSense and type checking
 - Documentation and code maintainability
 
+### Fixed
+- **TypeScript/ESLint Compliance**:
+  - Replaced all `any` types with proper TypeScript types in `ocrService.ts`
+  - Fixed unsafe type assignments and member access violations
+  - Removed trivially inferred type annotations
+  - Replaced logical OR (`||`) with nullish coalescing (`??`) for safer null/undefined handling
+  - Improved type safety in `uploadDocument/route.ts`
+  - All linter errors resolved (38 errors fixed)
+
 ### Technical Improvements
 - Centralized configuration management
 - Standardized API response patterns
@@ -47,6 +72,23 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Updated `.env.example` with all required variables and documentation
 - Better configuration management with centralized constants
 - Improved development setup documentation
+- Added `DATALAB_API_KEY` for optional OCR functionality
+
+### Documentation
+- **README.md** - Comprehensive OCR feature documentation:
+  - Added OCR processing section with detailed usage guide
+  - When to use OCR (scanned documents, image-based PDFs, handwritten content)
+  - Backend infrastructure details (service module, database schema, API integration)
+  - Frontend integration documentation (UI, validation, styling)
+  - Processing flow diagrams for both standard and OCR paths
+  - OCR vs Standard processing comparison table
+  - Error handling documentation
+  - Datalab API setup instructions
+  - Environment variables reference updated with `DATALAB_API_KEY`
+  - API endpoints section updated with OCR support details
+  - Project structure updated to include OCR service
+  - Added OCR troubleshooting section
+- **CHANGELOG.md** - Documented all OCR feature additions and linter fixes
 
 ## [Previous Versions]
 This changelog starts from the current state of the codebase. Previous version history can be found in the git commit history.
