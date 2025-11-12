@@ -18,6 +18,9 @@ import { users, document } from "~/server/db/schema";
 import { performTavilySearch, type WebSearchResult } from "./services/tavilySearch";
 
 
+export const runtime = 'nodejs';
+export const maxDuration = 300;
+
 
 type PdfChunkRow = Record<string, unknown> & {
     id: number;
@@ -354,6 +357,7 @@ export async function POST(request: Request) {
             openAIApiKey: process.env.OPENAI_API_KEY,
             modelName: "gpt-4",
             temperature: 0.7, // Increased for more natural, conversational responses
+            timeout: 600000
         });
 
         const selectedStyle = style ?? 'concise';

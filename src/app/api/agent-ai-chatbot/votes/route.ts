@@ -4,6 +4,9 @@ import { db } from "~/server/db";
 import { agentAiChatbotVote } from "~/server/db/schema";
 import { eq, and } from "drizzle-orm";
 
+export const runtime = 'nodejs';
+export const maxDuration = 300;
+
 // POST /api/agent-ai-chatbot/votes - Vote on a message
 export async function POST(request: NextRequest) {
   try {

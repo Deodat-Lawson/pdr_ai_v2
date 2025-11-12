@@ -5,6 +5,9 @@ import { agentAiChatbotMemory } from "~/server/db/schema";
 import { eq, and, desc } from "drizzle-orm";
 import { randomUUID } from "crypto";
 
+export const runtime = 'nodejs';
+export const maxDuration = 300;
+
 // POST /api/agent-ai-chatbot/memory - Store memory
 export async function POST(request: NextRequest) {
   try {
