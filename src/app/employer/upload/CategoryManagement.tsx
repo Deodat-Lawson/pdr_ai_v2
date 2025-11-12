@@ -3,7 +3,6 @@
 import React, { useState } from "react";
 import { Trash2 } from "lucide-react";
 import styles from "~/styles/Employer/Upload.module.css";
-import { useAuth } from "@clerk/nextjs";
 
 interface Category {
     id: string;
@@ -21,17 +20,15 @@ const CategoryManagement: React.FC<CategoryManagementProps> = ({
                                                                    onAddCategory,
                                                                    onRemoveCategory,
                                                                }) => {
-    const { userId } = useAuth();
     const [newCategory, setNewCategory] = useState("");
 
     // Make the function async, and await the category creation
     const handleAddCategory = async (e: React.FormEvent) => {
         e.preventDefault();
-        if (!userId) return;
 
         try {
             // Wait for onAddCategory to finish
-            await onAddCategory(userId, newCategory);
+            await onAddCategory(newCategory);
             setNewCategory("");
             // Parent component handles state update, no need to refresh
         } catch (error) {
