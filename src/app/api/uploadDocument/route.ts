@@ -63,8 +63,8 @@ export async function POST(request: Request) {
             throw new UploadError("OCR service is not configured. Please contact administrator.", 500);
         }
 
-        let textContent: string;
         let ocrMetadata: Record<string, unknown> | null = null;
+        let sourceDocuments: Document<PDFMetadata>[] = [];
 
         if (enableOCR && DATALAB_API_KEY) {
             // OCR PATH: Use Datalab Marker API
@@ -81,14 +81,14 @@ export async function POST(request: Request) {
                     }
                 );
                 
-                textContent = ocrResult.content;
+                sourceDocuments = buildOcrDocuments(ocrResult.content, ocrResult.page_count);
                 ocrMetadata = {
                     page_count: ocrResult.page_count,
                     processed_at: new Date().toISOString(),
                     ...(ocrResult.metadata && { metadata: ocrResult.metadata }),
                 };
 
-                console.log(`OCR processing completed. Extracted ${textContent.length} characters.`);
+                console.log(`OCR processing completed. Extracted ${ocrResult.content.length} characters.`);
             } catch (ocrError) {
                 console.error("OCR processing failed:", ocrError);
                 throw new UploadError(
@@ -115,12 +115,16 @@ export async function POST(request: Request) {
             await fs.writeFile(tempFilePath, pdfBuffer);
 
             const loader = new PDFLoader(tempFilePath);
-            const docs = await loader.load();
+            const docs = await loader.load() as Document<PDFMetadata>[];
             if (docs.length === 0) {
                 throw new UploadError("No readable content found in the provided PDF.", 422);
             }
 
-            textContent = docs.map(doc => doc.pageContent).join('\n\n');
+            sourceDocuments = docs;
+        }
+
+        if (sourceDocuments.length === 0) {
+            throw new UploadError("Unable to extract any content from the document.", 422);
         }
 
         // Split text into chunks (unified for both paths)
@@ -129,9 +133,7 @@ export async function POST(request: Request) {
             chunkOverlap: 200,
         });
         
-        // Create documents from text content
-        const documents = [{ pageContent: textContent, metadata: {} }];
-        const allSplits = (await textSplitter.splitDocuments(documents)) as Document<PDFMetadata>[];
+        const allSplits = (await textSplitter.splitDocuments(sourceDocuments)) as Document<PDFMetadata>[];
 
         if (allSplits.length === 0) {
             throw new UploadError("Unable to split document into chunks.", 422);
@@ -225,4 +227,77 @@ export async function POST(request: Request) {
             });
         }
     }
+}
+
+function buildOcrDocuments(content: string, pageCount?: number): Document<PDFMetadata>[] {
+    const sections = extractExplicitSections(content);
+
+    const candidates = sections.length > 0
+        ? sections
+        : approximateSections(content, pageCount);
+
+    if (candidates.length === 0) {
+        return [{
+            pageContent: content,
+            metadata: { loc: { pageNumber: 1 } }
+        }];
+    }
+
+    return candidates.map(({ pageNumber, text }) => ({
+        pageContent: text,
+        metadata: { loc: { pageNumber } }
+    }));
+}
+
+function extractExplicitSections(content: string): Array<{ pageNumber: number; text: string }> {
+    const regex = /(?:^|\n+)(?:={3,}\s*Page\s+(\d+)\s*={3,}|#{1,3}\s*Page\s+(\d+))/gi;
+    const sections: Array<{ pageNumber: number; text: string }> = [];
+
+    let lastIndex = 0;
+    let currentPage = 1;
+    let match: RegExpExecArray | null;
+
+    while ((match = regex.exec(content)) !== null) {
+        const preceding = content.slice(lastIndex, match.index).trim();
+        if (preceding) {
+            sections.push({ pageNumber: currentPage, text: preceding });
+        }
+
+        currentPage = Number(match[1] ?? match[2]) || currentPage + 1;
+        lastIndex = regex.lastIndex;
+    }
+
+    const trailing = content.slice(lastIndex).trim();
+    if (trailing) {
+        sections.push({ pageNumber: currentPage, text: trailing });
+    }
+
+    return sections;
+}
+
+function approximateSections(content: string, pageCount?: number): Array<{ pageNumber: number; text: string }> {
+    const normalizedContent = content.trim();
+    if (!normalizedContent) {
+        return [];
+    }
+
+    const totalPages = Math.max(1, pageCount ?? 1);
+    const approxLength = Math.max(100, Math.ceil(normalizedContent.length / totalPages));
+    const sections: Array<{ pageNumber: number; text: string }> = [];
+
+    for (let page = 0; page < totalPages; page++) {
+        const slice = normalizedContent.slice(page * approxLength, (page + 1) * approxLength).trim();
+        if (slice) {
+            sections.push({
+                pageNumber: page + 1,
+                text: slice
+            });
+        }
+    }
+
+    if (sections.length === 0) {
+        sections.push({ pageNumber: 1, text: normalizedContent });
+    }
+
+    return sections;
 }
