@@ -79,6 +79,18 @@ export const QuestionSchema = z.object({
   searchScope: data.searchScope ?? "document" as const,
 }));
 
+export const ChatHistoryAddSchema = z.object({
+  documentId: z.number().int().positive("Document ID must be a positive integer"),
+  question: z.string().min(1, "Question is required").max(2000, "Question is too long"),
+  documentTitle: z.string().min(1, "Document title is required").max(256, "Document title is too long"),
+  response: z.string().min(1, "Response is required"),
+  pages: z.array(z.number().int().positive()).max(50).optional(),
+});
+
+export const ChatHistoryFetchSchema = z.object({
+  documentId: z.number().int().positive("Document ID must be a positive integer"),
+});
+
 export const DeleteDocumentSchema = z.object({
   docId: z.string().min(1, "Document ID is required"),
 });

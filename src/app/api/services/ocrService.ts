@@ -1,5 +1,3 @@
-import fetch from "node-fetch";
-
 /**
  * OCR Service for Datalab Marker API Integration
  * Provides functions to submit PDFs for OCR processing and poll for results

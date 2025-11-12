@@ -33,6 +33,13 @@ export const DOCUMENT_LIMITS = {
   SUPPORTED_FORMATS: ['pdf', 'docx', 'doc', 'txt'] as const
 } as const;
 
+// Predictive Analysis batching
+export const ANALYSIS_BATCH_CONFIG = {
+  MAX_CHUNKS_PER_CALL: 10,
+  MAX_CHARACTERS_PER_CALL: 12000,
+  MAX_CONCURRENCY: 12
+} as const;
+
 // Priority Levels
 export const PRIORITY_LEVELS = [
   'immediate',

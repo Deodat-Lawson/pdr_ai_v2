@@ -15,7 +15,6 @@ import { RecursiveCharacterTextSplitter } from "@langchain/textsplitters";
 import { OpenAIEmbeddings } from "@langchain/openai";
 import type { Document } from "langchain/document";
 import { processPDFWithOCR } from "../services/ocrService";
-import { env } from "~/env";
 
 interface PDFMetadata {
     loc?: {
@@ -33,6 +32,7 @@ class UploadError extends Error {
 }
 
 const TEMP_FILE_PREFIX = "pdr-ai-upload-";
+const DATALAB_API_KEY = process.env.DATALAB_API_KEY ?? undefined;
 
 export async function POST(request: Request) {
     let tempFilePath: string | null = null;
@@ -59,21 +59,21 @@ export async function POST(request: Request) {
         }
 
         // Check if OCR is enabled and API key is available
-        if (enableOCR && !env.DATALAB_API_KEY) {
+        if (enableOCR && !DATALAB_API_KEY) {
             throw new UploadError("OCR service is not configured. Please contact administrator.", 500);
         }
 
         let textContent: string;
         let ocrMetadata: Record<string, unknown> | null = null;
 
-        if (enableOCR && env.DATALAB_API_KEY) {
+        if (enableOCR && DATALAB_API_KEY) {
             // OCR PATH: Use Datalab Marker API
             console.log("Processing document with OCR...");
             
             try {
                 const ocrResult = await processPDFWithOCR(
                     documentUrl,
-                    env.DATALAB_API_KEY,
+                    DATALAB_API_KEY?.toString() || '',
                     {
                         output_format: 'markdown',
                         use_llm: true,

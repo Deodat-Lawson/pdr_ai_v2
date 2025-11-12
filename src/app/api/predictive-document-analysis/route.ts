@@ -5,6 +5,7 @@ import { analyzeDocumentChunks } from "./agent";
 import type { PredictiveAnalysisResult } from "./agent";
 import { predictiveDocumentAnalysisResults, document, pdfChunks } from "~/server/db/schema";
 import {
+    ANALYSIS_BATCH_CONFIG,
     ANALYSIS_TYPES,
     TIMEOUT_LIMITS,
     CACHE_CONFIG,
@@ -42,6 +43,7 @@ type PredictiveAnalysisOutput = {
     metadata: {
         pagesAnalyzed: number;
         existingDocumentsChecked: number;
+        aiCalls: number;
     };
 };
 
@@ -202,7 +204,7 @@ export async function POST(request: Request) {
             category: docDetails.category
         };
 
-        const analysisResult = await analyzeDocumentChunks(
+        const { result: analysisResult, stats } = await analyzeDocumentChunks(
             chunks,
             {
                 ...specification,
@@ -210,7 +212,7 @@ export async function POST(request: Request) {
                 documentId
             },
             timeoutMs,
-            20
+            ANALYSIS_BATCH_CONFIG.MAX_CONCURRENCY
         );
 
         const fullResult = {
@@ -226,7 +228,8 @@ export async function POST(request: Request) {
             analysis: analysisResult,
             metadata: {
                 pagesAnalyzed: chunks.length,
-                existingDocumentsChecked: existingDocuments.length
+                existingDocumentsChecked: existingDocuments.length,
+                aiCalls: stats.aiCalls
             }
         } as PredictiveAnalysisOutput;
 
