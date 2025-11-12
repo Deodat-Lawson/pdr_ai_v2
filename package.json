@@ -34,6 +34,7 @@
     "@neondatabase/serverless": "^1.0.1",
     "@t3-oss/env-nextjs": "^0.13.8",
     "@uploadthing/react": "^7.3.3",
+    "clsx": "^2.1.1",
     "dayjs": "^1.11.18",
     "drizzle-orm": "^0.44.5",
     "duck-duck-scrape": "^2.2.7",

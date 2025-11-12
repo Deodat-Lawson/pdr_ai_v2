@@ -8,6 +8,7 @@ export interface OCROptions {
   use_llm?: boolean;
   output_format?: 'markdown' | 'json' | 'html';
   strip_existing_ocr?: boolean;
+  paginate?: boolean;
 }
 
 export interface OCRSubmitResponse {
@@ -73,6 +74,9 @@ export async function submitPDFForOCR(
     }
     if (options.strip_existing_ocr !== undefined) {
       formData.append('strip_existing_ocr', String(options.strip_existing_ocr));
+    }
+    if (options.paginate !== undefined) {
+      formData.append('paginate', String(options.paginate));
     }
 
     const response = await fetch('https://www.datalab.to/api/v1/marker', {

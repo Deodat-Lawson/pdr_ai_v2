@@ -15,6 +15,8 @@ import {
 import { validateRequestBody, QuestionSchema } from "~/lib/validation";
 import { auth } from "@clerk/nextjs/server";
 import { users, document } from "~/server/db/schema";
+import { performTavilySearch, type WebSearchResult } from "./services/tavilySearch";
+
 
 
 type PdfChunkRow = Record<string, unknown> & {
@@ -25,43 +27,73 @@ type PdfChunkRow = Record<string, unknown> & {
 };
 
 const SYSTEM_PROMPTS = {
-    concise: `You are a professional document analysis assistant. Provide clear, concise answers based only on the provided document content. 
+    concise: `You are a friendly and helpful document analysis assistant. You're here to help people understand their documents through natural, conversational dialogue. 
+
+Your personality:
+- Be warm, approachable, and personable - address users directly as "you"
+- Use a conversational tone, like you're chatting with a colleague
+- Show enthusiasm when you find helpful information
+- Be empathetic if information isn't available
+- Use natural language, not robotic responses
 
 Guidelines:
-- Keep responses under 150 words
+- Keep responses under 150 words but maintain a natural flow
 - Focus on the most relevant information
 - Use bullet points when listing multiple items
-- If the information isn't in the provided content, say "This information is not available in the provided document sections"
+- Address the user directly (e.g., "Based on what I found...", "You'll see that...")
+- If the information isn't in the provided content, say something like "I couldn't find that specific information in the document sections I reviewed, but I'd be happy to help you look elsewhere!"
 - Always include page references when citing information`,
 
-    detailed: `You are a comprehensive document analysis assistant. Provide thorough, detailed answers based on the provided document content.
+    detailed: `You are a knowledgeable and friendly document analysis assistant. You enjoy helping people dive deep into their documents and understand complex information.
+
+Your personality:
+- Be warm, approachable, and conversational - address users as "you"
+- Show genuine interest in helping them understand their documents
+- Use natural, flowing language
+- Be encouraging and supportive
+- Explain things clearly without being condescending
 
 Guidelines:
 - Provide comprehensive explanations with context
 - Include relevant details and background information
 - Structure your response with clear sections when appropriate  
 - Explain technical terms or concepts when relevant
-- If the information isn't in the provided content, say "This information is not available in the provided document sections"
+- Address the user directly and conversationally
+- If the information isn't in the provided content, say something like "I searched through the document sections, but I don't see that information there. Would you like me to help you look in other parts?"
 - Always include page references when citing information`,
 
-    academic: `You are an academic research assistant specializing in document analysis. Provide scholarly, analytical responses based on the provided document content.
+    academic: `You are a scholarly yet approachable research assistant specializing in document analysis. You help people understand complex information through clear, analytical explanations.
+
+Your personality:
+- Be professional but friendly - address users as "you"
+- Show intellectual curiosity and enthusiasm for the subject matter
+- Use precise language while remaining accessible
+- Be thoughtful and considerate in your explanations
 
 Guidelines:
-- Use formal academic language and structure
+- Use formal academic language and structure while maintaining readability
 - Provide analytical insights and interpretations
 - Consider implications and broader context
 - Use precise terminology and definitions
-- If the information isn't in the provided content, say "The provided document sections do not contain sufficient information to address this query"
+- Address the user directly (e.g., "You'll notice that...", "As you review this...")
+- If the information isn't in the provided content, say "The provided document sections don't contain sufficient information to address this query. You might want to check other sections or related documents."
 - Include detailed page references for all citations`,
 
-    "bullet-points": `You are a structured document analysis assistant. Organize all information into clear bullet points and lists.
+    "bullet-points": `You are an organized and friendly document analysis assistant who loves helping people break down complex information into clear, digestible pieces.
+
+Your personality:
+- Be warm and conversational - address users as "you"
+- Show enthusiasm for organizing information clearly
+- Use natural language even when structuring information
+- Be encouraging and helpful
 
 Guidelines:
 - Structure ALL responses using bullet points
 - Group related information under clear headings
 - Use sub-bullets for detailed breakdown
 - Keep each bullet point concise but informative
-- If the information isn't in the provided content, say "• This information is not available in the provided document sections"
+- Address the user directly (e.g., "Here's what you'll find...", "You can see that...")
+- If the information isn't in the provided content, say "• I couldn't find this information in the document sections I reviewed - you might want to check other parts!"
 - Always include page references in parentheses`
 };
 
@@ -89,7 +121,15 @@ export async function POST(request: Request) {
             }, { status: 401 });
         }
 
-        const { documentId, companyId, question, style, searchScope } = validation.data;
+        const {
+            documentId,
+            companyId,
+            question,
+            style,
+            searchScope,
+            enableWebSearch,
+            aiPersona,
+        } = validation.data;
 
         // Additional business logic validation
         if (searchScope === "company" && !companyId) {
@@ -292,29 +332,140 @@ export async function POST(request: Request) {
             });
         }
 
+        console.log(`🔍 [AI] Building context from ${documents.length} retrieved documents`);
+        
         const combinedContent = documents
             .map((doc, idx) => {
                 const page = doc.metadata?.page ?? 'Unknown';
                 const source = doc.metadata?.source ?? retrievalMethod;
                 const distance = doc.metadata?.distance ?? 0;
                 const relevanceScore = Math.round((1 - Number(distance)) * 100);
-                return `=== Chunk #${idx + 1}, Page ${page}, Source: ${source}, Relevance: ${relevanceScore}% ===\n${doc.pageContent}`;
+                
+                console.log(`📄 [AI] Document ${idx + 1}: page ${page}, source: ${source}, relevance: ${relevanceScore}%`);
+                
+                // Only include Chunk # and Page in the actual prompt sent to AI
+                return `=== Chunk #${idx + 1}, Page ${page} ===\n${doc.pageContent}`;
             })
             .join("\n\n");
+            
+        console.log(`✅ [AI] Built context with pages: ${documents.map(doc => doc.metadata?.page).join(', ')}`);
 
         const chat = new ChatOpenAI({
             openAIApiKey: process.env.OPENAI_API_KEY,
             modelName: "gpt-4",
-            temperature: 0.3,
+            temperature: 0.7, // Increased for more natural, conversational responses
         });
 
         const selectedStyle = style ?? 'concise';
+        const enableWebSearchFlag = enableWebSearch ?? false;
+        const selectedPersona = aiPersona ?? 'general';
+        
+        // Debug logging
+        console.log('📥 API Received enableWebSearch:', enableWebSearchFlag);
+        console.log('📥 API Received aiPersona:', selectedPersona);
+        console.log('📥 API Received style:', selectedStyle);
+        
+        // Build conversation-aware prompt
+        const conversationHistory = validation.data.conversationHistory;
+        let conversationContext = '';
+        if (conversationHistory) {
+            conversationContext = `\n\nPrevious conversation context:\n${conversationHistory}\n\nPlease continue the conversation naturally, referencing previous exchanges when relevant.`;
+        }
+        
+        // Perform web search if enabled
+        let webSearchResults: WebSearchResult[] = [];
+        let webSearchContent = '';
+        if (enableWebSearchFlag) {
+            console.log('🌐 Web Search Feature: ENABLED');
+            console.log('📝 Search Query:', question);
+            try {
+                console.log('🔍 Executing web search with Tavily...');
+                
+                webSearchResults = await performTavilySearch(question, 5);
+                
+                if (webSearchResults.length > 0) {
+                    console.log(`✅ Web Search Results: Found ${webSearchResults.length} sources`);
+                    console.log('📄 Sources:', webSearchResults.map((r, i) => `\n  ${i + 1}. ${r.title} - ${r.url}`).join(''));
+                    webSearchContent = `\n\n=== Web Search Results ===\n${webSearchResults.map((result, idx) => 
+                        `[Source ${idx + 1}] ${result.title}\nURL: ${result.url}\nSnippet: ${result.snippet}`
+                    ).join('\n\n')}\n\n`;
+                } else {
+                    console.warn('⚠️ Web Search: No results found');
+                }
+            } catch (webSearchError: unknown) {
+                console.error("❌ Web search error:", webSearchError);
+                // Continue without web search results - don't fail the entire request
+            }
+        } else {
+            console.log('🌐 Web Search Feature: DISABLED');
+        }
+        
+        // Add web search instruction if enabled
+        let webSearchInstruction = '';
+        if (enableWebSearchFlag) {
+            if (webSearchResults.length > 0) {
+                webSearchInstruction = `\n\nIMPORTANT: The user has enabled web search. Use the web search results provided below to supplement the document content. When citing information from web sources, always include the source number in brackets (e.g., [Source 1], [Source 2]). Prioritize document content, but use web search results to provide additional context, recent information, or clarification when the document content is insufficient.`;
+            } else {
+                webSearchInstruction = `\n\nIMPORTANT: The user has enabled web search, but no web search results were available. Base your answer on the provided document content.`;
+            }
+        }
+        
+        // Enhanced Learning Coach prompt with teaching techniques
+        let systemPrompt = SYSTEM_PROMPTS[selectedStyle];
+        if (selectedPersona === 'learning-coach') {
+            systemPrompt = `${SYSTEM_PROMPTS[selectedStyle]}
+
+LEARNING COACH MODE - Advanced Teaching Techniques:
+You are an expert learning coach specializing in pedagogical methods. Apply these teaching techniques:
+
+1. Socratic Method:
+   - Ask probing questions to guide discovery rather than giving direct answers
+   - Use "What do you think..." or "Why might..." to encourage critical thinking
+   - Help learners arrive at conclusions through guided questioning
+
+2. Scaffolding:
+   - Break complex concepts into smaller, manageable steps
+   - Start with what the learner already knows, then build incrementally
+   - Provide structure and support that gradually decreases as understanding increases
+
+3. Active Learning:
+   - Encourage the learner to explain concepts back to you in their own words
+   - Use "Can you explain this in your own words?" or "How would you summarize..."
+   - Create opportunities for the learner to apply knowledge immediately
+
+4. Metacognition:
+   - Help learners think about their own thinking process
+   - Ask "How did you arrive at that conclusion?" or "What strategies are you using?"
+   - Encourage reflection on learning methods and understanding
+
+5. Analogies and Examples:
+   - Use relatable analogies to connect new concepts to familiar ideas
+   - Provide concrete examples before abstract concepts
+   - Use real-world scenarios relevant to the learner's context
+
+6. Spaced Repetition:
+   - Reference previously discussed concepts when relevant
+   - Connect new information to earlier learning
+   - Reinforce key concepts throughout the conversation
+
+7. Formative Assessment:
+   - Check understanding frequently with questions
+   - Adjust your explanation based on the learner's responses
+   - Identify misconceptions early and address them constructively
+
+8. Growth Mindset:
+   - Emphasize that understanding comes with effort and practice
+   - Celebrate progress and learning attempts, not just correct answers
+   - Frame challenges as opportunities for growth
+
+Remember: Your goal is not just to provide information, but to facilitate deep understanding and independent learning.`;
+        }
+        
+        const userPrompt = `User's question: "${question}"${conversationContext}\n\nRelevant document content:\n${combinedContent}${webSearchContent}${webSearchInstruction}\n\nProvide a natural, conversational answer based primarily on the provided content. When using information from web sources, cite them using [Source X] format. Address the user directly and maintain continuity with any previous conversation.`;
         
         const summarizedAnswer = await chat.call([
-            new SystemMessage(SYSTEM_PROMPTS[selectedStyle]),
-            new HumanMessage(
-                `User's question: "${question}"\n\nRelevant document content:\n${combinedContent}\n\nProvide an accurate answer based solely on the provided content.`
-            ),
+            new SystemMessage(systemPrompt),
+            new HumanMessage(userPrompt),
         ]);
 
         const totalTime = Date.now() - startTime;
@@ -327,7 +478,8 @@ export async function POST(request: Request) {
             processingTimeMs: totalTime,
             chunksAnalyzed: documents.length,
             fusionWeights: [0.4, 0.6],
-            searchScope
+            searchScope,
+            webSources: enableWebSearchFlag ? webSearchResults : undefined
         });
 
     } catch (error) {

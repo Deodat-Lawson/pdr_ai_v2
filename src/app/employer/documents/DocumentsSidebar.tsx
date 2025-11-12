@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import Link from "next/link";
 import {
     FileText,
@@ -9,9 +9,7 @@ import {
     ChevronRight,
     ChevronDown,
     Home,
-    Eye,
     MessageCircle,
-    History,
     BarChart3,
     ChevronLeft,
     Trash2,
@@ -19,6 +17,7 @@ import {
 import styles from "~/styles/Employer/DocumentViewer.module.css";
 import { type ViewMode } from "./types";
 import { ThemeToggle } from "~/app/_components/ThemeToggle";    
+import clsx from "clsx";
 
 interface DocumentType {
     id: number;
@@ -44,6 +43,9 @@ interface DocumentsSidebarProps {
     setViewMode: React.Dispatch<React.SetStateAction<ViewMode>>;
     toggleCategory?: (categoryName: string) => void;
     deleteDocument?: (docId: number) => void;
+    collapsed?: boolean;
+    onCollapseChange?: (collapsed: boolean) => void;
+    isDragging?: boolean;
 }
 
 interface ViewModeConfig {
@@ -53,21 +55,21 @@ interface ViewModeConfig {
 }
 
 const viewModeConfigs: ViewModeConfig[] = [
-    {
-        mode: "document-only",
-        icon: Eye,
-        tooltip: "Document Only"
-    },
+    // {
+    //     mode: "document-only",
+    //     icon: Eye,
+    //     tooltip: "Document Only"
+    // },
     {
         mode: "with-ai-qa",
         icon: MessageCircle,
         tooltip: "AI Q&A"
     },
-    {
-        mode: "with-ai-qa-history",
-        icon: History,
-        tooltip: "Q&A History"
-    },
+    // {
+    //     mode: "with-ai-qa-history",
+    //     icon: History,
+    //     tooltip: "Q&A History"
+    // },
     {
         mode: "predictive-analysis",
         icon: BarChart3,
@@ -85,13 +87,27 @@ export const DocumentsSidebar: React.FC<DocumentsSidebarProps> = ({
     setViewMode,
     toggleCategory,
     deleteDocument,
+    collapsed,
+    onCollapseChange,
+    isDragging = false,
 }) => {
-    const [hoveredTooltip, setHoveredTooltip] = useState<string | null>(null);
-    const [isCollapsed, setIsCollapsed] = useState(false);
+    const [internalCollapsed, setInternalCollapsed] = useState(false);
     const [isSearchFocused, setIsSearchFocused] = useState(false);
 
+    useEffect(() => {
+        if (collapsed !== undefined) {
+            setInternalCollapsed(collapsed);
+        }
+    }, [collapsed]);
+
+    const isCollapsed = collapsed ?? internalCollapsed;
+
     const toggleSidebar = () => {
-        setIsCollapsed(!isCollapsed);
+        const nextCollapsed = !isCollapsed;
+        if (collapsed === undefined) {
+            setInternalCollapsed(nextCollapsed);
+        }
+        onCollapseChange?.(nextCollapsed);
     };
 
     const handleCategoryClick = (categoryName: string) => {
@@ -108,26 +124,25 @@ export const DocumentsSidebar: React.FC<DocumentsSidebarProps> = ({
     };
 
     return (
-        <aside className={`${styles.sidebar} ${isCollapsed ? styles.collapsed : ""}`}>
-            {/* Collapse Toggle Button */}
-            <button 
-                className={styles.toggleButton}
-                onClick={toggleSidebar}
-                aria-label={isCollapsed ? "Expand sidebar" : "Collapse sidebar"}
-            >
-                <ChevronLeft 
-                    className={`${styles.toggleIcon} ${isCollapsed ? "rotate-180" : ""}`}
-                />
-            </button>
-
+        <aside
+            className={clsx(
+                styles.sidebar,
+                styles.draggableSidebar,
+                isCollapsed && styles.collapsed,
+                isDragging && styles.dragging,
+            )}
+        >
             {/* Sidebar Header Section */}
             <div className={styles.sidebarHeader}>
                 {/* Logo and Actions Row */}
                 <div className={styles.logoRow}>
+                    {/* Logo */}
                     <div className={styles.logoContainer}>
                         <Brain className={styles.logoIcon} />
                         <span className={styles.logoText}>PDR AI</span>
                     </div>
+                    
+                    {/* Action Buttons */}
                     <div className={styles.headerActions}>
                         <ThemeToggle />
                         <Link href="/employer/home">
@@ -135,6 +150,15 @@ export const DocumentsSidebar: React.FC<DocumentsSidebarProps> = ({
                                 <Home className={styles.iconButtonIcon} />
                             </button>
                         </Link>
+                        <button 
+                            className={styles.iconButton}
+                            onClick={toggleSidebar}
+                            aria-label={isCollapsed ? "Expand sidebar" : "Collapse sidebar"}
+                        >
+                            <ChevronLeft 
+                                className={`${styles.iconButtonIcon} transition-transform duration-300 ${isCollapsed ? "rotate-180" : ""}`}
+                            />
+                        </button>
                     </div>
                 </div>
 
@@ -154,39 +178,53 @@ export const DocumentsSidebar: React.FC<DocumentsSidebarProps> = ({
             </div>
 
             {/* View Mode Selection Section */}
-            <div className={styles.viewModeContainer}>
-                <div className={styles.viewModeHeader}>
-                    <span className={styles.viewModeTitle}>View Options</span>
-                </div>
-                <div className={styles.viewModeButtons}>
+            <div className={clsx(
+                "border-b border-gray-200 dark:border-slate-700 transition-all duration-200",
+                isCollapsed ? "px-2 py-3" : "px-4 py-4"
+            )}>
+                {!isCollapsed && (
+                    <div className="mb-3">
+                        <span className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">View Options</span>
+                    </div>
+                )}
+                <div className={clsx(
+                    "transition-all duration-200",
+                    isCollapsed ? "flex flex-col gap-2" : "grid grid-cols-1 sm:grid-cols-2 gap-2.5"
+                )}>
                     {viewModeConfigs.map(({ mode, icon: Icon, tooltip }) => (
-                        <div
+                        <button
                             key={mode}
-                            className={styles.tooltipContainer}
-                            onMouseEnter={() => setHoveredTooltip(mode)}
-                            onMouseLeave={() => setHoveredTooltip(null)}
-                        >
-                            <button
-                                className={`${styles.viewModeButton} ${viewMode === mode ? styles.activeViewMode : ""
-                                    }`}
-                                onClick={() => setViewMode(mode)}
-                                aria-label={tooltip}
-                            >
-                                <Icon className={styles.viewModeIcon} />
-                            </button>
-                            {hoveredTooltip === mode && !isCollapsed && (
-                                <div className={styles.tooltip}>
-                                    <span className={styles.tooltipText}>{tooltip}</span>
-                                    <div className={styles.tooltipArrow}></div>
-                                </div>
+                            className={clsx(
+                                "rounded-xl flex items-center transition-all duration-300 transform",
+                                isCollapsed 
+                                    ? "w-full justify-center p-2.5" 
+                                    : "relative w-full justify-start px-4 py-3 gap-3 overflow-hidden",
+                                viewMode === mode
+                                    ? "bg-gradient-to-r from-purple-600 to-indigo-600 text-white shadow-lg shadow-purple-500/30 scale-105"
+                                    : "bg-white dark:bg-slate-800 text-gray-700 dark:text-gray-300 border border-gray-200 dark:border-slate-700 hover:border-purple-300 dark:hover:border-purple-700 hover:bg-purple-50 dark:hover:bg-purple-900/20 hover:scale-[1.02]"
                             )}
-                        </div>
+                            onClick={() => setViewMode(mode)}
+                            aria-label={tooltip}
+                        >
+                            <Icon className={clsx(
+                                "transition-all duration-300",
+                                isCollapsed ? "w-5 h-5" : "w-4 h-4",
+                                viewMode === mode ? "scale-110" : ""
+                            )} />
+                            {!isCollapsed && (
+                                <span className={clsx(
+                                    "text-xs font-semibold transition-colors",
+                                    viewMode === mode ? "text-white" : "text-gray-700 dark:text-gray-300"
+                                )}>
+                                    {tooltip}
+                                </span>
+                            )}
+                        </button>
                     ))}
                 </div>
             </div>
 
             <nav className={styles.docList}>
-                {/* Show "All Documents" option when in AI Q&A mode */}
                 {(viewMode === "with-ai-qa" || viewMode === "with-ai-qa-history") && !isCollapsed && (
                     <div className={styles.categoryGroup}>
                         <div 
@@ -224,17 +262,15 @@ export const DocumentsSidebar: React.FC<DocumentsSidebarProps> = ({
                             <span className={styles.categoryName}>{category.name}</span>
                         </div>
 
-                        {/* Category Documents */}
                         {category.isOpen && (
                             <div className={styles.categoryDocs}>
                                 {category.documents.map((doc) => (
                                     <div 
                                         key={doc.id} 
-                                        className={`${styles.docButton} group ${
+                                        className={`${styles.docButton} ${
                                             selectedDoc && selectedDoc.id === doc.id ? styles.selected : ""
                                         }`}
                                     >
-                                        {/* Document Button */}
                                         <button
                                             onClick={() => setSelectedDoc(doc)}
                                             className={styles.docItem}
@@ -243,17 +279,17 @@ export const DocumentsSidebar: React.FC<DocumentsSidebarProps> = ({
                                             <span className={styles.docName}>{doc.title}</span>
                                         </button>
                                         
-                                        {/* Delete Button (appears on hover) */}
                                         {!isCollapsed && deleteDocument && (
                                             <button
                                                 onClick={(e) => handleDeleteDocument(doc.id, e)}
-                                                className={`${styles.deleteButton} group-hover:opacity-100`}
+                                                className={styles.deleteButton}
                                                 title="Delete document"
                                                 aria-label={`Delete document ${doc.title}`}
                                             >
                                                 <Trash2 className={styles.trashIcon} />
                                             </button>
                                         )}
+                                        
                                     </div>
                                 ))}
                             </div>
