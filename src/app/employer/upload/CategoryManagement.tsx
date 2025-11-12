@@ -11,7 +11,7 @@ interface Category {
 
 interface CategoryManagementProps {
     categories: Category[];
-    onAddCategory: (userId: string, newCategory: string) => Promise<void>;
+    onAddCategory: (newCategory: string) => Promise<void>;
     onRemoveCategory: (id: string) => Promise<void>;
 }
 
