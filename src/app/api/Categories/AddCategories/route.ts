@@ -50,7 +50,7 @@ export async function POST(request: Request) {
             companyId: companyId,
         }).returning({ id: category.id });
 
-        return NextResponse.json({ success: true, id: newCategoryId[0], name: validation.data.CategoryName });
+        return NextResponse.json({ success: true, id: newCategoryId[0]!.id, name: validation.data.CategoryName });
     } catch (error: unknown) {
         console.error(error);
         return NextResponse.json({ error }, { status: 500 });

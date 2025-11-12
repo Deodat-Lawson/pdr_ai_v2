@@ -17,7 +17,7 @@ interface UploadFormData {
 }
 
 interface UploadFormProps {
-    categories: { id: string; name: string }[];
+    categories: { id: number; name: string }[];
 }
 
 const UploadForm: React.FC<UploadFormProps> = ({ categories }) => {

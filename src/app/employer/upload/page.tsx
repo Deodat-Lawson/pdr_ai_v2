@@ -10,7 +10,7 @@ import styles from "~/styles/Employer/Upload.module.css";
 import { ThemeToggle } from "~/app/_components/ThemeToggle";
 
 interface Category {
-    id: string;
+    id: number;
     name: string;
 }
 
@@ -64,7 +64,7 @@ const Page: React.FC = () => {
                 if (rawData.success) {
                     const createdCategory = { id: rawData.id, name: rawData.name };
                     setCategories((prev) => {
-                        const newCategories = [...prev, { id: createdCategory.id.toString(), name: createdCategory.name }];
+                        const newCategories = [...prev, { id: createdCategory.id, name: createdCategory.name }];
                         return newCategories;
                     });
                 } else {
@@ -79,7 +79,7 @@ const Page: React.FC = () => {
         [],
     );
 
-    const handleRemoveCategory = useCallback(async (id: string) => {
+    const handleRemoveCategory = useCallback(async (id: number) => {
         if (!confirm("Are you sure you want to delete this category?")) return;
 
         try {

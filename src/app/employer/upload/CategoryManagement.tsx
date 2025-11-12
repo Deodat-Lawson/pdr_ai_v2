@@ -3,17 +3,16 @@
 import React, { useState } from "react";
 import { Trash2 } from "lucide-react";
 import styles from "~/styles/Employer/Upload.module.css";
-import { useAuth } from "@clerk/nextjs";
 
 interface Category {
-    id: string;
+    id: number;
     name: string;
 }
 
 interface CategoryManagementProps {
     categories: Category[];
-    onAddCategory: (userId: string, newCategory: string) => Promise<void>;
-    onRemoveCategory: (id: string) => Promise<void>;
+    onAddCategory: (newCategory: string) => Promise<void>;
+    onRemoveCategory: (id: number) => Promise<void>;
 }
 
 const CategoryManagement: React.FC<CategoryManagementProps> = ({
@@ -21,17 +20,16 @@ const CategoryManagement: React.FC<CategoryManagementProps> = ({
                                                                    onAddCategory,
                                                                    onRemoveCategory,
                                                                }) => {
-    const { userId } = useAuth();
     const [newCategory, setNewCategory] = useState("");
 
     // Make the function async, and await the category creation
     const handleAddCategory = async (e: React.FormEvent) => {
         e.preventDefault();
-        if (!userId) return;
+        if (!newCategory.trim()) return;
 
         try {
             // Wait for onAddCategory to finish
-            await onAddCategory(userId, newCategory);
+            await onAddCategory(newCategory);
             setNewCategory("");
             // Parent component handles state update, no need to refresh
         } catch (error) {
@@ -40,7 +38,7 @@ const CategoryManagement: React.FC<CategoryManagementProps> = ({
     };
 
     // If you want to refresh after removal as well, make this async:
-    const handleRemoveCategory = async (id: string) => {
+    const handleRemoveCategory = async (id: number) => {
         try {
             await onRemoveCategory(id);
             // Parent component handles state update

@@ -7,7 +7,7 @@ import { validateRequestBody } from "~/lib/validation";
 import { z } from "zod";
 
 const DeleteCategorySchema = z.object({
-    id: z.string().min(1, "Category ID is required"),
+    id: z.number().int().positive("Category ID must be a positive integer"),
 });
 
 export async function DELETE(request: Request) {
@@ -33,7 +33,7 @@ export async function DELETE(request: Request) {
             return NextResponse.json({ error: "Invalid user role." }, { status: 400 });
         }
 
-        await db.delete(category).where(eq(category.id, Number(validation.data.id)));
+        await db.delete(category).where(eq(category.id, validation.data.id));
 
         return NextResponse.json({ success: true }, { status: 200 });
     } catch (error: unknown) {
