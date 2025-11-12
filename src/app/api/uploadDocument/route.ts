@@ -78,10 +78,18 @@ export async function POST(request: Request) {
                         output_format: 'markdown',
                         use_llm: true,
                         force_ocr: false,
+                        paginate: true,
                     }
                 );
                 
-                sourceDocuments = buildOcrDocuments(ocrResult.content, ocrResult.page_count);
+                console.log(`📄 [OCR] OCR returned content length: ${ocrResult.content.length}, page_count: ${ocrResult.page_count}`);
+                console.log(`🔍 [OCR] FULL OCR RESPONSE:`);
+                console.log('='.repeat(80));
+                console.log(ocrResult.content);
+                console.log('='.repeat(80));
+                console.log(`📊 [OCR] Metadata: ${JSON.stringify(ocrResult.metadata, null, 2)}`);
+                
+                sourceDocuments = buildOcrDocuments(ocrResult.content, ocrResult.page_count, true);
                 ocrMetadata = {
                     page_count: ocrResult.page_count,
                     processed_at: new Date().toISOString(),
@@ -128,12 +136,17 @@ export async function POST(request: Request) {
         }
 
         // Split text into chunks (unified for both paths)
+        console.log(`🔍 [SPLITTER] Splitting ${sourceDocuments.length} source documents`);
+        
         const textSplitter = new RecursiveCharacterTextSplitter({
             chunkSize: 1000,
             chunkOverlap: 200,
         });
         
         const allSplits = (await textSplitter.splitDocuments(sourceDocuments)) as Document<PDFMetadata>[];
+        
+        console.log(`✅ [SPLITTER] Created ${allSplits.length} chunks from ${sourceDocuments.length} documents`);
+        console.log(`📄 [SPLITTER] Page numbers in splits: ${allSplits.map(s => s.metadata.loc?.pageNumber).join(', ')}`);
 
         if (allSplits.length === 0) {
             throw new UploadError("Unable to split document into chunks.", 422);
@@ -229,7 +242,80 @@ export async function POST(request: Request) {
     }
 }
 
-function buildOcrDocuments(content: string, pageCount?: number): Document<PDFMetadata>[] {
+/**
+ * Parse paginated OCR output from DataLab Marker API
+ * Format: Content...\n\n{PAGE_NUMBER}\n{48 dashes}\n\nNext page content...
+ * The separator marks the END of the previous page and shows its page number
+ * @param content - Paginated markdown content from DataLab
+ * @returns Array of documents with correct page metadata
+ */
+export function parseNativePaginatedOcr(content: string): Document<PDFMetadata>[] {
+    console.log('🔍 [PARSER] Starting native pagination parse');
+    console.log(`🔍 [PARSER] Content preview: ${content.substring(0, 200)}`);
+    
+    // Regex to match DataLab page separator formats:
+    // Format 1: {PAGE_NUMBER}------------------------------------------------
+    // Format 2: \n\n{PAGE_NUMBER}\n{46-50 dashes}\n\n
+    const pageRegex = /\{(\d+)\}-{40,50}|[\r\n]{2,}(\d+)[\r\n]-{46,50}[\r\n]{2,}/g;
+    
+    const documents: Document<PDFMetadata>[] = [];
+    let lastIndex = 0;
+    let match: RegExpExecArray | null;
+    
+    while ((match = pageRegex.exec(content)) !== null) {
+        // match[1] is for {N} format, match[2] is for \n\nN\n format
+        const pageNumber = parseInt(match[1] ?? match[2] ?? '1', 10);
+        const pageContent = content.slice(lastIndex, match.index).trim();
+        
+        console.log(`📄 [PARSER] Found page ${pageNumber}, content length: ${pageContent.length}, match: "${match[0].substring(0, 20)}..."`);
+        
+        // Only add non-empty pages
+        if (pageContent) {
+            documents.push({
+                pageContent,
+                metadata: { loc: { pageNumber } }
+            });
+        }
+        
+        lastIndex = pageRegex.lastIndex;
+    }
+    
+    // Handle content after last separator
+    const finalContent = content.slice(lastIndex).trim();
+    if (finalContent) {
+        // Content after last separator is the next page
+        const lastPageNum = documents.length > 0 
+            ? (((documents[documents.length - 1]?.metadata?.loc?.pageNumber) ?? 0) + 1)
+            : 1;
+        
+        documents.push({
+            pageContent: finalContent,
+            metadata: { loc: { pageNumber: lastPageNum } }
+        });
+    }
+    
+    // Fallback: if no pages found, return single document
+    if (documents.length === 0) {
+        return [{
+            pageContent: content.trim(),
+            metadata: { loc: { pageNumber: 1 } }
+        }];
+    }
+    
+    return documents;
+}
+
+function buildOcrDocuments(
+    content: string, 
+    pageCount?: number,
+    isPaginated?: boolean
+): Document<PDFMetadata>[] {
+    // If content is natively paginated by DataLab, parse it
+    if (isPaginated) {
+        return parseNativePaginatedOcr(content);
+    }
+    
+    // Fallback to existing logic for non-paginated content
     const sections = extractExplicitSections(content);
 
     const candidates = sections.length > 0
