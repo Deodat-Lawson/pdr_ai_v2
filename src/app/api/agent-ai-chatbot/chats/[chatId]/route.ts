@@ -8,6 +8,9 @@ import {
 } from "~/server/db/schema";
 import { eq } from "drizzle-orm";
 
+export const runtime = 'nodejs';
+export const maxDuration = 300;
+
 // GET /api/agent-ai-chatbot/chats/[chatId] - Get a specific chat with its messages
 export async function GET(
   request: NextRequest,

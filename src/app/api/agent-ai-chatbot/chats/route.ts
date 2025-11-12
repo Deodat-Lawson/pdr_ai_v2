@@ -5,6 +5,9 @@ import { agentAiChatbotChat } from "~/server/db/schema";
 import { eq, desc } from "drizzle-orm";
 import { randomUUID } from "crypto";
 
+export const runtime = 'nodejs';
+export const maxDuration = 300;
+
 // GET /api/agent-ai-chatbot/chats - Get all chats for a user
 export async function GET(request: NextRequest) {
   try {
