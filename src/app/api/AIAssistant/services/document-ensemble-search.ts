@@ -85,18 +85,24 @@ class DocumentANNVectorRetriever extends BaseRetriever {
                 distance: number;
             }>(sqlQuery);
             
-            return result.rows.map(row => new Document({
-                pageContent: row.content,
-                metadata: { 
-                    chunkId: row.id, 
-                    page: row.page, 
-                    documentId: row.document_id,
-                    documentTitle: row.document_title,
-                    distance: row.distance,
-                    source: 'document_ann',
-                    searchScope: 'document'
-                }
-            }));
+            const documents = result.rows.map(row => {
+                console.log(`📄 [ANN-RETRIEVER] Retrieved chunk ${row.id} from page ${row.page}, distance: ${row.distance}`);
+                return new Document({
+                    pageContent: row.content,
+                    metadata: { 
+                        chunkId: row.id, 
+                        page: row.page, 
+                        documentId: row.document_id,
+                        documentTitle: row.document_title,
+                        distance: row.distance,
+                        source: 'document_ann',
+                        searchScope: 'document'
+                    }
+                });
+            });
+            
+            console.log(`✅ [ANN-RETRIEVER] Retrieved ${documents.length} documents with pages: ${documents.map(d => d.metadata.page).join(', ')}`);
+            return documents;
             
         } catch (error) {
             console.error("Document ANN Vector Retriever error:", error);

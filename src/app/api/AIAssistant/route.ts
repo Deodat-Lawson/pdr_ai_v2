@@ -292,15 +292,23 @@ export async function POST(request: Request) {
             });
         }
 
+        console.log(`🔍 [AI] Building context from ${documents.length} retrieved documents`);
+        
         const combinedContent = documents
             .map((doc, idx) => {
                 const page = doc.metadata?.page ?? 'Unknown';
                 const source = doc.metadata?.source ?? retrievalMethod;
                 const distance = doc.metadata?.distance ?? 0;
                 const relevanceScore = Math.round((1 - Number(distance)) * 100);
-                return `=== Chunk #${idx + 1}, Page ${page}, Source: ${source}, Relevance: ${relevanceScore}% ===\n${doc.pageContent}`;
+                
+                console.log(`📄 [AI] Document ${idx + 1}: page ${page}, source: ${source}, relevance: ${relevanceScore}%`);
+                
+                // Only include Chunk # and Page in the actual prompt sent to AI
+                return `=== Chunk #${idx + 1}, Page ${page} ===\n${doc.pageContent}`;
             })
             .join("\n\n");
+            
+        console.log(`✅ [AI] Built context with pages: ${documents.map(doc => doc.metadata?.page).join(', ')}`);
 
         const chat = new ChatOpenAI({
             openAIApiKey: process.env.OPENAI_API_KEY,
