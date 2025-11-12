@@ -12,7 +12,7 @@ interface Category {
 interface CategoryManagementProps {
     categories: Category[];
     onAddCategory: (newCategory: string) => Promise<void>;
-    onRemoveCategory: (id: number) => Promise<void>;
+    onRemoveCategory: (id: string) => Promise<void>;
 }
 
 const CategoryManagement: React.FC<CategoryManagementProps> = ({
