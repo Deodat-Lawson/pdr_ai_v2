@@ -5,6 +5,9 @@ import { agentAiChatbotTask } from "~/server/db/schema";
 import { eq } from "drizzle-orm";
 import { randomUUID } from "crypto";
 
+export const runtime = 'nodejs';
+export const maxDuration = 300;
+
 // POST /api/agent-ai-chatbot/tasks - Create a new task
 export async function POST(request: NextRequest) {
   try {

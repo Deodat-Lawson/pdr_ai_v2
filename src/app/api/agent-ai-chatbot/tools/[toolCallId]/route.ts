@@ -4,6 +4,9 @@ import { db } from "~/server/db";
 import { agentAiChatbotToolCall } from "~/server/db/schema";
 import { eq } from "drizzle-orm";
 
+export const runtime = 'nodejs';
+export const maxDuration = 300;
+
 // PATCH /api/agent-ai-chatbot/tools/[toolCallId] - Update tool call result
 export async function PATCH(
   request: NextRequest,

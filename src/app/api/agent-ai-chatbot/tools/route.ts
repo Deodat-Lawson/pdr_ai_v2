@@ -5,6 +5,9 @@ import { agentAiChatbotToolCall } from "~/server/db/schema";
 import { eq } from "drizzle-orm";
 import { randomUUID } from "crypto";
 
+export const runtime = 'nodejs';
+export const maxDuration = 300;
+
 // POST /api/agent-ai-chatbot/tools - Create a tool call
 export async function POST(request: NextRequest) {
   try {

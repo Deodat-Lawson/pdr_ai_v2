@@ -5,6 +5,9 @@ import { agentAiChatbotMessage, agentAiChatbotChat } from "~/server/db/schema";
 import { eq } from "drizzle-orm";
 import { randomUUID } from "crypto";
 
+export const runtime = 'nodejs';
+export const maxDuration = 300;
+
 // POST /api/agent-ai-chatbot/messages - Send a message
 export async function POST(request: NextRequest) {
   try {

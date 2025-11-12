@@ -4,6 +4,9 @@ import { db } from "~/server/db";
 import { agentAiChatbotExecutionStep } from "~/server/db/schema";
 import { eq } from "drizzle-orm";
 
+export const runtime = 'nodejs';
+export const maxDuration = 300;
+
 // PATCH /api/agent-ai-chatbot/execution-steps/[stepId] - Update execution step
 export async function PATCH(
   request: NextRequest,

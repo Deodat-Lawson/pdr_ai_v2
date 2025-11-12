@@ -17,6 +17,9 @@ import {
 
 import { validateRequestBody, PredictiveAnalysisSchema } from "~/lib/validation";
 
+export const runtime = 'nodejs';
+export const maxDuration = 300;
+
 type PdfChunk = {
     id: number;
     content: string;

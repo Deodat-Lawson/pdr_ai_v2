@@ -4,6 +4,9 @@ import { db } from "~/server/db";
 import { agentAiChatbotTask, agentAiChatbotExecutionStep } from "~/server/db/schema";
 import { eq } from "drizzle-orm";
 
+export const runtime = 'nodejs';
+export const maxDuration = 300;
+
 // GET /api/agent-ai-chatbot/tasks/[taskId] - Get a specific task with execution steps
 export async function GET(
   request: NextRequest,
