@@ -26,16 +26,18 @@ export async function POST(request: NextRequest) {
 
     const messageId = randomUUID();
 
+    const insertValues = {
+      id: messageId,
+      chatId,
+      role: role as "user" | "assistant" | "system" | "tool",
+      content,
+      messageType: (messageType ?? "text") as "text" | "tool_call" | "tool_result" | "thinking",
+      parentMessageId,
+    };
+
     const [newMessage] = await db
       .insert(agentAiChatbotMessage)
-      .values({
-        id: messageId,
-        chatId,
-        role,
-        content,
-        messageType,
-        parentMessageId,
-      })
+      .values(insertValues)
       .returning();
 
     // Update chat's updatedAt timestamp

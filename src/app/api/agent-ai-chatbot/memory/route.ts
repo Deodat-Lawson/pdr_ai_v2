@@ -82,7 +82,7 @@ export async function GET(request: NextRequest) {
     const whereConditions = memoryType
       ? and(
           eq(agentAiChatbotMemory.chatId, chatId),
-          eq(agentAiChatbotMemory.memoryType, memoryType)
+          eq(agentAiChatbotMemory.memoryType, memoryType as "short_term" | "long_term" | "working" | "episodic")
         )
       : eq(agentAiChatbotMemory.chatId, chatId);
 
