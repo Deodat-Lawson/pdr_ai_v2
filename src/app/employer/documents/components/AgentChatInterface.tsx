@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Brain, Send, ThumbsUp, ThumbsDown, Plus, Search, ExternalLink } from 'lucide-react';
-import { useAgentChatbot, type Message, type MessageContent } from '../hooks/useAgentChatbot';
+import { useAgentChatbot, type Message } from '../hooks/useAgentChatbot';
 import clsx from 'clsx';
 
 interface AgentChatInterfaceProps {

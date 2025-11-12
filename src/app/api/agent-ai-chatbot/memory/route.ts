@@ -36,18 +36,20 @@ export async function POST(request: NextRequest) {
 
     const memoryId = randomUUID();
 
+    const insertValues = {
+      id: memoryId,
+      chatId,
+      memoryType: memoryType as "short_term" | "long_term" | "working" | "episodic",
+      key,
+      value,
+      importance,
+      embedding: embedding && Array.isArray(embedding) ? embedding as number[] : null,
+      expiresAt: expiresAt ? (expiresAt instanceof Date ? expiresAt : new Date(expiresAt)) : null,
+    };
+
     const [newMemory] = await db
       .insert(agentAiChatbotMemory)
-      .values({
-        id: memoryId,
-        chatId,
-        memoryType,
-        key,
-        value,
-        importance,
-        embedding,
-        expiresAt: expiresAt ? (expiresAt instanceof Date ? expiresAt : new Date(expiresAt)) : null,
-      })
+      .values(insertValues)
       .returning();
 
     return NextResponse.json({

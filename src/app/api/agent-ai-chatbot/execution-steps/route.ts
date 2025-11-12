@@ -36,19 +36,21 @@ export async function POST(request: NextRequest) {
 
     const stepId = randomUUID();
 
+    const insertValues = {
+      id: stepId,
+      taskId,
+      stepNumber,
+      stepType: stepType as "reasoning" | "planning" | "execution" | "evaluation" | "decision",
+      description,
+      reasoning,
+      input,
+      output,
+      status: "pending" as const,
+    };
+
     const [newStep] = await db
       .insert(agentAiChatbotExecutionStep)
-      .values({
-        id: stepId,
-        taskId,
-        stepNumber,
-        stepType,
-        description,
-        reasoning,
-        input,
-        output,
-        status: "pending",
-      })
+      .values(insertValues)
       .returning();
 
     return NextResponse.json({
