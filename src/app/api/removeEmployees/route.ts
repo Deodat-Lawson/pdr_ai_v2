@@ -2,49 +2,55 @@ import { NextResponse } from "next/server";
 import { db } from "../../../server/db/index";
 import { users } from "../../../server/db/schema";
 import { eq } from "drizzle-orm";
-import * as console from "console";
 import { auth } from "@clerk/nextjs/server";
-
-type PostBody = {
-    employeeId: string;
-}
+import { validateRequestBody, EmployeeIdSchema } from "~/lib/validation";
 
 export async function POST(request: Request) {
-    const { userId } = await auth();
-    if (!userId) {
-        return NextResponse.json({
-            success: false,
-            message: "Unauthorized"
-        }, { status: 401 });
-    }
-
-    const [userInfo] = await db
-        .select()
-        .from(users)
-        .where(eq(users.userId, userId));
-
-    if (!userInfo) {
-        return NextResponse.json({
-            success: false,
-            message: "Invalid user."
-        }, { status: 400 });
-    } else if (userInfo.role !== "employer" && userInfo.role !== "owner") {
-        return NextResponse.json({
-            success: false,
-            message: "Unauthorized"
-        }, { status: 401 });
-    }
-    
     try {
-        const { employeeId } = (await request.json()) as PostBody;
+        // Validate request body first
+        const validation = await validateRequestBody(request, EmployeeIdSchema);
+        if (!validation.success) {
+            return validation.response;
+        }
 
-        await db.delete(users).where(eq(users.id, Number(employeeId)));
+        const { userId } = await auth();
+        if (!userId) {
+            return NextResponse.json({
+                success: false,
+                message: "Unauthorized"
+            }, { status: 401 });
+        }
 
-        return NextResponse.json( { status: 200 });
+        const [userInfo] = await db
+            .select()
+            .from(users)
+            .where(eq(users.userId, userId));
+
+        if (!userInfo) {
+            return NextResponse.json({
+                success: false,
+                message: "Invalid user."
+            }, { status: 400 });
+        } else if (userInfo.role !== "employer" && userInfo.role !== "owner") {
+            return NextResponse.json({
+                success: false,
+                message: "Unauthorized"
+            }, { status: 401 });
+        }
+
+        // Use validated data
+        const { employeeId } = validation.data;
+
+        await db.delete(users).where(eq(users.id, employeeId));
+
+        return NextResponse.json({
+            success: true,
+            message: "Employee removed successfully"
+        });
     } catch (error: unknown) {
-        console.error("Error fetching documents:", error);
+        console.error("Error removing employee:", error);
         return NextResponse.json(
-            { error: "Unable to fetch documents" },
+            { success: false, error: "Failed to remove employee" },
             { status: 500 }
         );
     }

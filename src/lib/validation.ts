@@ -127,3 +127,29 @@ export const EmployerAuthSchema = z.object({
   userId: z.string().min(1, "User ID is required"),
   companyPasskey: z.string().min(1, "Company passkey is required"),
 });
+
+export const EmployeeIdSchema = z.object({
+  employeeId: z.coerce
+    .number({
+      required_error: "Employee ID is required",
+      invalid_type_error: "Employee ID must be a number"
+    })
+    .int("Employee ID must be an integer")
+    .positive("Employee ID must be a positive number"),
+});
+
+export const SignupEmployeeSchema = z.object({
+  userId: z.string().min(1, "User ID is required").max(256, "User ID is too long").trim(),
+  name: z.string().min(1, "Name is required").max(256, "Name is too long").trim(),
+  email: z.string().email("Invalid email address").max(256, "Email is too long").trim(),
+  employeePasskey: z.string().min(1, "Employee passkey is required").max(256, "Employee passkey is too long"),
+  companyName: z.string().min(1, "Company name is required").max(256, "Company name is too long").trim(),
+});
+
+export const SignupEmployerSchema = z.object({
+  userId: z.string().min(1, "User ID is required").max(256, "User ID is too long").trim(),
+  name: z.string().min(1, "Name is required").max(256, "Name is too long").trim(),
+  email: z.string().email("Invalid email address").max(256, "Email is too long").trim(),
+  employerPasskey: z.string().min(1, "Employer passkey is required").max(256, "Employer passkey is too long"),
+  companyName: z.string().min(1, "Company name is required").max(256, "Company name is too long").trim(),
+});
