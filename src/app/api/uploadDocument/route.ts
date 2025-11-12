@@ -249,7 +249,7 @@ export async function POST(request: Request) {
  * @param content - Paginated markdown content from DataLab
  * @returns Array of documents with correct page metadata
  */
-export function parseNativePaginatedOcr(content: string): Document<PDFMetadata>[] {
+function parseNativePaginatedOcr(content: string): Document<PDFMetadata>[] {
     console.log('🔍 [PARSER] Starting native pagination parse');
     console.log(`🔍 [PARSER] Content preview: ${content.substring(0, 200)}`);
     
