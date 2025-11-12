@@ -2,19 +2,22 @@ import { NextResponse } from "next/server";
 import { db } from "../../../server/db/index";
 import { users } from "../../../server/db/schema";
 import { eq } from "drizzle-orm";
-import * as console from "console";
 import { auth } from "@clerk/nextjs/server";
+import {
+    handleApiError,
+    createSuccessResponse,
+    createUnauthorizedError,
+    createForbiddenError,
+    createNotFoundError
+} from "~/lib/api-utils";
 
 
 export async function GET() {
     try {
         const { userId } = await auth();
-        
+
         if (!userId) {
-            return NextResponse.json({
-                success: false,
-                message: "Unauthorized"
-            }, { status: 401 });
+            return createUnauthorizedError("Authentication required. Please sign in to continue.");
         }
 
         const [userInfo] = await db
@@ -23,23 +26,20 @@ export async function GET() {
             .where(eq(users.userId, userId));
 
         if (!userInfo) {
-            return NextResponse.json({ error: "User not found" }, { status: 404 });
+            return createNotFoundError("User account not found. Please contact support.");
         }
 
         if (userInfo.role !== "employee") {
-            return NextResponse.json({ error: "Not authorized" }, { status: 403 });
+            return createForbiddenError("Employee access required. Your account does not have the necessary permissions.");
         }
 
-        if(userInfo.status !== "verified"){
-            return NextResponse.json({ error: "User not verified" }, { status: 300 });
+        if (userInfo.status !== "verified") {
+            return createForbiddenError("Account not verified. Please wait for administrator approval.");
         }
 
-        return NextResponse.json(userInfo.role, { status: 200 });
+        return createSuccessResponse({ role: userInfo.role }, "Authorization successful");
     } catch (error: unknown) {
-        console.error("Error fetching documents:", error);
-        return NextResponse.json(
-            { error: "Unable to fetch documents" },
-            { status: 500 }
-        );
+        console.error("Error during employee authorization check:", error);
+        return handleApiError(error);
     }
 }
