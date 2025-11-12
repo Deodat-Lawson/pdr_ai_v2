@@ -138,8 +138,8 @@ export async function POST(request: Request) {
         }
 
         const embeddings = new OpenAIEmbeddings({
-            model: "text-embedding-ada-002",
-            openAIApiKey: process.env.OPENAI_API_KEY,
+            model: env.OPENAI_EMBEDDING_MODEL,
+            openAIApiKey: env.OPENAI_API_KEY,
         });
 
         const chunkTexts = allSplits.map((split) => split.pageContent);

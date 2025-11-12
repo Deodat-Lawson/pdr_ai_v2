@@ -14,6 +14,7 @@ import {
 } from "./services";
 import { validateRequestBody, QuestionSchema } from "~/lib/validation";
 import { auth } from "@clerk/nextjs/server";
+import { env } from "~/env";
 
 
 type PdfChunkRow = Record<string, unknown> & {
@@ -104,8 +105,8 @@ export async function POST(request: Request) {
         }
 
         const embeddings = new OpenAIEmbeddings({
-            model: "text-embedding-ada-002",
-            openAIApiKey: process.env.OPENAI_API_KEY,
+            model: env.OPENAI_EMBEDDING_MODEL,
+            openAIApiKey: env.OPENAI_API_KEY,
         });
 
         let documents: SearchResult[] = [];
@@ -236,9 +237,9 @@ export async function POST(request: Request) {
             .join("\n\n");
 
         const chat = new ChatOpenAI({
-            openAIApiKey: process.env.OPENAI_API_KEY,
-            modelName: "gpt-4",
-            temperature: 0.3,
+            openAIApiKey: env.OPENAI_API_KEY,
+            modelName: env.OPENAI_CHAT_MODEL,
+            temperature: env.OPENAI_TEMPERATURE || 0.3,
         });
 
         const selectedStyle = style ?? 'concise';

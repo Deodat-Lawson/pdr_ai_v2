@@ -15,6 +15,10 @@ export const env = createEnv({
     CLERK_SECRET_KEY: z.string().min(1),
     UPLOADTHING_TOKEN: z.string().min(1),
     DATALAB_API_KEY: z.string().min(1).optional(),
+    // AI Model Configuration
+    OPENAI_EMBEDDING_MODEL: z.string().default("text-embedding-ada-002"),
+    OPENAI_CHAT_MODEL: z.string().default("gpt-4"),
+    OPENAI_TEMPERATURE: z.coerce.number().min(0).max(2).default(0),
   },
 
   /**
@@ -37,6 +41,9 @@ export const env = createEnv({
     CLERK_SECRET_KEY: process.env.CLERK_SECRET_KEY,
     UPLOADTHING_TOKEN: process.env.UPLOADTHING_TOKEN,
     DATALAB_API_KEY: process.env.DATALAB_API_KEY,
+    OPENAI_EMBEDDING_MODEL: process.env.OPENAI_EMBEDDING_MODEL,
+    OPENAI_CHAT_MODEL: process.env.OPENAI_CHAT_MODEL,
+    OPENAI_TEMPERATURE: process.env.OPENAI_TEMPERATURE,
     NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY: process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY,
   },
   /**

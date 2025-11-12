@@ -18,6 +18,7 @@ const { db } = await import("../../../../server/db/index");
 const { document } = await import("~/server/db/schema");
 const { and, eq, ne } = await import("drizzle-orm");
 import stringSimilarity from 'string-similarity-js';
+import { env } from "~/env";
 
 async function withRetry<T>(
     operation: () => Promise<T>,
@@ -136,9 +137,9 @@ export async function callAIAnalysis(
     const prompt = createAnalysisPrompt(content, specification);
 
     const chat = new ChatOpenAI({
-        openAIApiKey: process.env.OPENAI_API_KEY,
-        modelName: "gpt-4.1",
-        temperature: 0.3,
+        openAIApiKey: env.OPENAI_API_KEY,
+        modelName: env.OPENAI_CHAT_MODEL,
+        temperature: env.OPENAI_TEMPERATURE || 0.3,
     });
 
     const structuredModel = chat.withStructuredOutput(AnalysisResultSchema, {
