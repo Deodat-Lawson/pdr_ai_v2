@@ -1,19 +1,20 @@
-import { NextRequest, NextResponse } from "next/server";
+import type { NextRequest } from "next/server";
+import { NextResponse } from "next/server";
 import { db } from "~/server/db";
 import { 
   agentAiChatbotChat, 
   agentAiChatbotMessage,
   agentAiChatbotTask 
 } from "~/server/db/schema";
-import { eq, and } from "drizzle-orm";
+import { eq } from "drizzle-orm";
 
 // GET /api/agent-ai-chatbot/chats/[chatId] - Get a specific chat with its messages
 export async function GET(
   request: NextRequest,
-  { params }: { params: { chatId: string } }
+  { params }: { params: Promise<{ chatId: string }> }
 ) {
   try {
-    const { chatId } = params;
+    const { chatId } = await params;
 
     // Get chat details
     const [chat] = await db
@@ -60,11 +61,18 @@ export async function GET(
 // PATCH /api/agent-ai-chatbot/chats/[chatId] - Update chat
 export async function PATCH(
   request: NextRequest,
-  { params }: { params: { chatId: string } }
+  { params }: { params: Promise<{ chatId: string }> }
 ) {
   try {
-    const { chatId } = params;
-    const body = await request.json();
+    const { chatId } = await params;
+    const body = await request.json() as {
+      title?: string;
+      status?: string;
+      agentMode?: string;
+      visibility?: string;
+      aiStyle?: string;
+      aiPersona?: string;
+    };
     const { title, status, agentMode, visibility, aiStyle, aiPersona } = body;
 
     const updateData: Record<string, unknown> = {};
@@ -104,10 +112,10 @@ export async function PATCH(
 // DELETE /api/agent-ai-chatbot/chats/[chatId] - Delete chat
 export async function DELETE(
   request: NextRequest,
-  { params }: { params: { chatId: string } }
+  { params }: { params: Promise<{ chatId: string }> }
 ) {
   try {
-    const { chatId } = params;
+    const { chatId } = await params;
 
     await db
       .delete(agentAiChatbotChat)

@@ -1,15 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Brain, Send, ThumbsUp, ThumbsDown, Plus, Search, ExternalLink } from 'lucide-react';
-import { useAgentChatbot } from '../hooks/useAgentChatbot';
+import { useAgentChatbot, type Message, type MessageContent } from '../hooks/useAgentChatbot';
 import clsx from 'clsx';
-
-interface Message {
-  id: string;
-  role: 'user' | 'assistant' | 'system' | 'tool';
-  content: any;
-  messageType: 'text' | 'tool_call' | 'tool_result' | 'thinking';
-  createdAt: string;
-}
 
 interface AgentChatInterfaceProps {
   chatId: string;
@@ -26,7 +18,7 @@ interface AgentChatInterfaceProps {
 
 export const AgentChatInterface: React.FC<AgentChatInterfaceProps> = ({
   chatId,
-  userId,
+  userId: _userId,
   onAIResponse,
   selectedDocTitle,
   searchScope,
@@ -36,7 +28,7 @@ export const AgentChatInterface: React.FC<AgentChatInterfaceProps> = ({
   aiPersona = 'general',
   onPageClick,
 }) => {
-  const { getMessages, sendMessage, voteMessage, loading, error } = useAgentChatbot();
+  const { getMessages, sendMessage, voteMessage, error } = useAgentChatbot();
   const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -55,20 +47,21 @@ export const AgentChatInterface: React.FC<AgentChatInterfaceProps> = ({
         // Check if this is a new chat and send learning coach welcome message
         if (msgs.length === 0 && aiPersona === 'learning-coach') {
           // Send welcome message
-          const welcomeMsg = await sendMessage({
+          sendMessage({
             chatId,
             role: 'assistant',
             content: {
-              text: `Hi! I'm your Learning Coach. 👋\n\nI'm here to help you understand and learn from your documents. I'll:\n\n• Break down complex concepts into easy-to-understand explanations\n• Ask you questions to check your understanding\n• Provide examples and analogies to make things clearer\n• Help you connect ideas across different parts of the document\n\nFeel free to ask me anything about ${selectedDocTitle || 'your documents'}! I'm here to make learning easier and more engaging for you.`
+              text: `Hi! I'm your Learning Coach. 👋\n\nI'm here to help you understand and learn from your documents. I'll:\n\n• Break down complex concepts into easy-to-understand explanations\n• Ask you questions to check your understanding\n• Provide examples and analogies to make things clearer\n• Help you connect ideas across different parts of the document\n\nFeel free to ask me anything about ${selectedDocTitle ?? 'your documents'}! I'm here to make learning easier and more engaging for you.`
             },
             messageType: 'text',
-          });
-          if (welcomeMsg) {
-            setMessages([welcomeMsg]);
-          }
+          }).then((welcomeMsg) => {
+            if (welcomeMsg) {
+              setMessages([welcomeMsg]);
+            }
+          }).catch(console.error);
         }
       };
-      loadAndCheckWelcome();
+      void loadAndCheckWelcome();
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [chatId, aiPersona, selectedDocTitle]);
@@ -131,12 +124,23 @@ export const AgentChatInterface: React.FC<AgentChatInterfaceProps> = ({
             const role = msg.role === 'user' ? 'User' : 'Assistant';
             const content = typeof msg.content === 'string' 
               ? msg.content 
-              : msg.content.text || JSON.stringify(msg.content);
+              : (typeof msg.content === 'object' && msg.content !== null && 'text' in msg.content)
+                ? (msg.content.text ?? JSON.stringify(msg.content))
+                : JSON.stringify(msg.content);
             return `${role}: ${content}`;
           })
           .join('\n\n');
 
-        const requestBody: any = {
+        const requestBody: {
+          question: string;
+          style?: string;
+          searchScope: 'document' | 'company';
+          conversationHistory?: string;
+          enableWebSearch: boolean;
+          aiPersona?: string;
+          documentId?: number;
+          companyId?: number;
+        } = {
           question: userMessage,
           style: aiStyle,
           searchScope,
@@ -165,10 +169,14 @@ export const AgentChatInterface: React.FC<AgentChatInterfaceProps> = ({
           throw new Error("Failed to get AI response");
         }
 
-        const aiData = await aiServiceResponse.json();
-        const aiAnswer = aiData.summarizedAnswer || "I'm sorry, I couldn't generate a response right now. Could you try rephrasing your question?";
-        const pages = aiData.recommendedPages || [];
-        const webSources = aiData.webSources || [];
+        const aiData = await aiServiceResponse.json() as {
+          summarizedAnswer?: string;
+          recommendedPages?: number[];
+          webSources?: Array<{ title: string; url: string; snippet: string }>;
+        };
+        const aiAnswer = aiData.summarizedAnswer ?? "I'm sorry, I couldn't generate a response right now. Could you try rephrasing your question?";
+        const pages = aiData.recommendedPages ?? [];
+        const webSources = aiData.webSources ?? [];
 
         // Save AI response as a message
         const aiResponse = await sendMessage({
@@ -221,7 +229,7 @@ export const AgentChatInterface: React.FC<AgentChatInterfaceProps> = ({
             <Brain className="w-16 h-16 text-purple-300 dark:text-purple-600 mb-4" />
             <p className="text-gray-500 dark:text-gray-400 text-lg font-medium">Hi there! 👋</p>
             <p className="text-sm text-gray-400 dark:text-gray-500 mt-2">
-              I'm here to help you understand {searchScope === 'document' ? selectedDocTitle || 'your documents' : 'all your company documents'}. 
+              I&apos;m here to help you understand {searchScope === 'document' ? selectedDocTitle ?? 'your documents' : 'all your company documents'}. 
               Feel free to ask me anything!
             </p>
           </div>
@@ -243,12 +251,16 @@ export const AgentChatInterface: React.FC<AgentChatInterfaceProps> = ({
                 )}
               >
                 <p className="text-sm whitespace-pre-wrap leading-relaxed">
-                  {typeof msg.content === 'string' ? msg.content : msg.content.text || JSON.stringify(msg.content)}
+                  {typeof msg.content === 'string' 
+                    ? msg.content 
+                    : (typeof msg.content === 'object' && msg.content !== null && 'text' in msg.content)
+                      ? msg.content.text ?? JSON.stringify(msg.content)
+                      : JSON.stringify(msg.content)}
                 </p>
                 
-                {msg.role === 'assistant' && (
+                {msg.role === 'assistant' && typeof msg.content === 'object' && msg.content !== null && (
                   <>
-                    {msg.content.pages && Array.isArray(msg.content.pages) && msg.content.pages.length > 0 && (
+                    {'pages' in msg.content && Array.isArray(msg.content.pages) && msg.content.pages.length > 0 && (
                       <div className="mt-2 pt-2 border-t border-gray-300 dark:border-slate-600">
                         <div className="flex flex-wrap gap-1.5">
                           {msg.content.pages.map((page: number, idx: number) => (
@@ -264,7 +276,7 @@ export const AgentChatInterface: React.FC<AgentChatInterfaceProps> = ({
                         </div>
                       </div>
                     )}
-                    {msg.content.webSources && Array.isArray(msg.content.webSources) && msg.content.webSources.length > 0 && (
+                    {'webSources' in msg.content && Array.isArray(msg.content.webSources) && msg.content.webSources.length > 0 && (
                       <div className="mt-2 pt-2 border-t border-gray-300 dark:border-slate-600">
                         <p className="text-xs font-semibold text-gray-600 dark:text-gray-400 mb-2 uppercase tracking-wide">Web Sources</p>
                         <div className="space-y-2">
@@ -421,11 +433,11 @@ export const AgentChatInterface: React.FC<AgentChatInterfaceProps> = ({
               onKeyDown={(e) => {
                 if (e.key === 'Enter' && !e.shiftKey) {
                   e.preventDefault();
-                  handleSubmit(e);
+                  void handleSubmit(e);
                 }
               }}
               onClick={(e) => e.stopPropagation()}
-              placeholder={`Ask about ${searchScope === 'document' ? selectedDocTitle || 'documents' : 'all company documents'}...`}
+              placeholder={`Ask about ${searchScope === 'document' ? selectedDocTitle ?? 'documents' : 'all company documents'}...`}
               className="w-full border border-gray-300 dark:border-slate-600 dark:bg-slate-700 dark:text-white dark:placeholder-gray-400 rounded-lg px-4 py-3 focus:ring-2 focus:ring-purple-500 focus:border-purple-500 leading-relaxed resize-none min-h-[48px] max-h-[200px] overflow-hidden"
               style={{ overflow: 'hidden' }}
               rows={1}

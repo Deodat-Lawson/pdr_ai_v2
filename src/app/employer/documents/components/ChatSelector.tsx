@@ -28,16 +28,16 @@ export const ChatSelector: React.FC<ChatSelectorProps> = ({
   const [editTitle, setEditTitle] = useState('');
   const editInputRef = useRef<HTMLInputElement>(null);
 
-  useEffect(() => {
-    if (userId) {
-      loadChats();
-    }
-  }, [userId, currentChatId]); // Reload when chat changes
-
-  const loadChats = async () => {
+  const loadChats = React.useCallback(async () => {
     const fetchedChats = await getChats(userId);
     setChats(fetchedChats);
-  };
+  }, [getChats, userId]);
+
+  useEffect(() => {
+    if (userId) {
+      void loadChats();
+    }
+  }, [userId, currentChatId, loadChats]); // Reload when chat changes
 
   const handleDelete = async (chatId: string, e: React.MouseEvent) => {
     e.stopPropagation();
@@ -136,7 +136,7 @@ export const ChatSelector: React.FC<ChatSelectorProps> = ({
                       onChange={(e) => setEditTitle(e.target.value)}
                       onKeyDown={(e) => {
                         if (e.key === 'Enter') {
-                          handleSaveEdit(chat.id);
+                          void handleSaveEdit(chat.id);
                         } else if (e.key === 'Escape') {
                           handleCancelEdit();
                         }

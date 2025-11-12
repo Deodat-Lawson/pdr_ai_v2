@@ -625,7 +625,7 @@ const DocumentViewer: React.FC = () => {
           searchScope={searchScope}
           setSearchScope={setSearchScope}
           companyId={companyId}
-          userId={userId}
+          userId={userId ?? null}
           onCollapseMainSidebar={() => {
             if (!isMainSidebarCollapsed) {
               handleSidebarCollapseChange(true);

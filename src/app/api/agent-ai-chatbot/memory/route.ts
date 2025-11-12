@@ -1,4 +1,5 @@
-import { NextRequest, NextResponse } from "next/server";
+import type { NextRequest } from "next/server";
+import { NextResponse } from "next/server";
 import { db } from "~/server/db";
 import { agentAiChatbotMemory } from "~/server/db/schema";
 import { eq, and, desc } from "drizzle-orm";
@@ -7,7 +8,15 @@ import { randomUUID } from "crypto";
 // POST /api/agent-ai-chatbot/memory - Store memory
 export async function POST(request: NextRequest) {
   try {
-    const body = await request.json();
+    const body = await request.json() as {
+      chatId?: string;
+      memoryType?: string;
+      key?: string;
+      value?: unknown;
+      importance?: number;
+      embedding?: unknown;
+      expiresAt?: string | Date;
+    };
     const { 
       chatId, 
       memoryType, 
@@ -37,7 +46,7 @@ export async function POST(request: NextRequest) {
         value,
         importance,
         embedding,
-        expiresAt: expiresAt ? new Date(expiresAt) : null,
+        expiresAt: expiresAt ? (expiresAt instanceof Date ? expiresAt : new Date(expiresAt)) : null,
       })
       .returning();
 
@@ -68,24 +77,22 @@ export async function GET(request: NextRequest) {
       );
     }
 
-    let query = db
-      .select()
-      .from(agentAiChatbotMemory)
-      .where(eq(agentAiChatbotMemory.chatId, chatId));
-
-    if (memoryType) {
-      query = query.where(
-        and(
+    const whereConditions = memoryType
+      ? and(
           eq(agentAiChatbotMemory.chatId, chatId),
           eq(agentAiChatbotMemory.memoryType, memoryType)
         )
-      );
-    }
+      : eq(agentAiChatbotMemory.chatId, chatId);
 
-    const memories = await query.orderBy(
-      desc(agentAiChatbotMemory.importance),
-      desc(agentAiChatbotMemory.accessedAt)
-    );
+    const memories = await db
+      .select()
+      .from(agentAiChatbotMemory)
+      .where(whereConditions)
+      .orderBy(
+        desc(agentAiChatbotMemory.importance),
+        desc(agentAiChatbotMemory.accessedAt)
+      );
+
 
     // Update accessedAt for retrieved memories
     const memoryIds = memories.map((m) => m.id);

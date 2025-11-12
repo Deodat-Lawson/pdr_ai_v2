@@ -13,11 +13,17 @@ interface Chat {
   updatedAt?: string;
 }
 
-interface Message {
+export interface MessageContent {
+  text?: string;
+  pages?: number[];
+  webSources?: Array<{ title: string; url: string; snippet: string }>;
+}
+
+export interface Message {
   id: string;
   chatId: string;
   role: 'user' | 'assistant' | 'system' | 'tool';
-  content: any;
+  content: string | MessageContent;
   messageType: 'text' | 'tool_call' | 'tool_result' | 'thinking';
   parentMessageId?: string;
   createdAt: string;
@@ -35,7 +41,7 @@ interface CreateChatParams {
 interface SendMessageParams {
   chatId: string;
   role: 'user' | 'assistant' | 'system' | 'tool';
-  content: any;
+  content: unknown;
   messageType?: 'text' | 'tool_call' | 'tool_result' | 'thinking';
   parentMessageId?: string;
 }
@@ -59,7 +65,7 @@ export function useAgentChatbot() {
         throw new Error('Failed to create chat');
       }
 
-      const data = await response.json();
+      const data = await response.json() as { chat: Chat };
       return data.chat;
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to create chat');
@@ -80,8 +86,8 @@ export function useAgentChatbot() {
         throw new Error('Failed to fetch chats');
       }
 
-      const data = await response.json();
-      return data.chats || [];
+      const data = await response.json() as { chats?: Chat[] };
+      return data.chats ?? [];
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to fetch chats');
       return [];
@@ -101,7 +107,7 @@ export function useAgentChatbot() {
         throw new Error('Failed to fetch chat');
       }
 
-      const data = await response.json();
+      const data = await response.json() as { chat?: Chat; messages?: Message[]; tasks?: unknown[] };
       return data;
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to fetch chat');
@@ -126,7 +132,7 @@ export function useAgentChatbot() {
         throw new Error('Failed to send message');
       }
 
-      const data = await response.json();
+      const data = await response.json() as { message: Message };
       return data.message;
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to send message');
@@ -147,8 +153,8 @@ export function useAgentChatbot() {
         throw new Error('Failed to fetch messages');
       }
 
-      const data = await response.json();
-      return data.messages || [];
+      const data = await response.json() as { messages?: Message[] };
+      return data.messages ?? [];
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to fetch messages');
       return [];
@@ -172,7 +178,7 @@ export function useAgentChatbot() {
         throw new Error('Failed to update chat');
       }
 
-      const data = await response.json();
+      const data = await response.json() as { chat: Chat };
       return data.chat;
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to update chat');
@@ -217,7 +223,7 @@ export function useAgentChatbot() {
         throw new Error('Failed to vote');
       }
 
-      return await response.json();
+      return await response.json() as { success: boolean; vote?: unknown; updated?: boolean };
     } catch (err) {
       console.error('Failed to vote:', err);
       return null;

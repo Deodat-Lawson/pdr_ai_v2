@@ -2,7 +2,6 @@ import { NextResponse } from "next/server";
 import { ChatOpenAI } from "@langchain/openai";
 import { SystemMessage, HumanMessage } from "@langchain/core/messages";
 import { OpenAIEmbeddings } from "@langchain/openai";
-import { DuckDuckGoSearch } from "@langchain/community/tools/duckduckgo_search";
 import { db } from "~/server/db/index";
 import { eq, sql } from "drizzle-orm";
 import ANNOptimizer from "../predictive-document-analysis/services/annOptimizer";
@@ -16,12 +15,8 @@ import {
 import { validateRequestBody, QuestionSchema } from "~/lib/validation";
 import { auth } from "@clerk/nextjs/server";
 import { users, document } from "~/server/db/schema";
+import { performTavilySearch, type WebSearchResult } from "./services/tavilySearch";
 
-type WebSearchResult = {
-    title: string;
-    url: string;
-    snippet: string;
-};
 
 
 type PdfChunkRow = Record<string, unknown> & {
@@ -363,7 +358,7 @@ export async function POST(request: Request) {
         console.log('📥 API Received style:', selectedStyle);
         
         // Build conversation-aware prompt
-        const conversationHistory = (validation.data as any).conversationHistory;
+        const conversationHistory = validation.data.conversationHistory;
         let conversationContext = '';
         if (conversationHistory) {
             conversationContext = `\n\nPrevious conversation context:\n${conversationHistory}\n\nPlease continue the conversation naturally, referencing previous exchanges when relevant.`;
@@ -376,74 +371,9 @@ export async function POST(request: Request) {
             console.log('🌐 Web Search Feature: ENABLED');
             console.log('📝 Search Query:', question);
             try {
-                const searchTool = new DuckDuckGoSearch({ maxResults: 5 });
-                const searchQuery = question;
+                console.log('🔍 Executing web search with Tavily...');
                 
-                // Add delay to prevent rate limiting (DuckDuckGo has rate limits)
-                await new Promise(resolve => setTimeout(resolve, 1000)); // 1 second delay
-                
-                console.log('🔍 Executing web search with DuckDuckGo...');
-                
-                // Retry logic with exponential backoff
-                let searchResult: any = null;
-                let lastError: Error | null = null;
-                const maxRetries = 3;
-                const baseDelay = 2000; // 2 seconds base delay
-                
-                for (let attempt = 0; attempt < maxRetries; attempt++) {
-                    try {
-                        searchResult = await searchTool.invoke(searchQuery);
-                        break; // Success, exit retry loop
-                    } catch (error: any) {
-                        lastError = error;
-                        const isRateLimitError = error?.message?.includes('anomaly') || 
-                                               error?.message?.includes('too quickly') ||
-                                               error?.message?.includes('rate limit');
-                        
-                        if (isRateLimitError && attempt < maxRetries - 1) {
-                            const delay = baseDelay * Math.pow(2, attempt); // Exponential backoff: 2s, 4s, 8s
-                            console.warn(`⚠️ Rate limit detected, retrying in ${delay}ms... (attempt ${attempt + 1}/${maxRetries})`);
-                            await new Promise(resolve => setTimeout(resolve, delay));
-                        } else {
-                            throw error; // Re-throw if not rate limit error or max retries reached
-                        }
-                    }
-                }
-                
-                if (!searchResult && lastError) {
-                    throw lastError;
-                }
-                
-                // DuckDuckGoSearch returns a JSON string that needs parsing
-                let parsed: any = null;
-                if (typeof searchResult === 'string') {
-                    try {
-                        parsed = JSON.parse(searchResult);
-                    } catch (parseError) {
-                        console.warn("Failed to parse web search results as JSON");
-                    }
-                } else if (Array.isArray(searchResult)) {
-                    parsed = searchResult;
-                } else if (searchResult && typeof searchResult === 'object') {
-                    parsed = searchResult;
-                }
-                
-                // Handle different response formats
-                if (Array.isArray(parsed)) {
-                    webSearchResults = parsed.map((item: any) => ({
-                        title: item.title || item.name || 'Untitled',
-                        url: item.url || item.link || '',
-                        snippet: item.snippet || item.description || item.body || ''
-                    })).filter((item: WebSearchResult) => item.url && item.title);
-                } else if (parsed && typeof parsed === 'object') {
-                    // Handle object format with results array
-                    const results = parsed.results || parsed.items || [parsed];
-                    webSearchResults = results.map((item: any) => ({
-                        title: item.title || item.name || 'Untitled',
-                        url: item.url || item.link || '',
-                        snippet: item.snippet || item.description || item.body || ''
-                    })).filter((item: WebSearchResult) => item.url && item.title);
-                }
+                webSearchResults = await performTavilySearch(question, 5);
                 
                 if (webSearchResults.length > 0) {
                     console.log(`✅ Web Search Results: Found ${webSearchResults.length} sources`);
@@ -454,17 +384,8 @@ export async function POST(request: Request) {
                 } else {
                     console.warn('⚠️ Web Search: No results found');
                 }
-            } catch (webSearchError: any) {
-                const isRateLimitError = webSearchError?.message?.includes('anomaly') || 
-                                       webSearchError?.message?.includes('too quickly') ||
-                                       webSearchError?.message?.includes('rate limit');
-                
-                if (isRateLimitError) {
-                    console.warn("⚠️ Web search rate limited. Continuing without web search results.");
-                    console.warn("💡 Tip: Please wait a few seconds before making another request with web search enabled.");
-                } else {
-                    console.error("❌ Web search error:", webSearchError);
-                }
+            } catch (webSearchError: unknown) {
+                console.error("❌ Web search error:", webSearchError);
                 // Continue without web search results - don't fail the entire request
             }
         } else {

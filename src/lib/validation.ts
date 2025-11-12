@@ -83,6 +83,7 @@ export const QuestionSchema = z.object({
     z.boolean().optional()
   ),
   aiPersona: z.enum(aiPersonaOptions).optional(),
+  conversationHistory: z.string().optional(),
 }).transform((data) => ({
   documentId: data.documentId,
   companyId: data.companyId,
@@ -91,6 +92,7 @@ export const QuestionSchema = z.object({
   searchScope: data.searchScope ?? "document" as const,
   enableWebSearch: data.enableWebSearch ?? false,
   aiPersona: data.aiPersona ?? "general",
+  conversationHistory: data.conversationHistory,
 }));
 
 export const ChatHistoryAddSchema = z.object({

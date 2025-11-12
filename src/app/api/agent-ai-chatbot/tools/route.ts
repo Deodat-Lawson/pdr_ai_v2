@@ -1,4 +1,5 @@
-import { NextRequest, NextResponse } from "next/server";
+import type { NextRequest } from "next/server";
+import { NextResponse } from "next/server";
 import { db } from "~/server/db";
 import { agentAiChatbotToolCall } from "~/server/db/schema";
 import { eq } from "drizzle-orm";
@@ -7,7 +8,12 @@ import { randomUUID } from "crypto";
 // POST /api/agent-ai-chatbot/tools - Create a tool call
 export async function POST(request: NextRequest) {
   try {
-    const body = await request.json();
+    const body = await request.json() as {
+      messageId?: string;
+      taskId?: string;
+      toolName?: string;
+      toolInput?: unknown;
+    };
     const { messageId, taskId, toolName, toolInput } = body;
 
     if (!messageId || !toolName || !toolInput) {

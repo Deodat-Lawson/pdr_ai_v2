@@ -1,4 +1,5 @@
-import { NextRequest, NextResponse } from "next/server";
+import type { NextRequest } from "next/server";
+import { NextResponse } from "next/server";
 import { db } from "~/server/db";
 import { agentAiChatbotToolCall } from "~/server/db/schema";
 import { eq } from "drizzle-orm";
@@ -6,11 +7,16 @@ import { eq } from "drizzle-orm";
 // PATCH /api/agent-ai-chatbot/tools/[toolCallId] - Update tool call result
 export async function PATCH(
   request: NextRequest,
-  { params }: { params: { toolCallId: string } }
+  { params }: { params: Promise<{ toolCallId: string }> }
 ) {
   try {
-    const { toolCallId } = params;
-    const body = await request.json();
+    const { toolCallId } = await params;
+    const body = await request.json() as {
+      toolOutput?: unknown;
+      status?: string;
+      errorMessage?: string;
+      executionTimeMs?: number;
+    };
     const { toolOutput, status, errorMessage, executionTimeMs } = body;
 
     const updateData: Record<string, unknown> = {};

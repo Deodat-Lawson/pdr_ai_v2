@@ -1,4 +1,5 @@
-import { NextRequest, NextResponse } from "next/server";
+import type { NextRequest } from "next/server";
+import { NextResponse } from "next/server";
 import { db } from "~/server/db";
 import { agentAiChatbotTask, agentAiChatbotExecutionStep } from "~/server/db/schema";
 import { eq } from "drizzle-orm";
@@ -6,10 +7,10 @@ import { eq } from "drizzle-orm";
 // GET /api/agent-ai-chatbot/tasks/[taskId] - Get a specific task with execution steps
 export async function GET(
   request: NextRequest,
-  { params }: { params: { taskId: string } }
+  { params }: { params: Promise<{ taskId: string }> }
 ) {
   try {
-    const { taskId } = params;
+    const { taskId } = await params;
 
     const [task] = await db
       .select()
@@ -47,18 +48,23 @@ export async function GET(
 // PATCH /api/agent-ai-chatbot/tasks/[taskId] - Update task
 export async function PATCH(
   request: NextRequest,
-  { params }: { params: { taskId: string } }
+  { params }: { params: Promise<{ taskId: string }> }
 ) {
   try {
-    const { taskId } = params;
-    const body = await request.json();
+    const { taskId } = await params;
+    const body = await request.json() as {
+      status?: string;
+      result?: unknown;
+      metadata?: unknown;
+      completedAt?: string | Date;
+    };
     const { status, result, metadata, completedAt } = body;
 
     const updateData: Record<string, unknown> = {};
     if (status) updateData.status = status;
     if (result) updateData.result = result;
     if (metadata) updateData.metadata = metadata;
-    if (completedAt) updateData.completedAt = new Date(completedAt);
+    if (completedAt) updateData.completedAt = completedAt instanceof Date ? completedAt : new Date(completedAt);
 
     const [updatedTask] = await db
       .update(agentAiChatbotTask)

@@ -120,8 +120,19 @@ function createAnalysisPrompt(
 async function performWebSearch(query: string, maxResults = 5): Promise<SearchResult[]> {
     try {
         const searchTool = new DuckDuckGoSearch({ maxResults });
-        const result = await searchTool.invoke(query) as string;
-        const parsed = JSON.parse(result) as SearchResult[];
+        const result = await searchTool.invoke(query);
+        
+        // DuckDuckGoSearch can return a string (JSON) or an array
+        let parsed: SearchResult[];
+        if (typeof result === 'string') {
+            parsed = JSON.parse(result) as SearchResult[];
+        } else if (Array.isArray(result)) {
+            parsed = result as SearchResult[];
+        } else {
+            console.warn("Unexpected search result format:", typeof result);
+            return [];
+        }
+        
         return parsed;
     } catch (error) {
         console.error("Web search error:", error);

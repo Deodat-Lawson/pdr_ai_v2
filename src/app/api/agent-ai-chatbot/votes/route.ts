@@ -1,4 +1,5 @@
-import { NextRequest, NextResponse } from "next/server";
+import type { NextRequest } from "next/server";
+import { NextResponse } from "next/server";
 import { db } from "~/server/db";
 import { agentAiChatbotVote } from "~/server/db/schema";
 import { eq, and } from "drizzle-orm";
@@ -6,7 +7,12 @@ import { eq, and } from "drizzle-orm";
 // POST /api/agent-ai-chatbot/votes - Vote on a message
 export async function POST(request: NextRequest) {
   try {
-    const body = await request.json();
+    const body = await request.json() as {
+      chatId?: string;
+      messageId?: string;
+      isUpvoted?: boolean;
+      feedback?: string;
+    };
     const { chatId, messageId, isUpvoted, feedback } = body;
 
     if (!chatId || !messageId || isUpvoted === undefined) {
@@ -33,7 +39,7 @@ export async function POST(request: NextRequest) {
         .update(agentAiChatbotVote)
         .set({
           isUpvoted,
-          feedback: feedback || existingVote.feedback,
+          feedback: feedback ?? existingVote.feedback,
         })
         .where(
           and(
@@ -101,7 +107,7 @@ export async function GET(request: NextRequest) {
 
     return NextResponse.json({
       success: true,
-      vote: vote || null,
+      vote: vote ?? null,
     });
   } catch (error) {
     console.error("Error fetching vote:", error);

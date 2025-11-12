@@ -1,7 +1,8 @@
-import { NextRequest, NextResponse } from "next/server";
+import type { NextRequest } from "next/server";
+import { NextResponse } from "next/server";
 import { db } from "~/server/db";
 import { agentAiChatbotChat } from "~/server/db/schema";
-import { eq, and, desc } from "drizzle-orm";
+import { eq, desc } from "drizzle-orm";
 import { randomUUID } from "crypto";
 
 // GET /api/agent-ai-chatbot/chats - Get all chats for a user
@@ -39,7 +40,14 @@ export async function GET(request: NextRequest) {
 // POST /api/agent-ai-chatbot/chats - Create a new chat
 export async function POST(request: NextRequest) {
   try {
-    const body = await request.json();
+    const body = await request.json() as {
+      userId?: string;
+      title?: string;
+      agentMode?: string;
+      visibility?: string;
+      aiStyle?: string;
+      aiPersona?: string;
+    };
     const { 
       userId, 
       title, 
@@ -57,19 +65,20 @@ export async function POST(request: NextRequest) {
     }
 
     const chatId = randomUUID();
+    const insertValues = {
+      id: chatId,
+      userId,
+      title,
+      agentMode: (agentMode ?? "interactive") as "autonomous" | "interactive" | "assisted",
+      visibility: (visibility ?? "private") as "public" | "private",
+      status: "active" as const,
+      aiStyle: (aiStyle ?? "concise") as "concise" | "detailed" | "academic" | "bullet-points" | undefined,
+      aiPersona: (aiPersona ?? "general") as "general" | "learning-coach" | "financial-expert" | "legal-expert" | "math-reasoning" | undefined,
+    };
 
     const [newChat] = await db
       .insert(agentAiChatbotChat)
-      .values({
-        id: chatId,
-        userId,
-        title,
-        agentMode,
-        visibility,
-        status: "active",
-        aiStyle,
-        aiPersona,
-      })
+      .values(insertValues)
       .returning();
 
     return NextResponse.json({

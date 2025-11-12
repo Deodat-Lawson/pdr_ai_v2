@@ -1,4 +1,5 @@
-import { NextRequest, NextResponse } from "next/server";
+import type { NextRequest } from "next/server";
+import { NextResponse } from "next/server";
 import { db } from "~/server/db";
 import { agentAiChatbotExecutionStep } from "~/server/db/schema";
 import { eq } from "drizzle-orm";
@@ -6,11 +7,15 @@ import { eq } from "drizzle-orm";
 // PATCH /api/agent-ai-chatbot/execution-steps/[stepId] - Update execution step
 export async function PATCH(
   request: NextRequest,
-  { params }: { params: { stepId: string } }
+  { params }: { params: Promise<{ stepId: string }> }
 ) {
   try {
-    const { stepId } = params;
-    const body = await request.json();
+    const { stepId } = await params;
+    const body = await request.json() as {
+      status?: string;
+      output?: unknown;
+      reasoning?: string;
+    };
     const { status, output, reasoning } = body;
 
     const updateData: Record<string, unknown> = {};

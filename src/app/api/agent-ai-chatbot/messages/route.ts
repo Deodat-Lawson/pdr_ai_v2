@@ -1,4 +1,5 @@
-import { NextRequest, NextResponse } from "next/server";
+import type { NextRequest } from "next/server";
+import { NextResponse } from "next/server";
 import { db } from "~/server/db";
 import { agentAiChatbotMessage, agentAiChatbotChat } from "~/server/db/schema";
 import { eq } from "drizzle-orm";
@@ -7,7 +8,13 @@ import { randomUUID } from "crypto";
 // POST /api/agent-ai-chatbot/messages - Send a message
 export async function POST(request: NextRequest) {
   try {
-    const body = await request.json();
+    const body = await request.json() as {
+      chatId?: string;
+      role?: string;
+      content?: unknown;
+      messageType?: string;
+      parentMessageId?: string;
+    };
     const { chatId, role, content, messageType = "text", parentMessageId } = body;
 
     if (!chatId || !role || !content) {

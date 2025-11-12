@@ -154,7 +154,7 @@ export const DocumentContent: React.FC<DocumentContentProps> = ({
   // Track if sidebar has been auto-collapsed for this chat session
   const hasAutoCollapsedRef = useRef(false);
   // Agent Chatbot state
-  const { createChat, getChats, getMessages, getChat, updateChat } = useAgentChatbot();
+  const { createChat, getMessages, getChat, updateChat } = useAgentChatbot();
   const [currentChatId, setCurrentChatId] = useState<string | null>(null);
   // AI Chat persona/expertise selector
   type AiPersona = 'general' | 'learning-coach' | 'financial-expert' | 'legal-expert' | 'math-reasoning';
@@ -162,30 +162,30 @@ export const DocumentContent: React.FC<DocumentContentProps> = ({
   const [showExpertiseModal, setShowExpertiseModal] = useState(false);
   const [pendingChatTitle, setPendingChatTitle] = useState('');
   
-  // Load messages and chat settings when chat is selected
-  useEffect(() => {
-    if (currentChatId && queryMode === 'chat') {
-      getMessages(currentChatId).then((msgs) => {
-        // Messages are handled by AgentChatInterface component
-      }).catch(console.error);
-      
-      // Load chat settings from database
-      getChat(currentChatId).then((chatData) => {
-        if (chatData?.chat) {
-          const chat = chatData.chat;
-          if (chat.aiStyle) {
-            setAiStyle(chat.aiStyle);
-            console.log('🔄 Restored style from database:', chat.aiStyle);
-          }
-          if (chat.aiPersona) {
-            setAiPersona(chat.aiPersona as AiPersona);
-            console.log('🔄 Restored persona from database:', chat.aiPersona);
-          }
+      // Load messages and chat settings when chat is selected
+      useEffect(() => {
+        if (currentChatId && queryMode === 'chat') {
+          void getMessages(currentChatId).then((_msgs) => {
+            // Messages are handled by AgentChatInterface component
+          }).catch(console.error);
+          
+          // Load chat settings from database
+          void getChat(currentChatId).then((chatData) => {
+            if (chatData && typeof chatData === 'object' && 'chat' in chatData && chatData.chat) {
+              const chat = chatData.chat as { aiStyle?: string; aiPersona?: string };
+              if (chat.aiStyle) {
+                setAiStyle(chat.aiStyle);
+                console.log('🔄 Restored style from database:', chat.aiStyle);
+              }
+              if (chat.aiPersona) {
+                setAiPersona(chat.aiPersona as AiPersona);
+                console.log('🔄 Restored persona from database:', chat.aiPersona);
+              }
+            }
+          }).catch(console.error);
         }
-      }).catch(console.error);
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [currentChatId, queryMode]);
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+      }, [currentChatId, queryMode]);
 
   // States for resizable sidebars
   const [rightSidebarWidth, setRightSidebarWidth] = useState(400);
@@ -923,7 +923,7 @@ export const DocumentContent: React.FC<DocumentContentProps> = ({
               aiStyle={aiStyle}
               aiPersona={aiPersona}
               onPageClick={setPdfPageNumber}
-              onAIResponse={(response) => {
+              onAIResponse={(_response) => {
                 // Handle AI response if needed
               }}
             />
