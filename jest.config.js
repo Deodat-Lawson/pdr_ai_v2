@@ -1,5 +1,5 @@
 /** @type {import('jest').Config} */
-export default {
+export const config = {
   testEnvironment: 'node',
   transform: {
     '^.+\\.(ts|tsx|js|jsx|mjs)$': [
@@ -15,3 +15,5 @@ export default {
   testMatch: ['**/__tests__/**/*.(test|spec).[jt]s?(x)'],
   verbose: true,
 };
+
+export default config;

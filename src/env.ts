@@ -18,6 +18,7 @@ const serverSchema = z.object({
   CLERK_SECRET_KEY: requiredString(),
   UPLOADTHING_TOKEN: requiredString(),
   DATALAB_API_KEY: optionalString(),
+  TAVILY_API_KEY: requiredString(),
 });
 
 const clientSchema = z.object({
@@ -52,6 +53,7 @@ export const env = {
     CLERK_SECRET_KEY: process.env.CLERK_SECRET_KEY,
     UPLOADTHING_TOKEN: process.env.UPLOADTHING_TOKEN,
     DATALAB_API_KEY: process.env.DATALAB_API_KEY,
+    TAVILY_API_KEY: process.env.TAVILY_API_KEY,
   }),
   client: parseEnv(clientSchema, {
     NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY:

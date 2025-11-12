@@ -22,6 +22,27 @@
       "when": 1762754878176,
       "tag": "0002_small_crusher_hogan",
       "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "7",
+      "when": 1762932480003,
+      "tag": "0003_thin_cloak",
+      "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "7",
+      "when": 1762934025389,
+      "tag": "0004_lazy_the_spike",
+      "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "7",
+      "when": 1762936213317,
+      "tag": "0005_quick_silver_sable",
+      "breakpoints": true
     }
   ]
 }
