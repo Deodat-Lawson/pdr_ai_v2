@@ -2,51 +2,55 @@ import { NextResponse } from "next/server";
 import { db } from "../../../server/db/index";
 import { users } from "../../../server/db/schema";
 import { eq } from "drizzle-orm";
-import * as console from "console";
 import { auth } from "@clerk/nextjs/server";
+import {
+    handleApiError,
+    createSuccessResponse,
+    createUnauthorizedError,
+    createForbiddenError,
+    createNotFoundError,
+    createValidationError
+} from "~/lib/api-utils";
 
 type PostBody = {
     employeeId: string;
 }
 
 export async function POST(request: Request) {
-    const { userId } = await auth();
-    if (!userId) {
-        return NextResponse.json({
-            success: false,
-            message: "Unauthorized"
-        }, { status: 401 });
-    }
-
-    const [userInfo] = await db
-        .select()
-        .from(users)
-        .where(eq(users.userId, userId));
-
-    if (!userInfo) {
-        return NextResponse.json({
-            success: false,
-            message: "Invalid user."
-        }, { status: 400 });
-    } else if (userInfo.role !== "employer" && userInfo.role !== "owner") {
-        return NextResponse.json({
-            success: false,
-            message: "Unauthorized"
-        }, { status: 401 });
-    }
-    
     try {
+        const { userId } = await auth();
+        if (!userId) {
+            return createUnauthorizedError("Authentication required. Please sign in to continue.");
+        }
+
+        const [userInfo] = await db
+            .select()
+            .from(users)
+            .where(eq(users.userId, userId));
+
+        if (!userInfo) {
+            return createNotFoundError("User account not found. Please contact support.");
+        }
+
+        if (userInfo.role !== "employer" && userInfo.role !== "owner") {
+            return createForbiddenError("Insufficient permissions. Only employers and owners can remove employees.");
+        }
+
         const { employeeId } = (await request.json()) as PostBody;
+
+        if (!employeeId) {
+            return createValidationError("Employee ID is required.");
+        }
 
         await db.delete(users).where(eq(users.id, Number(employeeId)));
 
-        return NextResponse.json( { status: 200 });
-    } catch (error: unknown) {
-        console.error("Error fetching documents:", error);
-        return NextResponse.json(
-            { error: "Unable to fetch documents" },
-            { status: 500 }
+        return createSuccessResponse(
+            { employeeId },
+            "Employee removed successfully"
         );
+    } catch (error: unknown) {
+        console.error("Error removing employee:", error);
+        return handleApiError(error);
     }
 }
 

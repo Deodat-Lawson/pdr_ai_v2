@@ -3,7 +3,13 @@ import { db } from "../../../server/db/index";
 import { users } from "../../../server/db/schema";
 import { eq } from "drizzle-orm";
 import { auth } from "@clerk/nextjs/server";
-import * as console from "console";
+import {
+    handleApiError,
+    createSuccessResponse,
+    createUnauthorizedError,
+    createForbiddenError,
+    createNotFoundError
+} from "~/lib/api-utils";
 
 type PostBody = {
     employeeId: string;
@@ -13,13 +19,10 @@ type PostBody = {
 export async function POST(request: Request) {
     try {
         const { userId } = await auth();
-        
+
         if (!userId) {
-            return NextResponse.json({
-                success: false,
-                message: "Unauthorized"
-            }, { status: 401 });
-        } 
+            return createUnauthorizedError("Authentication required. Please sign in to continue.");
+        }
 
         const [userInfo] = await db
             .select()
@@ -27,15 +30,11 @@ export async function POST(request: Request) {
             .where(eq(users.userId, userId));
 
         if (!userInfo) {
-            return NextResponse.json({
-                success: false,
-                message: "Unauthorized"
-            }, { status: 401 });
-        } else if (userInfo.role !== "employer" && userInfo.role !== "owner") {
-            return NextResponse.json({
-                success: false,
-                message: "Unauthorized"
-            }, { status: 401 });
+            return createNotFoundError("User account not found. Please contact support.");
+        }
+
+        if (userInfo.role !== "employer" && userInfo.role !== "owner") {
+            return createForbiddenError("Insufficient permissions. Only employers and owners can approve employees.");
         }
 
         const { employeeId } = (await request.json()) as PostBody;
@@ -47,12 +46,12 @@ export async function POST(request: Request) {
             })
             .where(eq(users.id, Number(employeeId)));
 
-        return NextResponse.json({ status: 200 });
-    } catch (error: unknown) {
-        console.error("Error fetching documents:", error);
-        return NextResponse.json(
-            { error: "Unable to fetch documents" },
-            { status: 500 }
+        return createSuccessResponse(
+            { employeeId },
+            "Employee approved successfully"
         );
+    } catch (error: unknown) {
+        console.error("Error approving employee:", error);
+        return handleApiError(error);
     }
 }
