@@ -1,5 +1,6 @@
 import { z } from "zod";
 import { NextResponse } from "next/server";
+import { TIMEOUT_LIMITS, VALIDATION_LIMITS } from "./constants";
 
 export const createErrorResponse = (message: string, status = 400) => {
   return NextResponse.json(
@@ -55,13 +56,13 @@ export const PredictiveAnalysisSchema = z.object({
     .enum(["contract", "financial", "technical", "compliance", "general"])
     .optional(),
   includeRelatedDocs: z.boolean().optional(),
-  timeoutMs: z.number().int().min(1000).max(120000).optional(),
+  timeoutMs: z.number().int().min(TIMEOUT_LIMITS.MIN_MS).max(TIMEOUT_LIMITS.MAX_MS).optional(),
   forceRefresh: z.boolean().optional(),
 }).transform((data) => ({
   documentId: data.documentId,
   analysisType: data.analysisType ?? "general" as const,
   includeRelatedDocs: data.includeRelatedDocs ?? false,
-  timeoutMs: data.timeoutMs ?? 30000,
+  timeoutMs: data.timeoutMs ?? TIMEOUT_LIMITS.DEFAULT_MS,
   forceRefresh: data.forceRefresh ?? false,
 }));
 
@@ -70,7 +71,7 @@ const aiPersonaOptions = ["general", "learning-coach", "financial-expert", "lega
 export const QuestionSchema = z.object({
   documentId: z.number().int().positive().optional(),
   companyId: z.number().int().positive().optional(),
-  question: z.string().min(1, "Question is required").max(2000, "Question is too long"),
+  question: z.string().min(1, "Question is required").max(VALIDATION_LIMITS.QUESTION_MAX_LENGTH, "Question is too long"),
   style: z.enum(["concise", "detailed", "academic", "bullet-points"]).optional(),
   searchScope: z.enum(["document", "company"]).optional(),
   enableWebSearch: z.preprocess(
@@ -97,10 +98,10 @@ export const QuestionSchema = z.object({
 
 export const ChatHistoryAddSchema = z.object({
   documentId: z.number().int().positive("Document ID must be a positive integer"),
-  question: z.string().min(1, "Question is required").max(2000, "Question is too long"),
-  documentTitle: z.string().min(1, "Document title is required").max(256, "Document title is too long"),
+  question: z.string().min(1, "Question is required").max(VALIDATION_LIMITS.QUESTION_MAX_LENGTH, "Question is too long"),
+  documentTitle: z.string().min(1, "Document title is required").max(VALIDATION_LIMITS.STRING_MAX_LENGTH, "Document title is too long"),
   response: z.string().min(1, "Response is required"),
-  pages: z.array(z.number().int().positive()).max(50).optional(),
+  pages: z.array(z.number().int().positive()).max(VALIDATION_LIMITS.PAGES_ARRAY_MAX).optional(),
 });
 
 export const ChatHistoryFetchSchema = z.object({
@@ -112,7 +113,7 @@ export const DeleteDocumentSchema = z.object({
 });
 
 export const CategorySchema = z.object({
-  name: z.string().min(1, "Category name is required").max(256, "Category name is too long"),
+  name: z.string().min(1, "Category name is required").max(VALIDATION_LIMITS.STRING_MAX_LENGTH, "Category name is too long"),
   companyId: z.string().min(1, "Company ID is required"),
 });
 
@@ -122,22 +123,22 @@ export const ApproveEmployeeSchema = z.object({
 });
 
 export const UploadDocumentSchema = z.object({
-  userId: z.string().min(1, "User ID is required").max(256, "User ID is too long").trim(),
-  documentName: z.string().min(1, "Document name is required").max(256, "Document name is too long").trim(),
-  documentUrl: z.string().url("Document URL must be a valid URL").max(2048, "Document URL is too long").trim(),
-  documentCategory: z.string().min(1, "Document category is required").max(256, "Document category is too long").trim(),
+  userId: z.string().min(1, "User ID is required").max(VALIDATION_LIMITS.STRING_MAX_LENGTH, "User ID is too long").trim(),
+  documentName: z.string().min(1, "Document name is required").max(VALIDATION_LIMITS.STRING_MAX_LENGTH, "Document name is too long").trim(),
+  documentUrl: z.string().url("Document URL must be a valid URL").max(VALIDATION_LIMITS.URL_MAX_LENGTH, "Document URL is too long").trim(),
+  documentCategory: z.string().min(1, "Document category is required").max(VALIDATION_LIMITS.STRING_MAX_LENGTH, "Document category is too long").trim(),
   enableOCR: z.boolean().optional(),
 });
 
 export const UpdateCompanySchema = z.object({
-  name: z.string().min(1, "Company name is required").max(256, "Company name is too long").trim(),
-  employerPasskey: z.string().min(1, "Employer passkey is required").max(256, "Employer passkey is too long").trim(),
-  employeePasskey: z.string().min(1, "Employee passkey is required").max(256, "Employee passkey is too long").trim(),
+  name: z.string().min(1, "Company name is required").max(VALIDATION_LIMITS.STRING_MAX_LENGTH, "Company name is too long").trim(),
+  employerPasskey: z.string().min(1, "Employer passkey is required").max(VALIDATION_LIMITS.STRING_MAX_LENGTH, "Employer passkey is too long").trim(),
+  employeePasskey: z.string().min(1, "Employee passkey is required").max(VALIDATION_LIMITS.STRING_MAX_LENGTH, "Employee passkey is too long").trim(),
   numberOfEmployees: z
     .string()
     .trim()
     .regex(/^\d*$/, "Number of employees must contain only digits")
-    .max(9, "Number of employees is too long")
+    .max(VALIDATION_LIMITS.EMPLOYEE_COUNT_DIGITS_MAX, "Number of employees is too long")
     .optional(),
 }).transform((data) => ({
   name: data.name,
