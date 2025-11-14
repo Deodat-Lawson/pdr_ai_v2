@@ -56,7 +56,7 @@ export const PredictiveAnalysisSchema = z.object({
     .enum(["contract", "financial", "technical", "compliance", "general"])
     .optional(),
   includeRelatedDocs: z.boolean().optional(),
-  timeoutMs: z.number().int().min(TIMEOUT_LIMITS.MIN_MS).max(TIMEOUT_LIMITS.MAX_MS).optional(),
+  timeoutMs: z.number().int().min(1000).max(TIMEOUT_LIMITS.MAX_MS).optional(),
   forceRefresh: z.boolean().optional(),
 }).transform((data) => ({
   documentId: data.documentId,
