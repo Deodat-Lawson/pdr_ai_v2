@@ -83,6 +83,15 @@ export const HTTP_STATUS = {
   SERVICE_UNAVAILABLE: 503
 } as const;
 
+// Validation Limits
+export const VALIDATION_LIMITS = {
+  QUESTION_MAX_LENGTH: 2000,
+  STRING_MAX_LENGTH: 256,
+  URL_MAX_LENGTH: 2048,
+  PAGES_ARRAY_MAX: 50,
+  EMPLOYEE_COUNT_DIGITS_MAX: 9
+} as const;
+
 // Default Messages
 export const DEFAULT_MESSAGES = {
   LOADING: "Please wait while we set up your workspace",
