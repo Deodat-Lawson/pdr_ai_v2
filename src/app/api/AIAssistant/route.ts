@@ -16,6 +16,7 @@ import { validateRequestBody, QuestionSchema } from "~/lib/validation";
 import { auth } from "@clerk/nextjs/server";
 import { users, document } from "~/server/db/schema";
 import { performTavilySearch, type WebSearchResult } from "./services/tavilySearch";
+import { executeWebSearchAgent } from "./services/webSearchAgent";
 
 
 export const runtime = 'nodejs';
@@ -377,41 +378,97 @@ export async function POST(request: Request) {
             conversationContext = `\n\nPrevious conversation context:\n${conversationHistory}\n\nPlease continue the conversation naturally, referencing previous exchanges when relevant.`;
         }
         
-        // Perform web search if enabled
+        // Perform web search if enabled using the intelligent web search agent
         let webSearchResults: WebSearchResult[] = [];
         let webSearchContent = '';
+        let refinedSearchQuery = '';
+        let webSearchReasoning = '';
+        
         if (enableWebSearchFlag) {
             console.log('🌐 Web Search Feature: ENABLED');
-            console.log('📝 Search Query:', question);
+            console.log('📝 Original Search Query:', question);
             try {
-                console.log('🔍 Executing web search with Tavily...');
+                console.log('🤖 Executing intelligent web search agent...');
                 
-                webSearchResults = await performTavilySearch(question, 5);
+                // Use the web search agent for intelligent query refinement and result synthesis
+                const documentContext = documents.length > 0 
+                    ? documents.map(doc => doc.pageContent).join('\n\n').substring(0, 1000)
+                    : undefined;
+                
+                const agentResult = await executeWebSearchAgent({
+                    userQuestion: question,
+                    documentContext,
+                    maxResults: 5,
+                    searchDepth: "advanced"
+                });
+                
+                webSearchResults = agentResult.results;
+                refinedSearchQuery = agentResult.refinedQuery;
+                webSearchReasoning = agentResult.reasoning ?? '';
                 
                 if (webSearchResults.length > 0) {
-                    console.log(`✅ Web Search Results: Found ${webSearchResults.length} sources`);
-                    console.log('📄 Sources:', webSearchResults.map((r, i) => `\n  ${i + 1}. ${r.title} - ${r.url}`).join(''));
-                    webSearchContent = `\n\n=== Web Search Results ===\n${webSearchResults.map((result, idx) => 
-                        `[Source ${idx + 1}] ${result.title}\nURL: ${result.url}\nSnippet: ${result.snippet}`
-                    ).join('\n\n')}\n\n`;
+                    console.log(`✅ Web Search Agent: Found ${webSearchResults.length} high-quality sources`);
+                    console.log(`🔍 Refined Query: "${refinedSearchQuery}"`);
+                    if (webSearchReasoning) {
+                        console.log(`💭 Agent Reasoning: ${webSearchReasoning}`);
+                    }
+                    console.log('📄 Sources:', webSearchResults.map((r, i) => `\n  ${i + 1}. ${r.title} - ${r.url}${r.relevanceScore ? ` (Relevance: ${r.relevanceScore}/10)` : ''}`).join(''));
+                    
+                    webSearchContent = `\n\n=== Web Search Results (Intelligently Curated) ===\n${webSearchResults.map((result, idx) => {
+                        const relevanceNote = result.relevanceScore ? ` [Relevance Score: ${result.relevanceScore}/10]` : '';
+                        return `[Source ${idx + 1}]${relevanceNote}\nTitle: ${result.title}\nURL: ${result.url}\nContent: ${result.snippet}`;
+                    }).join('\n\n')}\n\n`;
                 } else {
-                    console.warn('⚠️ Web Search: No results found');
+                    console.warn('⚠️ Web Search Agent: No relevant results found');
                 }
             } catch (webSearchError: unknown) {
-                console.error("❌ Web search error:", webSearchError);
-                // Continue without web search results - don't fail the entire request
+                console.error("❌ Web search agent error:", webSearchError);
+                // Fallback to direct Tavily search
+                try {
+                    console.log('🔄 Falling back to direct Tavily search...');
+                    webSearchResults = await performTavilySearch(question, 5);
+                    refinedSearchQuery = question;
+                    if (webSearchResults.length > 0) {
+                        webSearchContent = `\n\n=== Web Search Results ===\n${webSearchResults.map((result, idx) => 
+                            `[Source ${idx + 1}] ${result.title}\nURL: ${result.url}\nSnippet: ${result.snippet}`
+                        ).join('\n\n')}\n\n`;
+                    }
+                } catch (fallbackError) {
+                    console.error("❌ Fallback search also failed:", fallbackError);
+                    // Continue without web search results - don't fail the entire request
+                }
             }
         } else {
             console.log('🌐 Web Search Feature: DISABLED');
         }
         
-        // Add web search instruction if enabled
+        // Enhanced web search instruction prompt
         let webSearchInstruction = '';
         if (enableWebSearchFlag) {
             if (webSearchResults.length > 0) {
-                webSearchInstruction = `\n\nIMPORTANT: The user has enabled web search. Use the web search results provided below to supplement the document content. When citing information from web sources, always include the source number in brackets (e.g., [Source 1], [Source 2]). Prioritize document content, but use web search results to provide additional context, recent information, or clarification when the document content is insufficient.`;
+                webSearchInstruction = `\n\n=== WEB SEARCH INTEGRATION INSTRUCTIONS ===
+The user has enabled intelligent web search. You have access to both document content and curated web search results.
+
+Guidelines for using web search results:
+1. PRIORITIZE document content - it is the primary source of truth for the user's specific documents
+2. Use web search results to:
+   - Provide additional context or background information not in the documents
+   - Clarify technical terms, concepts, or industry standards
+   - Supplement with recent information, updates, or broader perspectives
+   - Fill gaps when document content is incomplete or unclear
+3. Citation format: Always cite web sources using [Source X] format (e.g., "According to [Source 1], the industry standard is...")
+4. Quality assessment: The web results have been intelligently filtered for relevance. Relevance scores indicate how well each source addresses the query.
+5. Synthesis: Integrate information seamlessly - don't just list sources, but synthesize insights from both document and web sources
+6. Transparency: If information conflicts between documents and web sources, acknowledge this and explain the difference
+7. Completeness: Use web sources to provide comprehensive answers when document content alone is insufficient
+
+The refined search query used was: "${refinedSearchQuery}"
+${webSearchReasoning ? `Agent reasoning: ${webSearchReasoning}` : ''}
+
+Remember: Your goal is to provide the most helpful, accurate, and comprehensive answer by intelligently combining document insights with relevant web information.`;
             } else {
-                webSearchInstruction = `\n\nIMPORTANT: The user has enabled web search, but no web search results were available. Base your answer on the provided document content.`;
+                webSearchInstruction = `\n\n=== WEB SEARCH STATUS ===
+The user enabled web search, but no relevant results were found for this query. Base your answer entirely on the provided document content. If the document content is insufficient to fully answer the question, acknowledge this limitation and provide the best answer possible based on available document information.`;
             }
         }
         
@@ -484,7 +541,12 @@ export async function POST(request: Request) {
             chunksAnalyzed: documents.length,
             fusionWeights: [0.4, 0.6],
             searchScope,
-            webSources: enableWebSearchFlag ? webSearchResults : undefined
+            webSources: enableWebSearchFlag ? webSearchResults : undefined,
+            webSearch: enableWebSearchFlag ? {
+                refinedQuery: refinedSearchQuery || question,
+                reasoning: webSearchReasoning,
+                resultsCount: webSearchResults.length
+            } : undefined
         });
 
     } catch (error) {
