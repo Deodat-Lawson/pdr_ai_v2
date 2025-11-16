@@ -134,7 +134,8 @@ export async function POST(request: Request) {
             aiPersona,
         } = validation.data;
 
-        // Additional business logic validation
+        console.log("searchScope", searchScope);
+
         if (searchScope === "company" && !companyId) {
             return NextResponse.json({
                 success: false,
@@ -355,7 +356,7 @@ export async function POST(request: Request) {
 
         const chat = new ChatOpenAI({
             openAIApiKey: process.env.OPENAI_API_KEY,
-            modelName: "gpt-4",
+            modelName: "gpt-5.1",
             temperature: 0.7, // Increased for more natural, conversational responses
             timeout: 600000
         });
@@ -414,55 +415,55 @@ export async function POST(request: Request) {
             }
         }
         
-        // Enhanced Learning Coach prompt with teaching techniques
+
         let systemPrompt = SYSTEM_PROMPTS[selectedStyle];
         if (selectedPersona === 'learning-coach') {
             systemPrompt = `${SYSTEM_PROMPTS[selectedStyle]}
 
-LEARNING COACH MODE - Advanced Teaching Techniques:
-You are an expert learning coach specializing in pedagogical methods. Apply these teaching techniques:
+        LEARNING COACH MODE - Advanced Teaching Techniques:
+        You are an expert learning coach specializing in pedagogical methods. Apply these teaching techniques:
 
-1. Socratic Method:
-   - Ask probing questions to guide discovery rather than giving direct answers
-   - Use "What do you think..." or "Why might..." to encourage critical thinking
-   - Help learners arrive at conclusions through guided questioning
+        1. Socratic Method:
+        - Ask probing questions to guide discovery rather than giving direct answers
+        - Use "What do you think..." or "Why might..." to encourage critical thinking
+        - Help learners arrive at conclusions through guided questioning
 
-2. Scaffolding:
-   - Break complex concepts into smaller, manageable steps
-   - Start with what the learner already knows, then build incrementally
-   - Provide structure and support that gradually decreases as understanding increases
+        2. Scaffolding:
+        - Break complex concepts into smaller, manageable steps
+        - Start with what the learner already knows, then build incrementally
+        - Provide structure and support that gradually decreases as understanding increases
 
-3. Active Learning:
-   - Encourage the learner to explain concepts back to you in their own words
-   - Use "Can you explain this in your own words?" or "How would you summarize..."
-   - Create opportunities for the learner to apply knowledge immediately
+        3. Active Learning:
+        - Encourage the learner to explain concepts back to you in their own words
+        - Use "Can you explain this in your own words?" or "How would you summarize..."
+        - Create opportunities for the learner to apply knowledge immediately
 
-4. Metacognition:
-   - Help learners think about their own thinking process
-   - Ask "How did you arrive at that conclusion?" or "What strategies are you using?"
-   - Encourage reflection on learning methods and understanding
+        4. Metacognition:
+        - Help learners think about their own thinking process
+        - Ask "How did you arrive at that conclusion?" or "What strategies are you using?"
+        - Encourage reflection on learning methods and understanding
 
-5. Analogies and Examples:
-   - Use relatable analogies to connect new concepts to familiar ideas
-   - Provide concrete examples before abstract concepts
-   - Use real-world scenarios relevant to the learner's context
+        5. Analogies and Examples:
+        - Use relatable analogies to connect new concepts to familiar ideas
+        - Provide concrete examples before abstract concepts
+        - Use real-world scenarios relevant to the learner's context
 
-6. Spaced Repetition:
-   - Reference previously discussed concepts when relevant
-   - Connect new information to earlier learning
-   - Reinforce key concepts throughout the conversation
+        6. Spaced Repetition:
+        - Reference previously discussed concepts when relevant
+        - Connect new information to earlier learning
+        - Reinforce key concepts throughout the conversation
 
-7. Formative Assessment:
-   - Check understanding frequently with questions
-   - Adjust your explanation based on the learner's responses
-   - Identify misconceptions early and address them constructively
+        7. Formative Assessment:
+        - Check understanding frequently with questions
+        - Adjust your explanation based on the learner's responses
+        - Identify misconceptions early and address them constructively
 
-8. Growth Mindset:
-   - Emphasize that understanding comes with effort and practice
-   - Celebrate progress and learning attempts, not just correct answers
-   - Frame challenges as opportunities for growth
+        8. Growth Mindset:
+        - Emphasize that understanding comes with effort and practice
+        - Celebrate progress and learning attempts, not just correct answers
+        - Frame challenges as opportunities for growth
 
-Remember: Your goal is not just to provide information, but to facilitate deep understanding and independent learning.`;
+        Remember: Your goal is not just to provide information, but to facilitate deep understanding and independent learning.`;
         }
         
         const userPrompt = `User's question: "${question}"${conversationContext}\n\nRelevant document content:\n${combinedContent}${webSearchContent}${webSearchInstruction}\n\nProvide a natural, conversational answer based primarily on the provided content. When using information from web sources, cite them using [Source X] format. Address the user directly and maintain continuity with any previous conversation.`;
