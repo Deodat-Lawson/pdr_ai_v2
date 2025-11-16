@@ -91,7 +91,7 @@ async function refineSearchQuery(
 ): Promise<{ refinedQuery: string; reasoning: string }> {
     const chat = new ChatOpenAI({
         openAIApiKey: env.server.OPENAI_API_KEY,
-        modelName: "gpt-4o-mini",
+        modelName: "gpt-5-mini",
         temperature: 0.3,
     });
 
@@ -108,10 +108,12 @@ async function refineSearchQuery(
 
     try {
         const response = await chat.invoke(messages);
-        const refinedQuery = response.content
-            .toString()
+        const content = typeof response.content === "string" 
+            ? response.content 
+            : String(response.content);
+        const refinedQuery = content
             .trim()
-            .replace(/^["']|["']$/g, ""); // Remove quotes if present
+            .replace(/^["']|["']$/g, "");
 
         console.log(`🔍 [WebSearchAgent] Query refined: "${userQuestion}" → "${refinedQuery}"`);
 
@@ -183,7 +185,7 @@ async function synthesizeResults(
         .join("\n---\n\n");
 
     const prompt = RESULT_SYNTHESIS_PROMPT
-        .replace("{documentContext}", documentContext || "None provided")
+        .replace("{documentContext}", documentContext ?? "None provided")
         .replace("{userQuestion}", userQuestion)
         .replace("{searchResults}", searchResultsText)
         .replace("{maxResults}", maxResults.toString());
@@ -194,18 +196,41 @@ async function synthesizeResults(
             new HumanMessage(prompt),
         ]);
 
-        const responseText = response.content.toString();
+        const content = typeof response.content === "string" 
+            ? response.content 
+            : String(response.content);
+        const responseText = content;
         
         // Extract JSON from response (handle markdown code blocks)
-        const jsonMatch = responseText.match(/```json\s*([\s\S]*?)\s*```/) || 
-                         responseText.match(/\{[\s\S]*\}/);
-        const jsonText = jsonMatch ? (jsonMatch[1] || jsonMatch[0]) : responseText;
+        const jsonBlockRegex = /```json\s*([\s\S]*?)\s*```/;
+        const jsonObjectRegex = /\{[\s\S]*\}/;
         
-        const parsed = JSON.parse(jsonText);
+        let jsonText = responseText;
+        const jsonBlockMatch = jsonBlockRegex.exec(responseText);
+        if (jsonBlockMatch) {
+            jsonText = jsonBlockMatch[1] ?? jsonText;
+        } else {
+            const jsonObjectMatch = jsonObjectRegex.exec(responseText);
+            if (jsonObjectMatch) {
+                jsonText = jsonObjectMatch[0] ?? jsonText;
+            }
+        }
+        
+        interface ParsedSynthesisResult {
+            selectedResults: Array<{
+                title: string;
+                url: string;
+                snippet: string;
+                relevanceScore?: number;
+            }>;
+            reasoning?: string;
+        }
+        
+        const parsed = JSON.parse(jsonText) as ParsedSynthesisResult;
         
         // Map back to WebSearchResult format
         const synthesizedResults: WebSearchResult[] = parsed.selectedResults.map(
-            (result: { title: string; url: string; snippet: string; relevanceScore?: number }) => ({
+            (result) => ({
                 title: result.title,
                 url: result.url,
                 snippet: result.snippet,
@@ -214,11 +239,11 @@ async function synthesizeResults(
         );
 
         console.log(`✨ [WebSearchAgent] Synthesized ${synthesizedResults.length} high-quality results`);
-        console.log(`📊 [WebSearchAgent] Reasoning: ${parsed.reasoning || "N/A"}`);
+        console.log(`📊 [WebSearchAgent] Reasoning: ${parsed.reasoning ?? "N/A"}`);
 
         return {
             results: synthesizedResults,
-            reasoning: parsed.reasoning || "Results filtered for relevance",
+            reasoning: parsed.reasoning ?? "Results filtered for relevance",
         };
     } catch (error) {
         console.error("Result synthesis error:", error);
@@ -247,7 +272,7 @@ export async function executeWebSearchAgent(
     refinedQuery: string;
     reasoning?: string;
 }> {
-    const maxResults = input.maxResults || 5;
+    const maxResults = input.maxResults ?? 5;
 
     try {
         // Step 1: Refine the search query
