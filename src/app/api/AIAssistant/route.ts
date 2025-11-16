@@ -404,7 +404,7 @@ export async function POST(request: Request) {
                 
                 webSearchResults = agentResult.results;
                 refinedSearchQuery = agentResult.refinedQuery;
-                webSearchReasoning = agentResult.reasoning || '';
+                webSearchReasoning = agentResult.reasoning ?? '';
                 
                 if (webSearchResults.length > 0) {
                     console.log(`✅ Web Search Agent: Found ${webSearchResults.length} high-quality sources`);

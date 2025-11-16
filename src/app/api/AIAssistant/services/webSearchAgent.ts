@@ -108,9 +108,16 @@ async function refineSearchQuery(
 
     try {
         const response = await chat.invoke(messages);
-        const content = typeof response.content === "string" 
-            ? response.content 
-            : String(response.content);
+        let content: string;
+        if (typeof response.content === "string") {
+            content = response.content;
+        } else if (Array.isArray(response.content)) {
+            content = response.content
+                .map((item) => typeof item === "string" ? item : JSON.stringify(item))
+                .join("");
+        } else {
+            content = JSON.stringify(response.content);
+        }
         const refinedQuery = content
             .trim()
             .replace(/^["']|["']$/g, "");
@@ -173,7 +180,7 @@ async function synthesizeResults(
 
     const chat = new ChatOpenAI({
         openAIApiKey: env.server.OPENAI_API_KEY,
-        modelName: "gpt-4o",
+        modelName: "gpt-5-mini",
         temperature: 0.2,
     });
 
@@ -196,10 +203,16 @@ async function synthesizeResults(
             new HumanMessage(prompt),
         ]);
 
-        const content = typeof response.content === "string" 
-            ? response.content 
-            : String(response.content);
-        const responseText = content;
+        let responseText: string;
+        if (typeof response.content === "string") {
+            responseText = response.content;
+        } else if (Array.isArray(response.content)) {
+            responseText = response.content
+                .map((item) => typeof item === "string" ? item : JSON.stringify(item))
+                .join("");
+        } else {
+            responseText = JSON.stringify(response.content);
+        }
         
         // Extract JSON from response (handle markdown code blocks)
         const jsonBlockRegex = /```json\s*([\s\S]*?)\s*```/;
