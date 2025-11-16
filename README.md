@@ -4,7 +4,7 @@ A Next.js application that uses advanced AI technology to analyze, interpret, an
 
 ## 🚀 Features
 
-### 🤖 **Predictive Document Analysis** (NEW!)
+### 🤖 **Predictive Document Analysis** 
 - **Missing Document Detection**: AI automatically identifies critical documents that should be present but are missing
 - **Priority Assessment**: Categorizes missing documents by priority (high, medium, low) for efficient workflow management
 - **Smart Recommendations**: Provides actionable recommendations for document organization and compliance
@@ -17,11 +17,15 @@ A Next.js application that uses advanced AI technology to analyze, interpret, an
 - Advanced AI algorithms analyze documents and extract key information
 - **OCR Processing**: Optional advanced OCR using Datalab Marker API for scanned documents and images
 - **AI-Powered Chat**: Interactive chat interface for document-specific questions and insights
+- **Web Search Agent**: Modern UI with Tailwind CSS
 - **Role-Based Authentication**: Separate interfaces for employees and employers using Clerk
 - **Document Management**: Upload, organize, and manage documents with category support
 - **Employee Management**: Employer dashboard for managing employee access and approvals
 - **Real-time Chat History**: Persistent chat sessions for each document
 - **Responsive Design**: Modern UI with Tailwind CSS
+
+## Web Search Agent Workflow
+<img width="1106" height="336" alt="Screenshot 2025-11-16 at 2 53 18 PM" src="https://github.com/user-attachments/assets/8c2d5ec2-a57e-4afa-97cf-1961dcb9049f" />
 
 ## 🔍 Predictive Document Analysis Deep Dive
 
