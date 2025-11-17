@@ -149,7 +149,7 @@ export async function callAIAnalysis(
 
     const chat = new ChatOpenAI({
         openAIApiKey: process.env.OPENAI_API_KEY,
-        modelName: "gpt-4.1",
+        modelName: "gpt-5.1",
         temperature: 0.3,
     });
 
