@@ -70,7 +70,7 @@ const aiPersonaOptions = ["general", "learning-coach", "financial-expert", "lega
 export const QuestionSchema = z.object({
   documentId: z.number().int().positive().optional(),
   companyId: z.number().int().positive().optional(),
-  question: z.string().min(1, "Question is required").max(2000, "Question is too long"),
+  question: z.string().min(1, "Question is required"),
   style: z.enum(["concise", "detailed", "academic", "bullet-points"]).optional(),
   searchScope: z.enum(["document", "company"]).optional(),
   enableWebSearch: z.preprocess(
@@ -97,10 +97,10 @@ export const QuestionSchema = z.object({
 
 export const ChatHistoryAddSchema = z.object({
   documentId: z.number().int().positive("Document ID must be a positive integer"),
-  question: z.string().min(1, "Question is required").max(2000, "Question is too long"),
-  documentTitle: z.string().min(1, "Document title is required").max(256, "Document title is too long"),
+  question: z.string().min(1, "Question is required"),
+  documentTitle: z.string().min(1, "Document title is required"),
   response: z.string().min(1, "Response is required"),
-  pages: z.array(z.number().int().positive()).max(50).optional(),
+  pages: z.array(z.number().int().positive()).optional(),
 });
 
 export const ChatHistoryFetchSchema = z.object({

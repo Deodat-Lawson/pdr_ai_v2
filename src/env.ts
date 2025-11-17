@@ -19,6 +19,13 @@ const serverSchema = z.object({
   UPLOADTHING_TOKEN: requiredString(),
   DATALAB_API_KEY: optionalString(),
   TAVILY_API_KEY: requiredString(),
+  // LangSmith configuration (optional, for tracing and monitoring)
+  LANGCHAIN_TRACING_V2: z.preprocess(
+    (val) => val === "true" || val === "1",
+    z.boolean().optional()
+  ),
+  LANGCHAIN_API_KEY: optionalString(),
+  LANGCHAIN_PROJECT: optionalString(), // Optional project name for LangSmith
 });
 
 const clientSchema = z.object({
@@ -54,6 +61,9 @@ export const env = {
     UPLOADTHING_TOKEN: process.env.UPLOADTHING_TOKEN,
     DATALAB_API_KEY: process.env.DATALAB_API_KEY,
     TAVILY_API_KEY: process.env.TAVILY_API_KEY,
+    LANGCHAIN_TRACING_V2: process.env.LANGCHAIN_TRACING_V2,
+    LANGCHAIN_API_KEY: process.env.LANGCHAIN_API_KEY,
+    LANGCHAIN_PROJECT: process.env.LANGCHAIN_PROJECT,
   }),
   client: parseEnv(clientSchema, {
     NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY:
