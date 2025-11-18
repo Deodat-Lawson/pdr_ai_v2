@@ -1,4 +1,20 @@
 /**
+ * Converts LaTeX standard delimiters \[ \] and \( \) to dollar sign notation
+ * This handles AI responses that use standard LaTeX math delimiters.
+ */
+function convertLatexDelimitersToDollarSigns(text: string): string {
+  // Convert display math: \[ ... \] → $$ ... $$
+  text = text.replace(/\\\[/g, '$$');
+  text = text.replace(/\\\]/g, '$$');
+  
+  // Convert inline math: \( ... \) → $ ... $
+  text = text.replace(/\\\(/g, '$');
+  text = text.replace(/\\\)/g, '$');
+  
+  return text;
+}
+
+/**
  * Converts LaTeX parentheses notation ( ... ) to dollar sign notation $ ... $
  * This handles AI responses that use parentheses for inline equations.
  */
@@ -65,8 +81,9 @@ function convertBracketNotationToLatex(text: string): string {
 
 export function normalizeModelContent(content: unknown): string {
   if (typeof content === "string") {
-    // Apply conversions in order: brackets first, then parentheses
-    let result = convertBracketNotationToLatex(content);
+    // Apply conversions in order: LaTeX delimiters first, then brackets, then parentheses
+    let result = convertLatexDelimitersToDollarSigns(content);
+    result = convertBracketNotationToLatex(result);
     result = convertParenthesesNotationToLatex(result);
     return result;
   }
@@ -77,8 +94,9 @@ export function normalizeModelContent(content: unknown): string {
         typeof part === "string" ? part : JSON.stringify(part)
       )
       .join("");
-    // Apply conversions in order: brackets first, then parentheses
-    let result = convertBracketNotationToLatex(joined);
+    // Apply conversions in order: LaTeX delimiters first, then brackets, then parentheses
+    let result = convertLatexDelimitersToDollarSigns(joined);
+    result = convertBracketNotationToLatex(result);
     result = convertParenthesesNotationToLatex(result);
     return result;
   }
