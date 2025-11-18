@@ -20,19 +20,19 @@ const MarkdownMessage: React.FC<MarkdownMessageProps> = ({ content, className })
         remarkPlugins={[remarkGfm, remarkMath]}
         rehypePlugins={[rehypeKatex]}
         components={{
-          p: (props: any) => (
+          p: (props: React.HTMLAttributes<HTMLParagraphElement>) => (
             <p className="my-1 leading-relaxed" {...props} />
           ),
-          ul: (props: any) => (
+          ul: (props: React.HTMLAttributes<HTMLUListElement>) => (
             <ul className="list-disc ml-4 my-1 space-y-1" {...props} />
           ),
-          ol: (props: any) => (
+          ol: (props: React.HTMLAttributes<HTMLOListElement>) => (
             <ol className="list-decimal ml-4 my-1 space-y-1" {...props} />
           ),
-          li: (props: any) => (
+          li: (props: React.HTMLAttributes<HTMLLIElement>) => (
             <li className="leading-relaxed" {...props} />
           ),
-          code: ({ inline, className: codeClassName, children, ...props }: any) => {
+          code: ({ inline, className: codeClassName, children, ...props }: React.HTMLAttributes<HTMLElement> & { inline?: boolean; className?: string }) => {
             const combinedClassName = inline
               ? clsx(
                   "px-1 py-0.5 rounded bg-slate-100 dark:bg-slate-800 text-[0.85em]",
@@ -49,7 +49,7 @@ const MarkdownMessage: React.FC<MarkdownMessageProps> = ({ content, className })
               </code>
             );
           },
-          a: (props: any) => (
+          a: (props: React.AnchorHTMLAttributes<HTMLAnchorElement>) => (
             <a
               {...props}
               className={clsx(

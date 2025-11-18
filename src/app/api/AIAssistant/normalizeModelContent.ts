@@ -26,7 +26,7 @@ function convertParenthesesNotationToLatex(text: string): string {
   // First, handle nested parentheses (like domain ranges) before single parentheses
   // Pattern: (( content )) where content contains numbers, commas, or math
   // Preserve the inner parentheses in the output
-  text = text.replace(/\(\(([^()]+)\)\)/g, (match, equation) => {
+  text = text.replace(/\(\(([^()]+)\)\)/g, (_match, equation: string) => {
     return `$(${equation.trim()})$`;
   });
   
@@ -37,13 +37,13 @@ function convertParenthesesNotationToLatex(text: string): string {
   //   - Subscripts/superscripts: C_n, x^2
   //   - Equations with =: a = 0
   // Exclude commas to avoid function calls like func(x, y)
-  text = text.replace(/\(([^(),]*(?:\\[a-zA-Z]+|[_^=])[^(),]*)\)/g, (match, equation) => {
+  text = text.replace(/\(([^(),]*(?:\\[a-zA-Z]+|[_^=])[^(),]*)\)/g, (_match, equation: string) => {
     return `$${equation.trim()}$`;
   });
   
   // Handle single letter variables in parentheses: (x), (a), (n)
   // But NOT function calls like func(x) - check that there's no word character before the (
-  text = text.replace(/(?<![a-zA-Z])\(([a-zA-Z])\)(?!\w)/g, (match, letter) => {
+  text = text.replace(/(?<![a-zA-Z])\(([a-zA-Z])\)(?!\w)/g, (_match, letter: string) => {
     return `$${letter}$`;
   });
   
@@ -61,17 +61,16 @@ function convertBracketNotationToLatex(text: string): string {
   
   // First, handle display equations (on their own line or with newlines)
   // Pattern: newline or start, optional whitespace, [, content, ], optional whitespace, newline or end
-  text = text.replace(/(\n|^)\s*\[\s*(\\[a-zA-Z]+|[^[\]]*(?:\\[a-zA-Z]+|[_^{}])[^[\]]*)\s*\]\s*(?=\n|$)/g, 
-    (match, prefix) => {
-      const equation = match.trim().slice(1, -1).trim(); // Remove [ and ] and trim
-      return `${prefix}$$${equation}$$`;
+  text = text.replace(/(\n|^)\s*\[\s*(\\[a-zA-Z]+|[^\[\]]*(?:\\[a-zA-Z]+|[_^{}])[^\[\]]*)\s*\]\s*(?=\n|$)/g, 
+    (_match, _prefix, equation: string) => {
+      return `$$${equation.trim()}$$`;
     }
   );
   
   // Then handle inline equations (with spaces around brackets to avoid array access)
   // Pattern: [ space, content with LaTeX, space ]
-  text = text.replace(/\[\s+((?:\\[a-zA-Z]+|[^[\]]*(?:\\[a-zA-Z]+|[_^{}])[^[\]]*)+)\s+\]/g, 
-    (match, equation) => {
+  text = text.replace(/\[\s+((?:\\[a-zA-Z]+|[^\[\]]*(?:\\[a-zA-Z]+|[_^{}])[^\[\]]*)+)\s+\]/g, 
+    (_match, equation: string) => {
       return `$${equation.trim()}$`;
     }
   );
@@ -109,7 +108,7 @@ export function normalizeModelContent(content: unknown): string {
   try {
     return JSON.stringify(content);
   } catch {
-    return String(content);
+    return Object.prototype.toString.call(content);
   }
 }
 
