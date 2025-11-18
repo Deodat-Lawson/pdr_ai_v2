@@ -6,6 +6,7 @@ import styles from "~/styles/Employee/DocumentViewer.module.css";
 import { type ViewMode } from "./types";
 
 import QAHistory, { type QAHistoryEntry } from "./ChatHistory";
+import MarkdownMessage from "~/app/_components/MarkdownMessage";
 
 interface DocumentType {
   id: number;
@@ -331,7 +332,10 @@ export const DocumentContent: React.FC<DocumentContentProps> = ({
 
           {aiAnswer && (
             <div className="bg-gray-100 dark:bg-slate-800 rounded p-3 mt-2">
-              <p className="text-gray-700 dark:text-gray-300 whitespace-pre-wrap">{aiAnswer}</p>
+              <MarkdownMessage
+                content={aiAnswer}
+                className="text-gray-700 dark:text-gray-300 text-sm leading-relaxed"
+              />
 
               {referencePages.length > 0 && (
                 <div className="mt-4">

@@ -1,6 +1,17 @@
-import { POST } from "~/app/api/AIAssistant/route";
-
 const mockValidateRequestBody = jest.fn();
+
+// Mock env module before any imports
+jest.mock("~/env", () => ({
+    env: {
+        DATABASE_URL: "postgresql://test",
+        OPENAI_API_KEY: "test-key",
+        CLERK_SECRET_KEY: "test-clerk-key",
+        UPLOADTHING_TOKEN: "test-upload-token",
+        TAVILY_API_KEY: "test-tavily-key",
+        NODE_ENV: "test",
+    },
+}));
+
 jest.mock("~/lib/validation", () => {
     const actual = jest.requireActual("~/lib/validation");
     return {
@@ -10,6 +21,8 @@ jest.mock("~/lib/validation", () => {
 });
 
 const mockAuth = jest.fn();
+
+import { POST } from "~/app/api/AIAssistant/route";
 jest.mock("@clerk/nextjs/server", () => ({
     auth: (...args: unknown[]) => mockAuth(...args),
 }));

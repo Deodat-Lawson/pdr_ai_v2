@@ -17,6 +17,7 @@ import { auth } from "@clerk/nextjs/server";
 import { users, document } from "~/server/db/schema";
 import { performTavilySearch, type WebSearchResult } from "./services/tavilySearch";
 import { executeWebSearchAgent } from "./services/webSearchAgent";
+import normalizeModelContent from "./normalizeModelContent";
 
 
 export const runtime = 'nodejs';
@@ -525,16 +526,28 @@ The user enabled web search, but no relevant results were found for this query. 
         
         const userPrompt = `User's question: "${question}"${conversationContext}\n\nRelevant document content:\n${combinedContent}${webSearchContent}${webSearchInstruction}\n\nProvide a natural, conversational answer based primarily on the provided content. When using information from web sources, cite them using [Source X] format. Address the user directly and maintain continuity with any previous conversation.`;
         
-        const summarizedAnswer = await chat.call([
+        const summarizedAnswerMessage = await chat.call([
             new SystemMessage(systemPrompt),
             new HumanMessage(userPrompt),
         ]);
+
+        // Debug logging: Print raw AI response to terminal
+        console.log('\n=== RAW AI RESPONSE (before normalization) ===');
+        console.log(JSON.stringify(summarizedAnswerMessage.content, null, 2));
+        console.log('=== END RAW AI RESPONSE ===\n');
+
+        const summarizedAnswer = normalizeModelContent(summarizedAnswerMessage.content);
+        
+        // Debug logging: Print normalized response
+        console.log('\n=== NORMALIZED RESPONSE (after conversion) ===');
+        console.log(summarizedAnswer);
+        console.log('=== END NORMALIZED RESPONSE ===\n');
 
         const totalTime = Date.now() - startTime;
 
         return NextResponse.json({
             success: true,
-            summarizedAnswer: summarizedAnswer.content,
+            summarizedAnswer,
             recommendedPages: documents.map(doc => doc.metadata?.page).filter((page): page is number => page !== undefined),
             retrievalMethod,
             processingTimeMs: totalTime,
