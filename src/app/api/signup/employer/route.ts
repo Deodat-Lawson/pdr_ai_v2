@@ -1,8 +1,8 @@
 import { NextResponse } from "next/server";
 import { db } from "~/server/db/index";
 import { users, company } from "~/server/db/schema";
-import {and, eq} from "drizzle-orm";
-import * as console from "console";
+import { and, eq } from "drizzle-orm";
+import { handleApiError, createSuccessResponse, createValidationError } from "~/lib/api-utils";
 
 type PostBody = {
     userId: string;
@@ -29,9 +29,8 @@ export async function POST(request: Request) {
             );
 
         if (!existingCompany) {
-            return NextResponse.json(
-                {error: "Invalid company name or passkey."},
-                {status: 400}
+            return createValidationError(
+                "Invalid company name or passkey. Please check your credentials and try again."
             );
         }
 
@@ -47,9 +46,12 @@ export async function POST(request: Request) {
             role: "employer",
         });
 
-    }
-    catch (error: unknown) {
-        console.error(error);
-        return NextResponse.json({ error: error}, { status: 500 });
+        return createSuccessResponse(
+            { userId, role: "employer" },
+            "Employer account created successfully. Awaiting approval."
+        );
+    } catch (error: unknown) {
+        console.error("Error during employer signup:", error);
+        return handleApiError(error);
     }
 }
