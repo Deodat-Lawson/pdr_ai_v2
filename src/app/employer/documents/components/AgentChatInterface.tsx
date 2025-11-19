@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Brain, Send, ThumbsUp, ThumbsDown, Plus, Search, ExternalLink } from 'lucide-react';
 import { useAgentChatbot, type Message } from '../hooks/useAgentChatbot';
+import MarkdownMessage from "~/app/_components/MarkdownMessage";
 import clsx from 'clsx';
 
 interface AgentChatInterfaceProps {
@@ -234,7 +235,15 @@ export const AgentChatInterface: React.FC<AgentChatInterfaceProps> = ({
             </p>
           </div>
         ) : (
-          messages.map((msg) => (
+          messages.map((msg) => {
+            const displayText =
+              typeof msg.content === 'string'
+                ? msg.content
+                : (typeof msg.content === 'object' && msg.content !== null && 'text' in msg.content)
+                  ? msg.content.text ?? JSON.stringify(msg.content)
+                  : JSON.stringify(msg.content);
+
+            return (
             <div
               key={msg.id}
               className={clsx(
@@ -250,13 +259,16 @@ export const AgentChatInterface: React.FC<AgentChatInterfaceProps> = ({
                     : 'bg-gray-100 dark:bg-slate-700 text-gray-800 dark:text-gray-200'
                 )}
               >
-                <p className="text-sm whitespace-pre-wrap leading-relaxed">
-                  {typeof msg.content === 'string' 
-                    ? msg.content 
-                    : (typeof msg.content === 'object' && msg.content !== null && 'text' in msg.content)
-                      ? msg.content.text ?? JSON.stringify(msg.content)
-                      : JSON.stringify(msg.content)}
-                </p>
+                {msg.role === 'assistant' ? (
+                  <MarkdownMessage
+                    content={displayText}
+                    className="text-sm leading-relaxed text-gray-800 dark:text-gray-200"
+                  />
+                ) : (
+                  <p className="text-sm whitespace-pre-wrap leading-relaxed">
+                    {displayText}
+                  </p>
+                )}
                 
                 {msg.role === 'assistant' && typeof msg.content === 'object' && msg.content !== null && (
                   <>
@@ -327,7 +339,8 @@ export const AgentChatInterface: React.FC<AgentChatInterfaceProps> = ({
                 )}
               </div>
             </div>
-          ))
+          );
+          })
         )}
         
         {isSubmitting && (

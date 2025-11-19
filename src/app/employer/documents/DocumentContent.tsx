@@ -4,6 +4,7 @@ import React, { useState, useEffect, useRef } from "react";
 import { Brain, Clock, FileSearch, AlertTriangle, CheckCircle, AlertCircle, RefreshCw, Check, ChevronLeft, ChevronRight, FileText } from "lucide-react";
 import styles from "~/styles/Employer/DocumentViewer.module.css";
 import { type ViewMode } from "./types";
+import MarkdownMessage from "~/app/_components/MarkdownMessage";
 import clsx from "clsx";
 
 // Import the QAHistory component AND the QAHistoryEntry interface
@@ -605,7 +606,10 @@ export const DocumentContent: React.FC<DocumentContentProps> = ({
 
               {aiAnswer && (
                 <div className="bg-gradient-to-r from-gray-50 to-purple-50 dark:from-slate-700 dark:to-purple-900/20 rounded-xl p-4 border border-gray-200 dark:border-purple-500/30 space-y-3">
-                  <p className="text-gray-700 dark:text-gray-300 text-sm whitespace-pre-wrap leading-relaxed">{aiAnswer}</p>
+                  <MarkdownMessage
+                    content={aiAnswer}
+                    className="text-gray-700 dark:text-gray-300 text-sm leading-relaxed"
+                  />
 
                   {referencePages.length > 0 && (
                     <div className="pt-3 border-t border-gray-300 dark:border-slate-600 space-y-2">
