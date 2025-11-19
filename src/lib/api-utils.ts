@@ -91,6 +91,36 @@ export function createNotFoundError(
 }
 
 /**
+ * Create an unauthorized error response
+ */
+export function createUnauthorizedError(
+  message = "Unauthorized",
+  error?: Error | string
+): NextResponse<ErrorResponse> {
+  return createErrorResponse(
+    message,
+    ERROR_TYPES.VALIDATION,
+    HTTP_STATUS.UNAUTHORIZED,
+    error
+  );
+}
+
+/**
+ * Create a forbidden error response
+ */
+export function createForbiddenError(
+  message = "Access forbidden",
+  error?: Error | string
+): NextResponse<ErrorResponse> {
+  return createErrorResponse(
+    message,
+    ERROR_TYPES.VALIDATION,
+    HTTP_STATUS.FORBIDDEN,
+    error
+  );
+}
+
+/**
  * Create a timeout error response
  */
 export function createTimeoutError(

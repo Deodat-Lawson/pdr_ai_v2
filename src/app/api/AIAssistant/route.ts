@@ -16,6 +16,13 @@ import { validateRequestBody, QuestionSchema } from "~/lib/validation";
 import { auth } from "@clerk/nextjs/server";
 import { users, document } from "~/server/db/schema";
 import { performTavilySearch, type WebSearchResult } from "./services/tavilySearch";
+import {
+    createUnauthorizedError,
+    createForbiddenError,
+    createNotFoundError,
+    createValidationError,
+    handleApiError
+} from "~/lib/api-utils";
 import { executeWebSearchAgent } from "./services/webSearchAgent";
 import normalizeModelContent from "./normalizeModelContent";
 
@@ -120,10 +127,7 @@ export async function POST(request: Request) {
 
         const { userId } = await auth();
         if (!userId) {
-            return NextResponse.json({
-                success: false,
-                message: "Unauthorized"
-            }, { status: 401 });
+            return createUnauthorizedError("Unauthorized");
         }
 
         const {
@@ -139,17 +143,11 @@ export async function POST(request: Request) {
         console.log("searchScope", searchScope);
 
         if (searchScope === "company" && !companyId) {
-            return NextResponse.json({
-                success: false,
-                message: "companyId is required for company-wide search"
-            }, { status: 400 });
+            return createValidationError("companyId is required for company-wide search");
         }
 
         if (searchScope === "document" && !documentId) {
-            return NextResponse.json({
-                success: false,
-                message: "documentId is required for document search"
-            }, { status: 400 });
+            return createValidationError("documentId is required for document search");
         }
 
         const [requestingUser] = await db
@@ -159,35 +157,23 @@ export async function POST(request: Request) {
             .limit(1);
 
         if (!requestingUser) {
-            return NextResponse.json({
-                success: false,
-                message: "Invalid user."
-            }, { status: 401 });
+            return createUnauthorizedError("Invalid user");
         }
 
         const userCompanyId = requestingUser.companyId;
         const numericCompanyId = Number.parseInt(userCompanyId, 10);
 
         if (Number.isNaN(numericCompanyId)) {
-            return NextResponse.json({
-                success: false,
-                message: "User is not associated with a valid company."
-            }, { status: 403 });
+            return createForbiddenError("User is not associated with a valid company");
         }
 
         if (searchScope === "company") {
             if (!COMPANY_SCOPE_ROLES.has(requestingUser.role)) {
-                return NextResponse.json({
-                    success: false,
-                    message: "Only employer accounts can run company-wide searches."
-                }, { status: 403 });
+                return createForbiddenError("Only employer accounts can run company-wide searches");
             }
 
             if (companyId !== undefined && companyId !== numericCompanyId) {
-                return NextResponse.json({
-                    success: false,
-                    message: "Company mismatch detected for the current user."
-                }, { status: 403 });
+                return createForbiddenError("Company mismatch detected for the current user");
             }
         }
 
@@ -202,17 +188,11 @@ export async function POST(request: Request) {
                 .limit(1);
 
             if (!targetDocument) {
-                return NextResponse.json({
-                    success: false,
-                    message: "Document not found."
-                }, { status: 404 });
+                return createNotFoundError("Document not found");
             }
 
             if (targetDocument.companyId !== userCompanyId) {
-                return NextResponse.json({
-                    success: false,
-                    message: "You do not have access to this document."
-                }, { status: 403 });
+                return createForbiddenError("You do not have access to this document");
             }
         }
 
@@ -332,10 +312,7 @@ export async function POST(request: Request) {
         }
 
         if (documents.length === 0) {
-            return NextResponse.json({
-                success: false,
-                message: "No relevant content found for the given question and document.",
-            });
+            return createNotFoundError("No relevant content found for the given question and document");
         }
 
         console.log(`🔍 [AI] Building context from ${documents.length} retrieved documents`);
@@ -564,13 +541,6 @@ The user enabled web search, but no relevant results were found for this query. 
 
     } catch (error) {
         console.error("❌ [Q&A-ANN] Error in Q&A processing:", error);
-        return NextResponse.json(
-            { 
-                success: false, 
-                error: "An error occurred while processing your question.",
-                details: error instanceof Error ? error.message : "Unknown error"
-            },
-            { status: 500 }
-        );
+        return handleApiError(error);
     }
 }
