@@ -1,0 +1,151 @@
+import { relations, sql } from "drizzle-orm";
+import {
+    boolean,
+    index,
+    integer,
+    jsonb,
+    serial,
+    text,
+    timestamp,
+    varchar,
+} from "drizzle-orm/pg-core";
+
+import { pgVector } from "~/server/db/pgVector";
+import { pgTable } from "./helpers";
+
+export const users = pgTable("users", {
+    id: serial("id").primaryKey().unique(),
+    name: varchar("name", { length: 256 }).notNull(),
+    email: varchar("email", { length: 256 }).notNull(),
+    userId: varchar("userId", { length: 256 }).notNull().unique(),
+    companyId: varchar("companyId", { length: 256 }).notNull(),
+    role: varchar("role", { length: 256 }).notNull(),
+    status: varchar("status", { length: 256 }).notNull(),
+    createdAt: timestamp("created_at", { withTimezone: true })
+        .default(sql`CURRENT_TIMESTAMP`)
+        .notNull(),
+    updatedAt: timestamp("updated_at", { withTimezone: true }).$onUpdate(
+        () => new Date()
+    ),
+});
+
+export const company = pgTable("company", {
+    id: serial("id").primaryKey(),
+    name: varchar("name", { length: 256 }).notNull(),
+    employerpasskey: varchar("employerPasskey", { length: 256 }).notNull(),
+    employeepasskey: varchar("employeePasskey", { length: 256 }).notNull(),
+    numberOfEmployees: varchar("numberOfEmployees", { length: 256 }).notNull(),
+    createdAt: timestamp("created_at", { withTimezone: true })
+        .default(sql`CURRENT_TIMESTAMP`)
+        .notNull(),
+    updatedAt: timestamp("updated_at", { withTimezone: true }).$onUpdate(
+        () => new Date()
+    ),
+});
+
+export const document = pgTable("document", {
+    id: serial("id").primaryKey(),
+    url: varchar("url", { length: 256 }).notNull(),
+    category: varchar("category", { length: 256 }).notNull(),
+    title: varchar("title", { length: 256 }).notNull(),
+    companyId: varchar("company id", { length: 256 }).notNull(),
+    ocrEnabled: boolean("ocr_enabled").default(false),
+    ocrProcessed: boolean("ocr_processed").default(false),
+    ocrMetadata: jsonb("ocr_metadata"),
+    createdAt: timestamp("created_at", { withTimezone: true })
+        .default(sql`CURRENT_TIMESTAMP`)
+        .notNull(),
+    updatedAt: timestamp("updated_at", { withTimezone: true }).$onUpdate(
+        () => new Date()
+    ),
+});
+
+export const category = pgTable("category", {
+    id: serial("id").primaryKey(),
+    name: varchar("name", { length: 256 }).notNull(),
+    companyId: varchar("company id", { length: 256 }).notNull(),
+    createdAt: timestamp("created_at", { withTimezone: true })
+        .default(sql`CURRENT_TIMESTAMP`)
+        .notNull(),
+    updatedAt: timestamp("updated_at", { withTimezone: true }).$onUpdate(
+        () => new Date()
+    ),
+});
+
+export const pdfChunks = pgTable("pdf_chunks", {
+    id: serial("id").primaryKey(),
+
+    documentId: integer("document_id")
+        .notNull()
+        .references(() => document.id, { onDelete: "cascade" }),
+
+    page: integer("page").notNull(),
+    content: text("content").notNull(),
+    embedding: pgVector({ dimension: 1536 })("embedding"),
+});
+
+export const ChatHistory = pgTable("chatHistory", {
+    id: serial("id").primaryKey(),
+    UserId: varchar("company id", { length: 256 }).notNull(),
+    documentId: varchar("document id", { length: 256 }).notNull(),
+    documentTitle: varchar("document title", { length: 256 }).notNull(),
+    question: varchar("question", { length: 256 }).notNull(),
+    response: text("response").notNull(),
+    chatId: varchar("chat_id", { length: 256 }),
+    queryType: varchar("query_type", { length: 20, enum: ["simple", "advanced"] }).default(
+        "simple"
+    ),
+    pages: integer("pages").array().notNull(),
+    createdAt: timestamp("created_at", { withTimezone: true })
+        .default(sql`CURRENT_TIMESTAMP`)
+        .notNull(),
+    updatedAt: timestamp("updated_at", { withTimezone: true }).$onUpdate(
+        () => new Date()
+    ),
+});
+
+export const predictiveDocumentAnalysisResults = pgTable(
+    "predictive_document_analysis_results",
+    {
+        id: serial("id").primaryKey(),
+        documentId: integer("document_id")
+            .notNull()
+            .references(() => document.id, { onDelete: "cascade" }),
+        analysisType: varchar("analysis_type", { length: 256 }).notNull(),
+        includeRelatedDocs: boolean("include_related_docs").default(false),
+        resultJson: jsonb("result_json").notNull(),
+        createdAt: timestamp("created_at", { withTimezone: true })
+            .default(sql`CURRENT_TIMESTAMP`)
+            .notNull(),
+    }
+);
+
+export const documentReferenceResolution = pgTable(
+    "document_reference_resolutions",
+    {
+        id: serial("id").primaryKey(),
+        companyId: integer("company_id")
+            .notNull()
+            .references(() => company.id, { onDelete: "cascade" }),
+        referenceName: varchar("reference_name", { length: 256 }).notNull(),
+        resolvedInDocumentId: integer("resolved_in_document_id"),
+        resolutionDetails: jsonb("resolution_details"),
+        createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+    },
+    (table) => ({
+        companyRefId: index("document_reference_resolutions_company_ref_idx").on(
+            table.companyId
+        ),
+    })
+);
+
+export const documentsRelations = relations(document, ({ many }) => ({
+    pdfChunks: many(pdfChunks),
+}));
+
+export const pdfChunksRelations = relations(pdfChunks, ({ one }) => ({
+    document: one(document, {
+        fields: [pdfChunks.documentId],
+        references: [document.id],
+    }),
+}));
