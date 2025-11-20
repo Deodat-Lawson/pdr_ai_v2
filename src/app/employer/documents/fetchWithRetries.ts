@@ -1,3 +1,5 @@
+import { logger } from '~/lib/logger';
+
 // 1) A helper function that retries fetch up to `maxRetries` times
 export async function fetchWithRetries(
     url: string,
@@ -35,7 +37,7 @@ export async function fetchWithRetries(
                     /timed out/i.test(err.message) || err.name === "AbortError";
 
                 if (isTimeoutError && attempt < maxRetries) {
-                    console.warn(`Attempt ${attempt} failed due to timeout, retrying...`);
+                    logger.warn(`Fetch attempt failed due to timeout, retrying`, { url, attempt, maxRetries }, err);
                     continue; // Go to the next attempt
                 }
 
