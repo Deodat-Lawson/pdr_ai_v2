@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { HTTP_STATUS, ERROR_TYPES, type ErrorType } from "./constants";
+import { logger } from "./logger";
 
 /**
  * Utility functions for API responses
@@ -139,7 +140,7 @@ export function createExternalServiceError(
  * Handle API errors with appropriate response
  */
 export function handleApiError(error: unknown): NextResponse<ErrorResponse> {
-  console.error("API Error:", error);
+  logger.error("API Error", {}, error instanceof Error ? error : String(error));
 
   if (error instanceof Error) {
     if (error.message.includes('timed out') || error.message.includes('timeout')) {
